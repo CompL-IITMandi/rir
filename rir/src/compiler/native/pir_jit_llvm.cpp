@@ -126,11 +126,9 @@ void PirJitLLVM::DebugInfo::emitLocation(llvm::IRBuilder<>& builder,
 }
 #endif // PIR_GDB_SUPPORT
 
-#ifdef PIR_GDB_SUPPORT
 PirJitLLVM::PirJitLLVM(const std::string& name)
+#ifdef PIR_GDB_SUPPORT
     : DI(dbgFolder, name)
-#else
-PirJitLLVM::PirJitLLVM()
 #endif
 {
     if (!initialized)

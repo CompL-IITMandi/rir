@@ -41,11 +41,7 @@ using PromMap = std::unordered_map<Code*, std::pair<unsigned, MkArg*>>;
 // addresses for PIR builtins.
 class PirJitLLVM {
   public:
-#ifdef PIR_GDB_SUPPORT
     explicit PirJitLLVM(const std::string& name);
-#else
-    PirJitLLVM();
-#endif
     PirJitLLVM(const PirJitLLVM&) = delete;
     PirJitLLVM(PirJitLLVM&&) = delete;
     ~PirJitLLVM();
@@ -78,13 +74,7 @@ class PirJitLLVM {
     static std::string makeName(Code* c) {
         std::stringstream ss;
         ss << "rsh_";
-        if (auto cls = ClosureVersion::Cast(c)) {
-            ss << cls->name();
-        } else if (auto p = Promise::Cast(c)) {
-            ss << p->owner->name() << "_" << *p;
-        } else {
-            assert(false);
-        }
+        c->printName(ss);
         ss << "." << nModules;
         return ss.str();
     }

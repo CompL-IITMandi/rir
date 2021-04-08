@@ -17,12 +17,8 @@ namespace pir {
 
 class Backend {
   public:
-#ifdef PIR_GDB_SUPPORT
     Backend(StreamLogger& logger, const std::string& name)
         : jit(name), logger(logger) {}
-#else
-    explicit Backend(StreamLogger& logger) : logger(logger) {}
-#endif
     Backend(const Backend&) = delete;
     Backend& operator=(const Backend&) = delete;
 
