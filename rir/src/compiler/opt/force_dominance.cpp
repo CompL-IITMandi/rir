@@ -9,6 +9,7 @@
 #include "utils/Set.h"
 #include <unordered_map>
 #include <unordered_set>
+#include "../../utils/FunctionCallLogs.h"
 
 namespace rir {
 namespace pir {
@@ -175,11 +176,17 @@ bool ForceDominance::apply(Compiler&, ClosureVersion* cls, Code* code,
                 if (auto mkarg = MkArg::Cast(f->followCastsAndForce())) {
                     if (mkarg->isEager()) {
                         anyChange = true;
+                        if (getenv("PIR_ANALYSIS_LOGS")) {
+                            FunctionCallLogs::updatePromiseInfo();
+                        }
                         Value* eager = mkarg->eagerArg();
                         f->replaceUsesWith(eager);
                         next = bb->remove(ip);
                     } else if (toInline.count(f)) {
                         anyChange = true;
+                        if (getenv("PIR_ANALYSIS_LOGS")) {
+                            FunctionCallLogs::updatePromiseInfo();
+                        }
                         Promise* prom = mkarg->prom();
                         BB* split =
                             BBTransform::split(code->nextBBId++, bb, ip, code);
@@ -344,6 +351,9 @@ bool ForceDominance::apply(Compiler&, ClosureVersion* cls, Code* code,
                     if (auto mk = MkArg::Cast(cast->arg<0>().val())) {
                         if (mk->isEager()) {
                             anyChange = true;
+                            if (getenv("PIR_ANALYSIS_LOGS")) {
+                                FunctionCallLogs::updatePromiseInfo();
+                            }
                             auto eager = mk->eagerArg();
                             auto allowedToReplace = [&](Instruction* i) {
                                 if (Force::Cast(i) || LdFun::Cast(i))
@@ -406,6 +416,9 @@ bool ForceDominance::apply(Compiler&, ClosureVersion* cls, Code* code,
                                    UpdatePromise::Cast(dom->second)) {
                         f->replaceUsesWith(otherUpdate->arg(1).val());
                         next = bb->remove(ip);
+                        if (getenv("PIR_ANALYSIS_LOGS")) {
+                            FunctionCallLogs::updatePromiseInfo();
+                        }
                     }
                 }
             }

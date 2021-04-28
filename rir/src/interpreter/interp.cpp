@@ -13,11 +13,16 @@
 #include "utils/Pool.h"
 #include "utils/measuring.h"
 
+#include "../utils/FunctionCallLogs.h"
+#include "R/Printing.h"
+
 #include <assert.h>
 #include <deque>
 #include <libintl.h>
 #include <set>
 #include <unordered_set>
+
+
 
 #define NOT_IMPLEMENTED assert(false)
 
@@ -1031,6 +1036,7 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
                         ctx);
     Function* fun = dispatch(call, table);
     fun->registerInvocation();
+    Function* prevFun = fun;
 
     if (!isDeoptimizing() && RecompileHeuristic(table, fun)) {
         Context given = call.givenContext;
@@ -1045,9 +1051,26 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
             if (given.includes(pir::Compiler::minimalContext)) {
                 DoRecompile(fun, call.ast, call.callee, given, ctx);
                 fun = dispatch(call, table);
+                if (getenv("PIR_ANALYSIS_LOGS")) {
+                    std::stringstream str1, str2;
+                    fun->body()->disassemble(str1);
+                    prevFun->body()->disassemble(str2);
+                    bool changeInPIR = false;
+
+                    if(str1.str() != str2.str())
+                        changeInPIR = true;
+
+                    FunctionCallLogs::putCompilationInfo(call, fun, changeInPIR);
+                }
             }
         }
     }
+
+    if(getenv("PIR_ANALYSIS_LOGS"))
+    {
+        FunctionCallLogs::recordCallLog(call, fun);
+    }
+
     bool needsEnv = fun->signature().envCreation ==
                     FunctionSignature::Environment::CallerProvided;
 

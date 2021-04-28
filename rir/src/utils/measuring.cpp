@@ -191,6 +191,8 @@ void Measuring::setEventThreshold(size_t n) {
 void Measuring::countEvent(const std::string& name, size_t n) {
     m->shouldOutput = true;
     m->events[name] += n;
+    if(getenv("PIR_COMPILATION_LOGS"))
+        std::cerr <<"----->>>>> Compile: "<< name <<"\n";
 }
 
 } // namespace rir
