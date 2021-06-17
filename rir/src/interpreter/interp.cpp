@@ -2,6 +2,7 @@
 #include "R/Funtab.h"
 #include "R/RList.h"
 #include "R/Symbols.h"
+#include "api.h"
 #include "cache.h"
 #include "compiler/compiler.h"
 #include "compiler/parameter.h"
@@ -10,9 +11,11 @@
 #include "runtime/LazyEnvironment.h"
 #include "runtime/TypeFeedback_inl.h"
 #include "safe_force.h"
+#include "utils/ContextualProfiling.h"
+#include "utils/CompilationStrategy.h"
+#include "utils/FunctionVersion.h"
 #include "utils/Pool.h"
 #include "utils/measuring.h"
-#include "utils/ContextualProfiling.h"
 
 #include <assert.h>
 #include <deque>
@@ -1067,11 +1070,11 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     fun->registerInvocation();
 
     // For Logger -- START
-    size_t lMethodId = ContextualProfiling::getEntryKey(call);
+    size_t lMethodId = FunctionVersion::getFunctionId(call.callee);
     Context lContext = call.givenContext;
     // For Logger -- END
 
-    if (ContextualProfiling::compileFlag(lMethodId, lContext) && !isDeoptimizing() && RecompileHeuristic(table, fun)) {
+    if (!isDeoptimizing() && RecompileHeuristic(table, fun) && CompilationStrategy::compileFlag(lMethodId, lContext)) {
         Context given = call.givenContext;
         // addDynamicAssumptionForOneTarget compares arguments with the
         // signature of the current dispatch target. There the number of
@@ -1094,7 +1097,16 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
         *fun
     );
 
-    auto start = std::chrono::system_clock::now(); // runtime start
+#ifdef LOG_FUNCTION_CALLS
+    pir::StreamLogger logger(PirDebug);
+    {
+        std::stringstream msg_ss;
+        std::string name = ContextualProfiling::extractFunctionName(call.ast);
+        msg_ss << "Calling " << name << fun->context().getShortStringRepr()
+               << " in context " << lContext.getShortStringRepr();
+        logger.warn(msg_ss.str());
+    }
+#endif
 
     bool needsEnv = fun->signature().envCreation ==
                     FunctionSignature::Environment::CallerProvided;
@@ -1104,16 +1116,12 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
         call.depromiseArgs();
     }
 
-
     LazyArglistOnStack lazyPromargs(
         call.callId,
         call.caller ? call.caller->arglistOrderContainer() : nullptr,
         call.suppliedArgs, call.stackArgs, call.ast);
 
-
     SEXP result;
-
-	std::chrono::duration<double> duration;
     if (!needsEnv) {
         // Default fast calling convention for pir, environment is created by
         // the callee
@@ -1135,18 +1143,6 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     }
     assert(result);
     assert(!fun->flags.contains(Function::Deopt));
-
-
-    auto end = std::chrono::system_clock::now();
-    duration = end - start;
-
-    ContextualProfiling::addFunctionDispatchRuntime(
-        lMethodId,
-        lContext,
-        *fun,
-        duration
-    );
-
     return result;
 }
 

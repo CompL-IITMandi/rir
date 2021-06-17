@@ -15,16 +15,14 @@
 #include "ir/BC.h"
 #include "ir/Compiler.h"
 #include "utils/ContextualProfiling.h"
-
+#include "utils/CompilationStrategy.h"
 
 #include <cassert>
+#include <chrono>
 #include <cstdio>
 #include <list>
 #include <memory>
 #include <string>
-
-#include <chrono>
-#include <ctime>
 
 using namespace rir;
 
@@ -304,25 +302,25 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     // compile to pir
     pir::Module* m = new pir::Module;
     pir::StreamLogger logger(debug);
-    logger.title("Compiling " + name);
+
+    std::string const version_name = name + assumptions.getShortStringRepr();
+    logger.title("Compiling " + version_name);
+
+    CompilationStrategy::markAsCompiled(what, assumptions);
+
+    auto t_compilation_start = std::chrono::steady_clock::now();
     pir::Compiler cmp(m, logger);
     pir::Backend backend(logger, name);
-	auto start = std::chrono::system_clock::now();
-	std::chrono::duration<double> duration;
-
     cmp.compileClosure(what, name, assumptions, true,
                        [&](pir::ClosureVersion* c) {
                            logger.flush();
                            cmp.optimizeModule();
 
                            auto fun = backend.getOrCompile(c);
-							// Some computation here
-							auto end = std::chrono::system_clock::now();
 
-							duration = end - start;
-
-
-                            ContextualProfiling::countSuccessfulCompilation(what,assumptions,duration);
+                           auto compilation_end_t = std::chrono::steady_clock::now();
+                           std::chrono::duration<double, std::milli> cmp_dt_ms = compilation_end_t - t_compilation_start;
+                           ContextualProfiling::countCompilation(what, assumptions, true, cmp_dt_ms.count());
 
                            // Install
                            if (dryRun)
@@ -332,14 +330,22 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                            DispatchTable::unpack(BODY(what))->insert(fun);
                        },
                        [&]() {
-							auto end = std::chrono::system_clock::now();
+                            auto compilation_end_t = std::chrono::steady_clock::now();
+                            std::chrono::duration<double, std::milli> cmp_dt_ms = compilation_end_t - t_compilation_start;
 
-							duration = end - start;
-                            ContextualProfiling::countFailedCompilation(what,assumptions,duration);
+                            ContextualProfiling::countCompilation(what, assumptions, false, cmp_dt_ms.count());
                             if (debug.includes(pir::DebugFlag::ShowWarnings))
                                std::cerr << "Compilation failed\n";
                        },
                        {});
+
+    std::chrono::duration<double, std::milli> compilation_time_ms = std::chrono::steady_clock::now() - t_compilation_start;
+    {
+        std::stringstream msg;
+        msg << "Done compiling " << version_name << " (" <<
+         compilation_time_ms.count() << "ms)";
+        logger.title(msg.str());
+    }
 
     delete m;
     UNPROTECT(1);
