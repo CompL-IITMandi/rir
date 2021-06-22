@@ -114,6 +114,12 @@
     "__functional_base_03": "cpp",
     "__memory": "cpp",
     "typeindex": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "any": "cpp",
+    "charconv": "cpp",
+    "scoped_allocator": "cpp",
+    "valarray": "cpp",
+    "cuchar": "cpp",
+    "cassert": "cpp"
   }
 }

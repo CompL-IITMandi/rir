@@ -1091,7 +1091,8 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     ContextualProfiling::addFunctionDispatchInfo(
         lMethodId,
         lContext,
-        *fun
+        *fun,
+        body
     );
 
     auto start = std::chrono::system_clock::now(); // runtime start

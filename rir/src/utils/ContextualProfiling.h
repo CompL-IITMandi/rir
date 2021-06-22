@@ -5,9 +5,10 @@
 #include <ctime>
 
 namespace rir {
-// CONTEXT_LOGS - Enable Logging
-// COMPILE_ONLY_ONCE - Only compile once
-// SKIP_ALL_COMPILATION - Skip All Compilation
+// CONTEXT_LOGS           - Enable Logging
+// COMPILE_ONLY_ONCE      - Only compile once
+// SKIP_ALL_COMPILATION   - Skip All Compilation
+// OUT_NAME               - Name for the output
 
 class ContextualProfiling {
   public:
@@ -40,17 +41,27 @@ class ContextualProfiling {
     static void addFunctionDispatchInfo(
       size_t,
       Context,
-      Function const&
+      Function const&,
+      SEXP
     );
     static void countSuccessfulCompilation(
       SEXP,
       Context,
-      std::chrono::duration<double>
+      std::chrono::duration<double>,
+      pir::ClosureVersion*,
+      Function*,
+      int sequence
+    );
+    static void pirBeforeCompilation(
+      SEXP,
+      Context,
+      pir::ClosureVersion*
     );
     static void countFailedCompilation(
       SEXP,
       Context,
-      std::chrono::duration<double>
+      std::chrono::duration<double>,
+      int sequence
     );
 };
 

@@ -16,7 +16,6 @@
 #include "ir/Compiler.h"
 #include "utils/ContextualProfiling.h"
 
-
 #include <cassert>
 #include <cstdio>
 #include <list>
@@ -291,6 +290,7 @@ REXPORT SEXP pirSetDebugFlags(SEXP debugFlags) {
 
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 const pir::DebugOptions& debug) {
+
     if (!isValidClosureSEXP(what)) {
         Rf_error("not a compiled closure");
     }
@@ -309,33 +309,37 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     pir::Backend backend(logger, name);
 	auto start = std::chrono::system_clock::now();
 	std::chrono::duration<double> duration;
+    static int compile_counter=0;
 
     cmp.compileClosure(what, name, assumptions, true,
                        [&](pir::ClosureVersion* c) {
                            logger.flush();
+                           compile_counter++;
+                        //    auto fun = backend.getOrCompile(c);
+                           ContextualProfiling::pirBeforeCompilation(what,assumptions,c);
+
                            cmp.optimizeModule();
 
                            auto fun = backend.getOrCompile(c);
+                           Protect p(fun->container());
 							// Some computation here
 							auto end = std::chrono::system_clock::now();
 
 							duration = end - start;
-
-
-                            ContextualProfiling::countSuccessfulCompilation(what,assumptions,duration);
+                            ContextualProfiling::countSuccessfulCompilation(what,assumptions,duration,c,fun,compile_counter);
 
                            // Install
                            if (dryRun)
                                return;
 
-                           Protect p(fun->container());
+
                            DispatchTable::unpack(BODY(what))->insert(fun);
                        },
                        [&]() {
 							auto end = std::chrono::system_clock::now();
-
+                            compile_counter++;
 							duration = end - start;
-                            ContextualProfiling::countFailedCompilation(what,assumptions,duration);
+                            ContextualProfiling::countFailedCompilation(what,assumptions,duration,compile_counter);
                             if (debug.includes(pir::DebugFlag::ShowWarnings))
                                std::cerr << "Compilation failed\n";
                        },
