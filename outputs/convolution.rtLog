@@ -1,0 +1,6 @@
+double[10]: {baseline_avg =1.7158e-06} (0,10,0){15: Not Enough Data}
+convolve[10]: {baseline_avg =0.000884595} (0,10,0){3194895: Not Enough Data}
+stdout[1]: {baseline_avg =8.038e-06} (0,1,0){15: Not Enough Data}
+execute[1]: {baseline_avg =0.427352} (0,1,0){68173839: Not Enough Data}
+strtoi[2]: {baseline_avg =1.0727e-05} (0,2,0){1099511627791: Not Enough Data}
+Time: 0.439262s, <Compilation Data> Successful: 5, Failed:1

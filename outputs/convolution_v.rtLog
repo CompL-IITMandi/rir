@@ -1,0 +1,13 @@
+stdout[1]: {baseline_avg =7.699e-06} (0,1,0){15: Not Enough Data}
+fft[30]: {baseline_avg =3.57587e-06} (0,10,0){2130447: Not Enough Data}
+sys.frame[10]: {baseline_avg =1.2852e-06} (0,10,0){68173839: Not Enough Data}
+eval[10]: {baseline_avg =0.00047273} (0,10,0){1099511627791: Not Enough Data}
+identical[10]: {baseline_avg =2.8906e-06} (0,10,0){6597072961551: Not Enough Data}
+sys.parent[10]: {baseline_avg =1.6782e-06} (0,10,0){1099511627791: Not Enough Data}
+sys.function[10]: {baseline_avg =0.000421795} (0,10,0){15: Not Enough Data}
+formals[10]: {baseline_avg =0.000511862} (0,10,0){1099511627791: Not Enough Data}
+match.arg[10]: {baseline_avg =0.0067485} (0,10,0){2199023255567: Not Enough Data}
+convolve[10]: {baseline_avg =0.0204088} (0,10,0){2199026450447: Not Enough Data}
+execute[1]: {baseline_avg =0.279955} (0,1,0){68173839: Not Enough Data}
+strtoi[2]: {baseline_avg =9.212e-06} (0,2,0){1099511627791: Not Enough Data}
+Time: 0.568713s, <Compilation Data> Successful: 12, Failed:1

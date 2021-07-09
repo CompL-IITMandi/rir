@@ -1,0 +1,35 @@
+onvolveSlow <- function(x,y) {
+  nx <- length(x)
+  ny <- length(y)
+  z <- numeric(nx + ny - 1)
+  for(i in seq(length = nx)) {
+    xi <- x[[i]]
+    for(j in seq(length = ny)) {
+      ij <- i + j - 1
+      z[[ij]] <- z[[ij]] + xi * y[[j]]
+    }
+  }
+  z
+}
+
+execute <- function(n) {
+  a <- 1:n
+  b <- 1:n
+  checksum <- 0
+  for (i in 1:10) {
+    checksum <- checksum + convolve(a,b)[[n]]
+  }
+  cat("Convolution ", n, " " , checksum, ": ")
+  checksum
+}
+
+run <- function(args) {
+    iter <- args[[1]]
+    numIterations <- strtoi(args[[1]])
+    innerIterations <- strtoi(args[[2]])
+    for(i in numIterations) {
+        execute(innerIterations)
+    }
+}
+
+run(commandArgs(trailingOnly=TRUE))

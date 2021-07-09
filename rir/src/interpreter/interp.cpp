@@ -12,12 +12,17 @@
 #include "safe_force.h"
 #include "utils/Pool.h"
 #include "utils/measuring.h"
+#include "utils/rtC.h"
+#include "utils/rtCReg.h"
+
 
 #include <assert.h>
 #include <deque>
 #include <libintl.h>
 #include <set>
 #include <unordered_set>
+#include <stack>
+
 
 #define NOT_IMPLEMENTED assert(false)
 
@@ -70,6 +75,61 @@ static void printInterp(Opcode* pc, Code* c, InterpreterInstance* ctx) {
 
 static void printLastop() { std::cout << "> lastop\n"; }
 #endif
+
+// rtC - logger begin
+std::unordered_map<std::string, bool> function_map;
+std::unordered_map<SEXP, std::string> function_name_cache;
+
+std::string getFunName(const SEXP & ast) {
+    if(function_name_cache.find(ast) != function_name_cache.end()) return function_name_cache[ast];
+    static const SEXP double_colons = Rf_install("::");
+    static const SEXP triple_colons = Rf_install(":::");
+    // size_t const currentKey = getEntryKey(call.callee);
+    SEXP const lhs = CAR(ast);
+
+    if (TYPEOF(lhs) == SYMSXP) {
+        // case 1: function call of the form f(x,y,z)
+        function_name_cache[ast] = CHAR(PRINTNAME(lhs));
+        return (CHAR(PRINTNAME(lhs)));
+    } else if (TYPEOF(lhs) == LANGSXP && ((CAR(lhs) == double_colons) || (CAR(lhs) == triple_colons))) {
+        // case 2: function call of the form pkg::f(x,y,z) or pkg:::f(x,y,z)
+        SEXP const fun1 = CAR(lhs);
+        SEXP const pkg = CADR(lhs);
+        SEXP const fun2 = CADDR(lhs);
+        assert(TYPEOF(pkg) == SYMSXP && TYPEOF(fun2) == SYMSXP);
+        std::stringstream ss;
+        ss << CHAR(PRINTNAME(pkg)) << CHAR(PRINTNAME(fun1)) << CHAR(PRINTNAME(fun2));
+        function_name_cache[ast] = ss.str();
+        return (ss.str());
+    }
+
+    function_name_cache[ast] = "";
+
+    return ("");
+}
+
+bool loaded_data = false;
+bool isMarked(CallContext const& call) {
+    if (getenv("LOAD_BIN") == NULL) return false;
+    if (!loaded_data) {
+        std::string binId = getenv("LOAD_BIN");
+        std::ifstream rtLoad(binId + ".rtBin");
+        std::string line;
+        if (rtLoad.is_open()) {
+            while (getline (rtLoad,line)) {
+                function_map[line] = true;
+            }
+            rtLoad.close();
+        }
+        loaded_data = true;
+        rtC::saveFunctionMap(function_map);
+    }
+
+    if(function_map.size() == 0) return false;
+    return function_map.find((getFunName(call.ast) + std::to_string(((rir::Context)call.givenContext).toI()))) != function_map.end();
+
+}
+// rtC - logger end
 
 static RIR_INLINE SEXP getSrcAt(Code* c, Opcode* pc, InterpreterInstance* ctx) {
     unsigned sidx = c->getSrcIdxAt(pc, true);
@@ -1046,6 +1106,7 @@ static SEXP rirCallCallerProvidedEnv(CallContext& call, Function* fun,
     return res;
 }
 
+
 // Call a RIR function. Arguments are still untouched.
 RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     SEXP body = BODY(call.callee);
@@ -1059,14 +1120,28 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     }
     assert(DispatchTable::check(body));
 
+    rtC::createEntry(call);
+
     auto table = DispatchTable::unpack(body);
 
     inferCurrentContext(call, table->baseline()->signature().formalNargs(),
                         ctx);
-    Function* fun = dispatch(call, table);
-    fun->registerInvocation();
 
-    if (!isDeoptimizing() && RecompileHeuristic(table, fun)) {
+    // rtC - updated dispatcher to read and selectively skip using the rtBin files
+    // If a method is marked, then it is completely skipped for all compilation tasks
+    bool marked = isMarked(call);
+    size_t key = reinterpret_cast<size_t>(BODY(call.callee));
+    static std::unordered_map<std::string, int> simple_run_map;
+    const std::string funName = getFunName(call.ast);
+
+    Function* fun;
+    if (marked) {
+        fun = table->baseline();
+    } else {
+        fun = dispatch(call, table);
+    }
+
+    if (!marked && !isDeoptimizing() && RecompileHeuristic(table, fun)) {
         Context given = call.givenContext;
         // addDynamicAssumptionForOneTarget compares arguments with the
         // signature of the current dispatch target. There the number of
@@ -1082,6 +1157,41 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
             }
         }
     }
+
+    // tragedy when we manually force a context to run in baseline for our profiling purposes
+    bool tragedy = false;
+    Context orig = fun->context();
+
+    static int OPTIMISM = 10; // minimum times to force a baseline
+    std::string key_map = std::to_string(key)+std::to_string(call.givenContext.toI());
+
+    // ensure atleast 10 runs under baseline to ensure a proper baseline
+    if(orig.toI() != 0) {
+        if (simple_run_map.find(key_map) == simple_run_map.end()) {
+            simple_run_map[key_map] = 1;
+            tragedy = true;
+            fun = table->baseline();
+        } else if (simple_run_map[key_map] < OPTIMISM){
+            tragedy = true;
+            simple_run_map[key_map]++;
+            fun = table->baseline();
+        }
+    }
+
+
+    fun->registerInvocation();
+
+    Timer t;
+    t.tick();
+
+    rtC_Entry e = rtC_Entry { reinterpret_cast<size_t>(BODY(call.callee)), fun->context(), fun == table->baseline(), false, 0, tragedy, orig };
+
+    rtCReg::startRecord(
+        t,
+        e
+    );
+
+
     bool needsEnv = fun->signature().envCreation ==
                     FunctionSignature::Environment::CallerProvided;
 
@@ -1112,11 +1222,17 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
             rirCallCallerProvidedEnv(call, fun, lazyPromargs.asSexp(), ctx);
     }
 
+    bool deopt = fun->body()->isDeoptimized && fun != table->baseline();
+
+    rtCReg::endRecord(deopt, funName);
+
     if (pir::Parameter::RIR_SERIALIZE_CHAOS) {
         UNPROTECT(1);
     }
     assert(result);
     assert(!fun->flags.contains(Function::Deopt));
+
+
     return result;
 }
 

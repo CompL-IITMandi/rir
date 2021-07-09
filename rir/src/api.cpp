@@ -14,12 +14,14 @@
 #include "interpreter/interp_incl.h"
 #include "ir/BC.h"
 #include "ir/Compiler.h"
+#include "utils/rtC.h"
 
 #include <cassert>
 #include <cstdio>
 #include <list>
 #include <memory>
 #include <string>
+#include <set>
 
 using namespace rir;
 
@@ -302,21 +304,49 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     logger.title("Compiling " + name);
     pir::Compiler cmp(m, logger);
     pir::Backend backend(logger, name);
+
+    // rtC - logger begin
+    using std::chrono::steady_clock;
+    using std::chrono::duration;
+    auto start_run = steady_clock::now();
+    // rtC - logger end
+
     cmp.compileClosure(what, name, assumptions, true,
                        [&](pir::ClosureVersion* c) {
-                           logger.flush();
-                           cmp.optimizeModule();
+                            logger.flush();
+                            cmp.optimizeModule();
+                            // rtC - logger begin
+                            auto end_run = steady_clock::now();
+                            std::chrono::duration<double, std::milli> runtime = end_run - start_run;
+                            // rtC - logger end
 
-                           auto fun = backend.getOrCompile(c);
+                            auto fun = backend.getOrCompile(c);
 
-                           // Install
-                           if (dryRun)
-                               return;
+                            // rtC - logger begin
+                            std::set<int> bb_set;
+                            rir::pir::BreadthFirstVisitor::run(c->entry, [&](pir::BB* bb) {
+                                bb_set.insert(bb->id);
+                            });
+                            rtC::saveCompilationData(
+                                what,
+                                fun->context(),
+                                runtime.count(),
+                                bb_set.size(),
+                                c->promises().size()
+                            );
+                            // rtC - logger end
 
-                           Protect p(fun->container());
-                           DispatchTable::unpack(BODY(what))->insert(fun);
+                            // Install
+                            if (dryRun)
+                                return;
+
+                            Protect p(fun->container());
+                            DispatchTable::unpack(BODY(what))->insert(fun);
                        },
                        [&]() {
+                           // rtC - logger begin
+                           rtC::registerFailedCompilation();
+                           // rtC - logger end
                            if (debug.includes(pir::DebugFlag::ShowWarnings))
                                std::cerr << "Compilation failed\n";
                        },
