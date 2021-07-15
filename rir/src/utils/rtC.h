@@ -17,25 +17,23 @@ class rtC {
     );
 
     static void addDispatchInfo(
-        std::string name,
-        size_t call,
-        Context dispatched_context,
-        bool baseline,
-        bool deopt,
-        double runtime,
-        bool tragedy,
-        Context original_intention
+      std::string & funName,
+      size_t & key,
+      double & runtime,
+      Context & original_intention,
+      bool & tragedy,
+      bool & deopt
     );
 
     static void saveCompilationData(
-        SEXP callee,
-        Context compiled_context,
-        double time,
-        int bb,
-        int p
+      SEXP callee,
+      Context compiled_context,
+      double time,
+      int bb,
+      int p
     );
 
-    static void registerFailedCompilation();
+    static void registerFailedCompilation(SEXP callee);
 
     static void saveFunctionMap(
         std::unordered_map<std::string, bool>

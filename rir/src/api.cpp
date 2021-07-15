@@ -335,7 +335,6 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                                 c->promises().size()
                             );
                             // rtC - logger end
-
                             // Install
                             if (dryRun)
                                 return;
@@ -345,7 +344,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                        },
                        [&]() {
                            // rtC - logger begin
-                           rtC::registerFailedCompilation();
+                           rtC::registerFailedCompilation(what);
                            // rtC - logger end
                            if (debug.includes(pir::DebugFlag::ShowWarnings))
                                std::cerr << "Compilation failed\n";

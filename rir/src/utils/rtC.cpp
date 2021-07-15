@@ -21,69 +21,11 @@ namespace rir {
 	namespace {
 		using namespace std;
 
-		class FunIter {
-			private:
-			public:
-				double version_called_count = 0;
-				double version_success_run_count = 0;
-				double version_runtime = 0;
-				double version_deopt_time = 0;
-				vector<Context> calling_context;
-
-				FunIter(double a, double b, double c, double d, Context con) {
-					add(a,b,c,d,con);
-				}
-
-				void add(double a, double b, double c,double d,Context call_context) {
-					version_called_count += a;
-					version_success_run_count += b;
-					version_runtime += c;
-					version_deopt_time += d;
-					calling_context.push_back(call_context);
-				}
-		};
-
-		// Some functions are named, some are anonymous:
-		// FunLabel is a base class used to get the name of the function
-		// in both cases
-		class FunLabel {
-			public:
-				virtual ~FunLabel() = default;
-				virtual string get_name() = 0;
-				virtual bool is_anon() = 0;
-		};
-
-
-		class FunLabel_named : public FunLabel {
-		private:
-			string const name;
-		public:
-			FunLabel_named(string name) : name{move(name)} {};
-			string get_name() override {
-				return name;
-			}
-			bool is_anon() override { return false; }
-		};
-
-        class FunLabel_anon : public FunLabel {
-		private:
-			int const id = 0;
-		public:
-			FunLabel_anon(int id) : id{id} {};
-			string get_name() override {
-				stringstream ss;
-				ss << "*ANON_FUN_" << id << "*";
-				return ss.str();
-			}
-			bool is_anon() override { return true; }
-		};
-
 		// unordered_map<size_t, unique_ptr<FunLabel>> names; // names: either a string, or an id for anonymous functions
         unordered_map<size_t, std::string> names;
-		string del = ","; // delimiter
 
-        static int OPTIMISM = 10;
-        static int FAIRNESS = 10;
+        static int OPTIMISM = 5;
+        static int FAIRNESS = 5;
 
 		class DispatchData {
 			public:
@@ -98,6 +40,7 @@ namespace rir {
                 double p_count = 0;
 
                 double forced_count = 0;
+                double deopt_count = 0;
                 double forced_runtime = 0;
 
                 double averageForcedRuntime() {
@@ -109,7 +52,7 @@ namespace rir {
                 }
 
                 double successRate() {
-                    return (success_run_count/call_count)*100;
+                    return (success_run_count/(call_count - forced_count))*100;
                 }
 
                 bool calculable() {
@@ -145,28 +88,11 @@ namespace rir {
 			public:
                 unordered_map<Context, DispatchData> dispatch_data_holder;
 
+                int successful_compilations = 0;
+                int failed_compilations = 0;
+
                 double total_call_count = 0;
 
-                double baseline_run_time = 0;
-                double baseline_call_count = 0;
-
-                double averageBaselineRuntime() {
-                    return baseline_run_time/baseline_call_count;
-                }
-
-                bool isGoodForJit(Context c, int under) {
-                    auto & data = dispatch_data_holder[c];
-                    return (
-                        ((data.averageRuntime()*under) + data.compilation_time) < (averageBaselineRuntime()*under)
-                    );
-                }
-
-                bool isGoodForAot(Context c) {
-                    auto & data = dispatch_data_holder[c];
-                    return (
-                        data.averageRuntime() < averageBaselineRuntime()
-                    );
-                }
 		};
 
 		// Map from a function (identified by its body) to the data about the
@@ -180,13 +106,7 @@ namespace rir {
 		struct FileLogger {
             double total_runtime = 0;
             ofstream rt_stream, log_stream;
-			FileLogger() {
-
-                if(getenv("RT_LOG") != NULL) {
-					string binId = getenv("SAVE_BIN");
-					log_stream.open(binId + ".rtLog");
-				}
-			}
+            const char * DELIMITER = ",";
 			static size_t getEntryKey(SEXP callee) {
 				/* Identify a function by the SEXP of its BODY. For nested functions, The
 				   enclosing CLOSXP changes every time (because the CLOENV also changes):
@@ -209,40 +129,30 @@ namespace rir {
 			}
 
 			void addDispatchInfo(
-                std::string name,
-                size_t id,
-                Context dispatched_context,
-                bool baseline,
-                bool deopt,
+                std::string funName,
+                size_t fun_id,
                 double runtime,
+                Context ctxt,
                 bool tragedy,
-                Context original_intention
+                bool deopt
 			) {
-                names[id] = name;
-				// create or get entry
-                auto & entry = entries[id];
+                names[fun_id] = funName;
+				// Create or get entry
+                auto & entry = entries[fun_id];
 
                 total_runtime += runtime;
 
-                if(tragedy) { // we are forcing a context to run baseline forcefully
-                    entry.dispatch_data_holder[original_intention].forced_count++;
-                    entry.dispatch_data_holder[original_intention].forced_runtime += runtime;
-                }
+                // Total call count for the dispatched context
+                entry.dispatch_data_holder[ctxt].call_count++;
 
-                if(baseline) {
-                    entry.baseline_call_count++;
-                    entry.baseline_run_time += runtime;
-                    return;
-                }
-
-                // did the function run successfully or did it deoptimize ???
-                if (!deopt) {
-                    entry.dispatch_data_holder[dispatched_context].call_count++;
-                    entry.dispatch_data_holder[dispatched_context].run_time += runtime;
-                    entry.dispatch_data_holder[dispatched_context].success_run_count++;
+                // Is a function running in baseline due to some reason ? -> tragedy
+                if(tragedy) {
+                    if(deopt) entry.dispatch_data_holder[ctxt].deopt_count++;
+                    entry.dispatch_data_holder[ctxt].forced_count++;
+                    entry.dispatch_data_holder[ctxt].forced_runtime += runtime;
                 } else {
-                    entry.dispatch_data_holder[dispatched_context].call_count++;
-                    entry.dispatch_data_holder[dispatched_context].run_time += runtime;
+                    entry.dispatch_data_holder[ctxt].success_run_count++;
+                    entry.dispatch_data_holder[ctxt].run_time += runtime;
                 }
 			}
 
@@ -260,135 +170,240 @@ namespace rir {
 
                 total_successful_compilations++;
 
+                entry.successful_compilations++;
+
                 entry.dispatch_data_holder[compiled_context].compilation_time += time;
                 entry.dispatch_data_holder[compiled_context].bb_count = bb;
                 entry.dispatch_data_holder[compiled_context].p_count = p;
             }
 
-            void registerFailedCompilation() {
+            void registerFailedCompilation(SEXP callee) {
+                // get the entry for this function
+                auto id = getEntryKey(callee);
+				// create or get entry
+				auto & entry = entries[id];
+                entry.failed_compilations++;
                 total_failed_compilations++;
             }
 
             void saveFunctionMap(std::unordered_map<std::string, bool> map) {
+                // save the loaded function map from the rtBin files
                 function_map = map;
+            }
+            template<typename T>
+            void LOG(std::stringstream & ss, T & msg_unit) {
+                if (getenv("RT_LOG")) {
+                    ss << msg_unit << DELIMITER;
+                } else {
+                    std::cout << msg_unit << DELIMITER;
+                }
+            }
+
+            void LOG_NEXT(std::stringstream & ss) {
+                if (getenv("RT_LOG")) {
+                    ss << std::endl;
+                } else {
+                    std::cout << std::endl;
+                }
+            }
+
+            void LOG_END_TUPLE(std::stringstream & ss) {
+                if (getenv("RT_LOG")) {
+                    log_stream << ss.str();
+                } else {
+                    std::cout << ss.str();
+                }
             }
 
 			~FileLogger() {
+                // Save the log to a file ?
+                if(getenv("RT_LOG") != NULL) {
+					string binId = getenv("SAVE_BIN");
+					log_stream.open(binId + ".csv");
+				}
+                // Save/Update rtBin Files ?
                 if(getenv("SAVE_BIN") != NULL) {
-                    std::cout << "saving BIN" << std::endl;
 					string binId = getenv("SAVE_BIN");
 					rt_stream.open(binId + ".rtBin");
+                    for (auto & itr : function_map) {
+                        string key = itr.first;
+                        rt_stream << key << std::endl;
+                    }
 				}
-                for (auto & itr : function_map) {
-                    string key = itr.first;
-                    if(getenv("SAVE_BIN") != NULL)
-                    rt_stream << key << std::endl;
+                // HEADER MESSAGE
+                if (getenv("RT_LOG")) {
+                    log_stream
+                        << "ID"
+                        << DELIMITER
+                        << "NAME"
+                        << DELIMITER
+                        << "CALL COUNT"
+                        << DELIMITER
+                        << "CONTEXT"
+                        << DELIMITER
+                        << "CTXT CALL COUNT"
+                        << DELIMITER
+                        << "FORCED COUNT"
+                        << DELIMITER
+                        << "SUCCESS COUNT"
+                        << DELIMITER
+                        << "SUCCESS RATE"
+                        << DELIMITER
+                        << "JIT BREAK EVEN COUNT"
+                        << DELIMITER
+                        << "AVG FORCED_TIME"
+                        << DELIMITER
+                        << "AVG RUNTIME"
+                        << DELIMITER
+                        << std::endl;
+                } else {
+                    std::cout
+                        << "ID"
+                        << DELIMITER
+                        << "NAME"
+                        << DELIMITER
+                        << "CALL COUNT"
+                        << DELIMITER
+                        << "CONTEXT"
+                        << DELIMITER
+                        << "CTXT CALL COUNT"
+                        << DELIMITER
+                        << "FORCED COUNT"
+                        << DELIMITER
+                        << "SUCCESS COUNT"
+                        << DELIMITER
+                        << "SUCCESS RATE"
+                        << DELIMITER
+                        << "JIT BREAK EVEN COUNT"
+                        << DELIMITER
+                        << "AVG FORCED_TIME"
+                        << DELIMITER
+                        << "AVG RUNTIME"
+                        << DELIMITER
+                        << std::endl;
                 }
+
                 set<string> data_interp;
                 for (auto & itr : entries) {
-                    string name = names[itr.first];
+                    string & name = names[itr.first];
                     Entry & entry = itr.second;
 
                     if (name.compare("") == 0) continue; // skip over anonymous functions
                     if (entry.dispatch_data_holder.size() == 0) continue; // skip over functions with no specialization
 
-                    double baseline_avg = entry.averageBaselineRuntime();
+                    stringstream tuple_stream;
+                    std::unordered_map<int, int> bBMap;
 
-                    stringstream ss;
+                    // reserve enough positions already to prevent copying
+                    bBMap.reserve(entry.dispatch_data_holder.size());
 
-                    if (getenv("RT_LOG")) {
-                        ss
-                            << std::left
-                            << name
-                            << "[" << entry.total_call_count << "]"
-                            << ": {baseline_avg ="
-                            << baseline_avg
-                            << "} ";
-                    }
+                    // LOG BASIC DATA
+                    LOG(tuple_stream, itr.first);  // ID
+                    LOG(tuple_stream, name);  // NAME
+                    LOG(tuple_stream, entry.total_call_count); // CALL COUNT
+
+                    bool first_printed = false;
+                    bool similar_binaries = false;
+
+                    set<string> candidates;
 
                     for (auto & con : entry.dispatch_data_holder) {
                         auto & dispatched = con.second;
-                        // not enough data to mark bad
-                        if(!dispatched.calculable()) {
-                            if (getenv("RT_LOG")) {
-                                ss
-                                    << "("
-                                    << dispatched.call_count << ","
-                                    << dispatched.forced_count << ","
-                                    << dispatched.success_run_count
-                                    << ")"
-                                    << "{"
-                                    << ((Context)con.first).toI()
-                                    << ": Not Enough Data}";
-                            }
-                            continue;
+                        double jit_break_even_point = dispatched.jitBreakEvenPoint();
+                        double dispatched_avg_runtime = dispatched.averageRuntime();
+                        double dispatched_avg_forcetime = dispatched.averageForcedRuntime();
+                        string success_rate = std::to_string(dispatched.successRate()) + "%";
+
+                        string forced_deopt = (std::to_string(dispatched.forced_count) + " (" + std::to_string(dispatched.deopt_count) + ")");
+
+                        stringstream context_stream;
+                        context_stream << con.first;
+
+                        std::string context = std::to_string(((Context)con.first).toI()) + ":" + context_stream.str();
+                        size_t pos;
+                        while ((pos = context.find(",")) != std::string::npos) {
+                            context.replace(pos, 1, " ");
                         }
 
-                        double dispatched_avg = dispatched.averageRuntime();
-
-                        if (getenv("RT_LOG")) {
-                            ss
-                                << "("
-                                << dispatched.call_count << ","
-                                << dispatched.forced_count << ","
-                                << dispatched.success_run_count
-                                << ")"
-                                << "[";
-                            if(dispatched.jitBreakEvenPoint() > 0) {
-                                ss << " JIT" << dispatched.jitBreakEvenPoint() << " ";
-                                ss << fixed << setprecision(1) << dispatched.speedup() << "X";
-                            }
-                            ss
-                                << " ]"
-                                << "{"
-                                << ((Context)con.first).toI()
-                                << ": "
-                                << dispatched_avg << "(" << dispatched.successRate() << ")"
-                                << "} ";
+                        while ((pos = context.find(";")) != std::string::npos) {
+                            context.replace(pos, 1, " - ");
                         }
 
-                        if(getenv("SAVE_BIN") != NULL) {
+                        if(dispatched.bb_count > 1) bBMap[dispatched.bb_count]++;
+
+                        if(first_printed) { LOG(tuple_stream, "^"); LOG(tuple_stream, "^"); LOG(tuple_stream, "^"); } // leave first few blocks empty
+                        LOG(tuple_stream, context); // CONTEXT
+
+                        LOG(tuple_stream, dispatched.call_count); // CALL COUNT
+                        LOG(tuple_stream, forced_deopt); // FORCED COUNT (DEOPT COUNT)
+                        LOG(tuple_stream, dispatched.success_run_count); // SUCCESSFUL RUN COUNT
+
+                        LOG(tuple_stream, success_rate); // SUCCESS RATE
+
+                        // JIT BREAK EVEN COUNT
+                        if(jit_break_even_point > 0) {
+                            LOG(tuple_stream, jit_break_even_point);
+                        } else {
+                            LOG(tuple_stream, "NOJIT");
+                        }
+
+                        // AVERAGE FORCETIME
+                        LOG(tuple_stream, dispatched_avg_forcetime);
+
+                        // AVERAGE RUNTIME
+                        LOG(tuple_stream, dispatched_avg_runtime);
+
+                        first_printed = true;
+
+                        if(getenv("SAVE_BIN") != NULL && dispatched.calculable()) {
                             // if an entry is not good for AOT
                             if(!dispatched.isGoodForAot())
                                 // skip if the entry is already accounted for
                                 if(function_map.find(name + std::to_string(((Context)con.first).toI())) == function_map.end())
                                     data_interp.insert((name + std::to_string(((Context)con.first).toI())));
-                            // If the JIT breakeven is greater than twice the call count
-                            // if(dispatched.jitBreakEvenPoint() > ((dispatched.call_count + dispatched.forced_count)*2)) {
-                            //     if(function_map.find(name + std::to_string(((Context)con.first).toI())) == function_map.end())
-                            //         data_interp.insert((name + std::to_string(((Context)con.first).toI())));
-                            // }
                         }
-
+                        LOG_NEXT(tuple_stream);
                     }
 
-                    if (getenv("RT_LOG")) {
-                        ss << std::endl;
-                        log_stream << ss.str();
-                    } else {
-                        std::cout << ss.str();
+                    // check and mark for BB similarity
+                    for (auto & ele : bBMap) {
+                        if (ele.second > 1) {
+                            similar_binaries = true;
+                            break;
+                        }
                     }
+
+                    std::stringstream ending;
+                    string success_compilations = "SUCCESS: " + (std::to_string(entry.successful_compilations));
+                    string failed_compilations = "FAILED: " + (std::to_string(entry.failed_compilations));
+                    LOG(tuple_stream, name);
+                    LOG(tuple_stream, similar_binaries);
+                    LOG(tuple_stream, success_compilations);
+                    LOG(tuple_stream, failed_compilations);
+                    LOG_NEXT(tuple_stream);
+                    LOG_NEXT(tuple_stream);
+
+                    LOG_END_TUPLE(tuple_stream);
 
                 }
 
+                // ENDING MESSAGE
                 if (getenv("RT_LOG")) {
                     log_stream << "Time: " << total_runtime << "s, " << "<Compilation Data> Successful: " << total_successful_compilations << ", Failed:" << total_failed_compilations << std::endl;
                 } else {
                     std::cout << "Time: " << total_runtime << "s, " << "<Compilation Data> Successful: " << total_successful_compilations << ", Failed:" << total_failed_compilations << std::endl;
                 }
+
+                // add new functions to rtBin
                 if(getenv("SAVE_BIN") != NULL) {
                     for(auto & dat : data_interp) {
                         rt_stream << dat << std::endl;
                     }
-                }
-                if(getenv("SAVE_BIN") != NULL) {
 					rt_stream.close();
-				}
+                }
                 if(getenv("RT_LOG") != NULL) {
 					log_stream.close();
 				}
-
-
 			}
 
 			public:
@@ -404,17 +419,15 @@ void rtC::createEntry(CallContext & call) {
 }
 
 void rtC::addDispatchInfo(
-    std::string name,
-    size_t id,
-    Context dispatched_context,
-    bool baseline,
-    bool deopt,
-    double runtime,
-    bool tragedy,
-    Context original_intention
+    std::string & funName,
+    size_t & key,
+    double & runtime,
+    Context & original_intention,
+    bool & tragedy,
+    bool & deopt
 ) {
     if(fileLogger)
-        fileLogger->addDispatchInfo(name, id, dispatched_context, baseline, deopt, runtime, tragedy, original_intention);
+        fileLogger->addDispatchInfo(funName, key, runtime, original_intention, tragedy, deopt);
 }
 
 void rtC::saveCompilationData(
@@ -428,9 +441,9 @@ void rtC::saveCompilationData(
         fileLogger->saveCompilationData(callee, compiled_context, time, bb, p);
 }
 
-void rtC::registerFailedCompilation() {
+void rtC::registerFailedCompilation(SEXP callee) {
     if(fileLogger)
-        fileLogger->registerFailedCompilation();
+        fileLogger->registerFailedCompilation(callee);
 }
 
 void rtC::saveFunctionMap(std::unordered_map<std::string, bool> map) {

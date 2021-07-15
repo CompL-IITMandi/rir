@@ -61,15 +61,15 @@ public:
 
         // std::cout << e.id << " -> POP: " << ", runtime: " << e.runtime << " s:" << timerStack.size() <<  std::endl;
 
-        rtC::addDispatchInfo(
-            name,
-            e.id,
-            e.dispatched_context,
-            e.baseline,
-            e.deopt,
-            e.runtime,
-            e.tragedy,
-            e.original_intention);
+        // rtC::addDispatchInfo(
+        //     name,
+        //     e.id,
+        //     e.dispatched_context,
+        //     e.baseline,
+        //     e.deopt,
+        //     e.runtime,
+        //     e.tragedy,
+        //     e.original_intention);
         entryStack.pop();
         timerStack.pop();
 

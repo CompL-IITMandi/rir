@@ -120,6 +120,8 @@
     "scoped_allocator": "cpp",
     "typeindex": "cpp",
     "variant": "cpp",
-    "ciso646": "cpp"
+    "ciso646": "cpp",
+    "__bits": "cpp",
+    "rinternals.h": "c"
   }
 }

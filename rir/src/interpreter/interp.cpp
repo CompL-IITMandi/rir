@@ -13,7 +13,7 @@
 #include "utils/Pool.h"
 #include "utils/measuring.h"
 #include "utils/rtC.h"
-#include "utils/rtCReg.h"
+// #include "utils/rtCReg.h"
 
 
 #include <assert.h>
@@ -1131,10 +1131,10 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
     // If a method is marked, then it is completely skipped for all compilation tasks
     bool marked = isMarked(call);
     size_t key = reinterpret_cast<size_t>(BODY(call.callee));
-    static std::unordered_map<std::string, int> simple_run_map;
-    const std::string funName = getFunName(call.ast);
+    std::string funName = getFunName(call.ast);
 
     Function* fun;
+    // Marked to not be optimized in JIT Time
     if (marked) {
         fun = table->baseline();
     } else {
@@ -1158,38 +1158,49 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
         }
     }
 
-    // tragedy when we manually force a context to run in baseline for our profiling purposes
+    // Ensure that all calling contexts are run atleast N times in baseline
+    // minimum times to force a baseline
+    static int OPTIMISM = 5;
+    static std::unordered_map<std::string, int> minimum_baseline_map;
     bool tragedy = false;
-    Context orig = fun->context();
+    Context & original_intention = call.givenContext;
 
-    static int OPTIMISM = 10; // minimum times to force a baseline
-    std::string key_map = std::to_string(key)+std::to_string(call.givenContext.toI());
+    // key used to map into simple_run_map
+    std::string key_map = std::to_string(key)+std::to_string(original_intention.toI());
 
-    // ensure atleast 10 runs under baseline to ensure a proper baseline
-    if(orig.toI() != 0) {
-        if (simple_run_map.find(key_map) == simple_run_map.end()) {
-            simple_run_map[key_map] = 1;
-            tragedy = true;
-            fun = table->baseline();
-        } else if (simple_run_map[key_map] < OPTIMISM){
-            tragedy = true;
-            simple_run_map[key_map]++;
-            fun = table->baseline();
-        }
+    // increment baseline run count for the given context
+    minimum_baseline_map[key_map]++;
+
+    // Ensure atleast N runs in baseline for all contexts
+    if (minimum_baseline_map[key_map] <= OPTIMISM) {
+        fun = table->baseline();
     }
 
+    Context dispatched_context = fun->context();
+
+    // Is a function running in baseline due to some reason ? -> tragedy
+    if ((dispatched_context != original_intention) && (dispatched_context == table->baseline()->context())) {
+        tragedy = true;
+    }
+
+    // TODO :: If the dispatched context NOT the requested context but
+    // the dispatcher, using context1 > context2 dispatched some other suitable ?
 
     fun->registerInvocation();
 
-    Timer t;
-    t.tick();
+    // start the runtime counter
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_Start, m_End;
+    std::chrono::duration<double> runtime;
 
-    rtC_Entry e = rtC_Entry { reinterpret_cast<size_t>(BODY(call.callee)), fun->context(), fun == table->baseline(), false, 0, tragedy, orig };
+    m_Start = std::chrono::high_resolution_clock::now();
 
-    rtCReg::startRecord(
-        t,
-        e
-    );
+    // The individual function timer method
+
+    // rtC_Entry e = rtC_Entry { reinterpret_cast<size_t>(BODY(call.callee)), fun->context(), fun == table->baseline(), false, 0, tragedy, orig };
+    // rtCReg::startRecord(
+    //     t,
+    //     e
+    // );
 
 
     bool needsEnv = fun->signature().envCreation ==
@@ -1224,7 +1235,19 @@ RIR_INLINE SEXP rirCall(CallContext& call, InterpreterInstance* ctx) {
 
     bool deopt = fun->body()->isDeoptimized && fun != table->baseline();
 
-    rtCReg::endRecord(deopt, funName);
+    // The individual function timer method
+    // rtCReg::endRecord(deopt, funName);
+    m_End = std::chrono::high_resolution_clock::now();
+    runtime = m_End - m_Start;
+    double runtime_seconds = runtime.count();
+
+    rtC::addDispatchInfo(
+        funName,
+        key,
+        runtime_seconds,
+        original_intention,
+        tragedy,
+        deopt);
 
     if (pir::Parameter::RIR_SERIALIZE_CHAOS) {
         UNPROTECT(1);
