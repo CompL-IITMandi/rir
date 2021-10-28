@@ -157,6 +157,10 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
 
     unsigned extraPoolSize; /// Number of elements in the per code constant pool
 
+    int hast = -1; /// The calculated HAST from the AST
+
+    static std::unordered_map<int, Code*> hastMap; // HAST to code map
+
     uint8_t data[]; /// the instructions
 
     /*

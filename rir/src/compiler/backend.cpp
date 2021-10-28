@@ -390,6 +390,12 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
     };
     auto body = compile(cls);
 
+    if (sCallback != NULL) {
+        jit.moduleMakeup(sCallback);
+        signatureCallback(signature);
+    }
+
+
     if (MEASURE_COMPILER_BACKEND_PERF) {
         Measuring::countTimer("backend.cpp: pir2llvm");
     }
@@ -410,6 +416,11 @@ Backend::LastDestructor::LastDestructor() {
     if (MEASURE_COMPILER_BACKEND_PERF) {
         Measuring::startTimer("backend.cpp: overal");
     }
+}
+
+void Backend::addSerializer(std::function<void(llvm::Module*)> call, std::function<void(FunctionSignature &)> signCall) {
+    sCallback = call;
+    signatureCallback = signCall;
 }
 
 rir::Function* Backend::getOrCompile(ClosureVersion* cls) {

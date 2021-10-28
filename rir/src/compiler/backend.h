@@ -17,11 +17,15 @@ namespace pir {
 class Backend {
   public:
     Backend(Module* m, StreamLogger& logger, const std::string& name)
-        : module(m), jit(name), logger(logger) {}
+        : module(m), jit(name), logger(logger) {
+          sCallback = NULL;
+        }
     Backend(const Backend&) = delete;
     Backend& operator=(const Backend&) = delete;
 
     rir::Function* getOrCompile(ClosureVersion* cls);
+
+    void addSerializer(std::function<void(llvm::Module*)>, std::function<void(FunctionSignature &)>);
 
   private:
     struct LastDestructor {
@@ -30,7 +34,8 @@ class Backend {
     };
     LastDestructor firstMember_;
     Preserve preserve;
-
+    std::function<void(llvm::Module*)> sCallback;
+    std::function<void(FunctionSignature &)> signatureCallback;
     Module* module;
     PirJitLLVM jit;
     std::unordered_map<ClosureVersion*, Function*> done;

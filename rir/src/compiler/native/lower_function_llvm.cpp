@@ -101,6 +101,16 @@ LowerFunctionLLVM::getBuiltin(const rir::pir::NativeBuiltin& b) {
     return getModule().getOrInsertFunction(b.name, b.llvmSignature);
 }
 
+llvm::Value* LowerFunctionLLVM::convertToExternalSymbol(std::string name, llvm::Type* ty = t::SEXPREC) {
+    return getModule().getOrInsertGlobal(name, ty, [&]() {
+        return new llvm::GlobalVariable(
+            getModule(), ty, false,
+            llvm::GlobalValue::LinkageTypes::AvailableExternallyLinkage,
+            nullptr, name, nullptr,
+            llvm::GlobalValue::ThreadLocalMode::NotThreadLocal, 0, true);
+    });
+}
+
 llvm::Value* LowerFunctionLLVM::convertToPointer(const void* what,
                                                  llvm::Type* ty,
                                                  bool constant) {
@@ -125,7 +135,7 @@ LowerFunctionLLVM::convertToFunction(const void* what, llvm::FunctionType* ty) {
 }
 
 void LowerFunctionLLVM::setVisible(int i) {
-    builder.CreateStore(c(i), convertToPointer(&R_Visible, t::Int));
+    builder.CreateStore(c(i), convertToExternalSymbol("spe_Visible", t::Int));
 }
 
 llvm::Value* LowerFunctionLLVM::force(Instruction* i, llvm::Value* arg) {
@@ -185,8 +195,11 @@ void LowerFunctionLLVM::insn_assert(llvm::Value* v, const char* msg,
     builder.SetInsertPoint(nok);
     if (p)
         call(NativeBuiltins::get(NativeBuiltins::Id::printValue), {p});
+    std::stringstream ss;
+    ss << "msg_";
+    ss << msg;
     call(NativeBuiltins::get(NativeBuiltins::Id::assertFail),
-         {convertToPointer((void*)msg, t::i8, true)});
+         {convertToExternalSymbol(ss.str(), t::i8)});
 
     builder.CreateUnreachable();
     builder.SetInsertPoint(ok);
@@ -250,17 +263,108 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
         }
     }
 
-    static std::unordered_set<SEXP> eternal = {R_GlobalEnv, R_BaseEnv,
-                                               R_BaseNamespace};
-    if (TYPEOF(co) == SYMSXP || eternal.count(co))
-        return convertToPointer(co);
+    // dcs -> Direct constant symbols
+    if (co == R_GlobalEnv) {
+        return convertToExternalSymbol("dcs_100");
+    }
+    if (co == R_BaseEnv) {
+        return convertToExternalSymbol("dcs_101");
+    }
+    if (co == R_BaseNamespace) {
+        return convertToExternalSymbol("dcs_102");
+    }
+    if (co == R_TrueValue) {
+        return convertToExternalSymbol("dcs_103");
+    }
+    if (co == R_NilValue) {
+        return convertToExternalSymbol("dcs_104");
+    }
+    if (co == R_FalseValue) {
+        return convertToExternalSymbol("dcs_105");
+    }
+    if (co == R_UnboundValue) {
+        return convertToExternalSymbol("dcs_106");
+    }
+    if (co == R_MissingArg) {
+        return convertToExternalSymbol("dcs_107");
+    }
+    if (co == R_LogicalNAValue) {
+        return convertToExternalSymbol("dcs_108");
+    }
+    if (co == R_EmptyEnv) {
+        return convertToExternalSymbol("dcs_109");
+    }
 
-    static std::unordered_set<SEXP> eternalConst = {
-        R_TrueValue,  R_NilValue,       R_FalseValue, R_UnboundValue,
-        R_MissingArg, R_LogicalNAValue, R_EmptyEnv};
-    if (TYPEOF(co) == BUILTINSXP || TYPEOF(co) == SPECIALSXP ||
-        eternalConst.count(co))
+    if (co == R_RestartToken) {
+        return convertToExternalSymbol("dcs_110");
+    }
+
+    if (co == R_DimSymbol) {
+        return convertToExternalSymbol("dcs_111");
+    }
+
+    // sym -> Returns the symbols address by lookup in the symbol pool
+    if (TYPEOF(co) == SYMSXP) {
+        std::stringstream ss;
+        ss << "sym_";
+        ss << CHAR(PRINTNAME(co));
+        return convertToExternalSymbol(ss.str());
+    }
+
+    // bis -> Builtin symbol by number
+    if (TYPEOF(co) == BUILTINSXP) {
+        std::stringstream ss;
+        ss << "gcb_";
+        ss << getBuiltinNr(co);
+        return convertToExternalSymbol(ss.str());
+    }
+
+    // TODO
+    if (TYPEOF(co) == SPECIALSXP) {
         return convertToPointer(co, true);
+    }
+
+    if (TYPEOF(co) == REALSXP) {
+        double d = Rf_asReal(co);
+        std::stringstream ss;
+        ss << "cpreal_";
+        ss << d;
+        return convertToExternalSymbol(ss.str());
+    }
+
+    // if (TYPEOF(co) == LANGSXP) {
+    //     if (target->hast == -1) {
+    //         std::cout << "constantPoolPointerErr: no Hast found" << std::endl;
+    //     } else {
+    //         auto found_ast = rir::Code::hastMap[target->hast];
+    //         auto srcPool = globalContext()->src.list;
+
+    //         SEXP el = VECTOR_ELT(srcPool, found_ast->src);
+    //         int path = find_path(el, co);
+
+    //         if (path != -1 && get_from_path(path, el) == co) {
+    //             std::stringstream ss;
+    //             ss << "lan_";
+    //             ss << target->hast << "_";
+    //             ss << path;
+    //             return convertToExternalSymbol(ss.str());
+    //         } else {
+    //             std::cout << "constantPoolPointerErr: invalid path to AST " << path << std::endl;
+    //         }
+    //     }
+    // }
+
+    // static std::unordered_set<SEXP> eternal = {R_GlobalEnv, R_BaseEnv,
+    //                                            R_BaseNamespace};
+    // if (TYPEOF(co) == SYMSXP || eternal.count(co))
+    //     return convertToPointer(co);
+
+    // static std::unordered_set<SEXP> eternalConst = {
+    //     R_TrueValue,  R_NilValue,       R_FalseValue, R_UnboundValue,
+    //     R_MissingArg, R_LogicalNAValue, R_EmptyEnv};
+    // if (TYPEOF(co) == BUILTINSXP || TYPEOF(co) == SPECIALSXP ||
+    //     eternalConst.count(co))
+    //     return convertToPointer(co, true);
 
     auto i = Pool::insert(co);
     llvm::Value* pos = builder.CreateLoad(constantpool);
@@ -433,9 +537,8 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
     } else if (val->asRValue()) {
         res = constant(val->asRValue(), needed);
     } else if (val == OpaqueTrue::instance()) {
-        static int one = 1;
         // Something that is always true, but llvm does not know about
-        res = builder.CreateLoad(convertToPointer(&one, t::Int, true));
+        res = builder.CreateLoad(convertToExternalSymbol("spe_opaqueTrue", t::Int));
     } else if (auto ld = Const::Cast(val)) {
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
@@ -2097,7 +2200,8 @@ void LowerFunctionLLVM::compile() {
         }
     }
 
-    nodestackPtrAddr = convertToPointer(&R_BCNodeStackTop, t::stackCellPtr);
+    // nodestackPtrAddr = convertToPointer(&R_BCNodeStackTop, t::stackCellPtr);
+    nodestackPtrAddr = convertToExternalSymbol("spe_BCNodeStackTop", t::stackCellPtr);
     basepointer = nodestackPtr();
 
     size_t additionalStackSlots = 0;
@@ -5872,9 +5976,12 @@ void LowerFunctionLLVM::compile() {
                         } else {
                             msg = defaultMsg;
                         }
+                        std::stringstream ss;
+                        ss << "msg_";
+                        ss << msg;
                         call(NativeBuiltins::get(NativeBuiltins::Id::checkType),
                              {loadSxp(i), c((unsigned long)i->type.serialize()),
-                              convertToPointer(msg, t::i8, true)});
+                              convertToExternalSymbol(ss.str(), t::i8)});
                     }
                 }
 #ifdef ENABLE_SLOWASSERT

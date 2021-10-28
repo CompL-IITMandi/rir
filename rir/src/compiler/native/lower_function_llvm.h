@@ -119,6 +119,8 @@ class LowerFunctionLLVM {
         return convertToPointer(what, t::SEXPREC, constant);
     }
 
+    llvm::Value* convertToExternalSymbol(std::string name, llvm::Type* ty);
+
     struct Variable {
         bool deadMove(const Variable& other) const;
 

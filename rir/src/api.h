@@ -5,6 +5,9 @@
 #include "compiler/log/debug.h"
 #include "runtime/Context.h"
 #include <stdint.h>
+#include "llvm/IR/Module.h"
+
+#include "runtime/FunctionSignature.h"
 
 #define REXPORT extern "C"
 
@@ -19,6 +22,10 @@ REXPORT SEXP pirCheck(SEXP f, SEXP check, SEXP env);
 REXPORT SEXP pirSetDebugFlags(SEXP debugFlags);
 SEXP pirCompile(SEXP closure, const rir::Context& assumptions,
                 const std::string& name, const rir::pir::DebugOptions& debug);
+SEXP pirCompileAndSerialize(SEXP closure, const rir::Context& assumptions,
+                const std::string& name, const rir::pir::DebugOptions& debug, std::function<void(llvm::Module*)> sCallback,
+                std::function<void(rir::FunctionSignature &)> signatureCallback);
+
 extern SEXP rirOptDefaultOpts(SEXP closure, const rir::Context&, SEXP name);
 extern SEXP rirOptDefaultOptsDryrun(SEXP closure, const rir::Context&,
                                     SEXP name);

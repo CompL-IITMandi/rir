@@ -40,6 +40,7 @@ using PromMap = std::unordered_map<Code*, std::pair<unsigned, MkArg*>>;
 // one just provides definitions of the statically compiled symbols and their
 // addresses for PIR builtins.
 class PirJitLLVM {
+
   public:
     static std::unique_ptr<llvm::orc::LLJIT> JIT;
     explicit PirJitLLVM(const std::string& name);
@@ -51,6 +52,8 @@ class PirJitLLVM {
                  const PromMap& m, const NeedsRefcountAdjustment& refcount,
                  const std::unordered_set<Instruction*>& needsLdVarForUpdate,
                  ClosureStreamLogger& log);
+
+    void moduleMakeup(std::function<void(llvm::Module*)> sCallback);
 
     using GetModule = std::function<llvm::Module&()>;
     using GetFunction = std::function<llvm::Function*(Code*)>;

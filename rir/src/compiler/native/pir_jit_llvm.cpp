@@ -5,6 +5,7 @@
 #include "compiler/native/pass_schedule_llvm.h"
 #include "compiler/native/types_llvm.h"
 #include "utils/filesystem.h"
+#include "R/Funtab.h"
 
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/Core.h"
@@ -325,6 +326,10 @@ void PirJitLLVM::finalizeAndFixup() {
         fix.second.first->lazyCodeHandle(fix.second.second.str());
 }
 
+void PirJitLLVM::moduleMakeup(std::function<void(llvm::Module*)> sCallback) {
+    sCallback(M.get());
+}
+
 void PirJitLLVM::compile(
     rir::Code* target, ClosureVersion* closure, Code* code,
     const PromMap& promMap, const NeedsRefcountAdjustment& refcount,
@@ -457,6 +462,7 @@ void PirJitLLVM::compile(
 llvm::LLVMContext& PirJitLLVM::getContext() { return *TSC.getContext(); }
 
 void PirJitLLVM::initializeLLVM() {
+    static int opaqueTrue = 1;
     if (initialized)
         return;
 
@@ -566,6 +572,19 @@ void PirJitLLVM::initializeLLVM() {
                 auto ept = n.substr(0, 4) == "ept_";
                 auto efn = n.substr(0, 4) == "efn_";
 
+                auto dcs = n.substr(0, 4) == "dcs_"; // Direct constant symbols
+                auto sym = n.substr(0, 4) == "sym_"; // Symbols lookups
+                auto gcb = n.substr(0, 4) == "gcb_"; // Builtins
+
+                auto spe = n.substr(0, 4) == "spe_"; // Special symbols
+
+                auto msg = n.substr(0, 4) == "msg_"; // Message ptr
+
+                auto real = n.substr(0, 7) ==  "cpreal_"; // constant pool real
+                // auto lang = n.substr(0, 4) ==  "lan_"; // constant pool langsxp
+
+                auto gcode = n.substr(0, 4) == "cod_"; // callable pointer to builtin
+
                 if (ept || efn) {
                     auto addrStr = n.substr(4);
                     auto addr = std::strtoul(addrStr.c_str(), nullptr, 16);
@@ -575,6 +594,147 @@ void PirJitLLVM::initializeLLVM() {
                         JITSymbolFlags::Exported |
                             (efn ? JITSymbolFlags::Callable
                                  : JITSymbolFlags::None));
+                } else if (dcs) {
+                    auto id = std::stoi(n.substr(4));
+                    SEXP ptr = R_NilValue;
+                    switch (id) {
+                        case 100:
+                            ptr = R_GlobalEnv;
+                            break;
+                        case 101:
+                            ptr = R_BaseEnv;
+                            break;
+                        case 102:
+                            ptr = R_BaseNamespace;
+                            break;
+                        case 103:
+                            ptr = R_TrueValue;
+                            break;
+                        case 104:
+                            ptr = R_NilValue;
+                            break;
+                        case 105:
+                            ptr = R_FalseValue;
+                            break;
+                        case 106:
+                            ptr = R_UnboundValue;
+                            break;
+                        case 107:
+                            ptr = R_MissingArg;
+                            break;
+                        case 108:
+                            ptr = R_LogicalNAValue;
+                            break;
+                        case 109:
+                            ptr = R_EmptyEnv;
+                            break;
+                        case 110:
+                            ptr = R_RestartToken;
+                            break;
+                        case 111:
+                            ptr = R_DimSymbol;
+                            break;
+                    }
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(ptr)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (sym) {
+                    auto constantName = n.substr(4);
+                    SEXP con = Rf_install(constantName.c_str());
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(con)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (gcb) {
+                    auto id = std::stoi(n.substr(4));
+                    SEXP ptr;
+                    assert(R_FunTab[id].eval % 10 == 1 && "Only use for BUILTINSXP");
+                    if (R_FunTab[id].eval % 100 / 10 == 0)
+                        ptr = Rf_install(R_FunTab[id].name)->u.symsxp.value;
+                    else
+                        ptr = Rf_install(R_FunTab[id].name)->u.symsxp.internal;
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(ptr)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (spe) {
+                    auto constantName = n.substr(4);
+                    uintptr_t addr = 0;
+
+                    if (constantName.compare("BCNodeStackTop") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&R_BCNodeStackTop);
+                    } else if (constantName.compare("Visible") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&R_Visible);
+                    } else if (constantName.compare("opaqueTrue") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&opaqueTrue);
+                    }
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(addr),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (msg) {
+                    size_t msgSize = strlen(n.substr(4).c_str());
+
+                    char * p = (char *) malloc( sizeof(char) * msgSize );
+
+                    for (int i = 0; i < msgSize; i++) {
+                        p[i] = n.substr(4).c_str()[i];
+                    }
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(p)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (real) {
+                    auto real_num = n.substr(7);
+                    double real = std::stod(real_num);
+                    SEXP ptr;
+                    PROTECT(ptr = Rf_ScalarReal(real));
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(ptr)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                }
+                else
+
+                // if (lang) {
+                //     auto hastAndPath = n.substr(4);
+                //     int start = 0;
+                //     int end = hastAndPath.find("_");
+
+                //     auto hast = std::stoi(hastAndPath.substr(start, end - start));
+                //     start = end + 1;
+                //     end = hastAndPath.find("_", start);
+                //     auto path = std::stoi(hastAndPath.substr(start, end - start));
+
+                //     auto found_ast = rir::Code::hastMap[hast];
+
+                //     SEXP el = VECTOR_ELT(globalContext()->src.list, found_ast->src);
+
+                //     NewSymbols[Name] = JITEvaluatedSymbol(
+                //         static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(get_from_path(path, el))),
+                //         JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+
+                // } else
+
+                if (gcode) {
+                    auto id = std::stoi(n.substr(4));
+                    SEXP ptr;
+                    assert(R_FunTab[id].eval % 10 == 1 && "Only use for BUILTINSXP");
+                    if (R_FunTab[id].eval % 100 / 10 == 0)
+                        ptr = Rf_install(R_FunTab[id].name)->u.symsxp.value;
+                    else
+                        ptr = Rf_install(R_FunTab[id].name)->u.symsxp.internal;
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(getBuiltin(ptr))),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
                 } else {
                     std::cout << "unknown symbol " << n << "\n";
                 }

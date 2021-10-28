@@ -15,6 +15,9 @@
 #include "interpreter/interp_incl.h"
 #include "ir/BC.h"
 #include "ir/Compiler.h"
+#include "llvm/IR/Module.h"
+#include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
 
 #include <cassert>
 #include <cstdio>
@@ -66,14 +69,49 @@ REXPORT SEXP rirDisassemble(SEXP what, SEXP verbose) {
     return R_NilValue;
 }
 
+static int charToInt(const char* p) {
+    int result = 0;
+    for (size_t i = 0; i < strlen(p); ++i) {
+        result += p[i];
+    }
+    return result;
+}
+
+static void hash_ast(SEXP ast, int & hast) {
+    if (TYPEOF(ast) == LISTSXP || TYPEOF(ast) == LANGSXP) {
+        if (TYPEOF(CAR(ast)) == SYMSXP) {
+            const char * pname = CHAR(PRINTNAME(CAR(ast)));
+            hast += charToInt(pname);
+            return hash_ast(CDR(ast), ++hast);
+        }
+        hash_ast(CAR(ast), ++hast);
+        hash_ast(CDR(ast), ++hast);
+    }
+}
+
 REXPORT SEXP rirCompile(SEXP what, SEXP env) {
     if (TYPEOF(what) == CLOSXP) {
         SEXP body = BODY(what);
         if (TYPEOF(body) == EXTERNALSXP)
             return what;
 
+        SEXP b = BODY(what);
+        if (TYPEOF(body) == BCODESXP) {
+            b = VECTOR_ELT(CDR(body), 0);
+        }
+
+        int hast = 0;
+        hash_ast(BODY(b), hast);
+
         // Change the input closure inplace
         Compiler::compileClosure(what);
+
+        DispatchTable* vtable = DispatchTable::unpack(BODY(what));
+        auto rirBody = vtable->baseline()->body();
+
+        rirBody->hast = hast;
+
+        Code::hastMap[hast] = rirBody;
 
         return what;
     } else {
@@ -84,6 +122,102 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
         return result;
     }
 }
+
+REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
+    if (TYPEOF(fun) == CLOSXP) {
+        std::ofstream metaDataFile;
+
+
+        auto compiledFun = rirCompile(fun, R_EmptyEnv);
+
+        DispatchTable* vtable = DispatchTable::unpack(BODY(compiledFun));
+
+        auto hast = vtable->baseline()->body()->hast;
+
+        pir::DebugOptions opts = pir::DebugOptions::DefaultDebugOptions;
+        std::string name;
+        if (TYPEOF(funName) == SYMSXP)
+            name = CHAR(PRINTNAME(funName));
+
+
+        if (TYPEOF(versions) == REALSXP) {
+            int length = Rf_length(versions);
+
+            std::stringstream ss;
+            ss << name << "_" << hast << ".meta";
+
+            metaDataFile.open(ss.str(), std::ios::binary | std::ios::out);
+
+            // First line of the file contains generic metadata about the function
+            int nameLen = strlen(name.c_str());
+
+            // Entry 1 (int): length of string containing the name
+            metaDataFile.write(reinterpret_cast<char *>(&nameLen), sizeof(int));
+
+            // Entry 2 (bytes...): bytes containing the name
+            metaDataFile.write(name.c_str(), sizeof(name.c_str()));
+
+            // Entry 3 (int): hast of the function
+            metaDataFile.write(reinterpret_cast<char *>(&hast) , sizeof(int));
+
+            // Entry 4 (int): number of contexts serialized
+            metaDataFile.write(reinterpret_cast<char *>(&length), sizeof(int));
+
+            int i = 0;
+            for (i = 0; i < length; i++) {
+                std::stringstream versionData;
+                Context c(REAL(versions)[i]);
+
+                unsigned long con = c.toI();
+
+                // Entry 5 (unsigned long): context
+                metaDataFile.write(reinterpret_cast<char *>(&con), sizeof(unsigned long));
+
+                auto serializeCallback = [&](llvm::Module* module) {
+                    if (module) {
+                        std::ofstream bitcodeFile;
+                        std::stringstream ss;
+                        ss << hast << "_";
+                        ss << c.toI() << ".bc";
+                        bitcodeFile.open(ss.str());
+                        llvm::raw_os_ostream ooo(bitcodeFile);
+                        WriteBitcodeToFile(*module,ooo);
+                    }
+                };
+
+                auto signatureWriter = [&](FunctionSignature & fs) {
+                    int envCreation = (int)fs.envCreation;
+                    int optimization = (int)fs.optimization;
+                    unsigned int numArguments = fs.numArguments;
+                    size_t dotsPosition = fs.dotsPosition;
+
+                    // Entry 6 (int): context
+                    metaDataFile.write(reinterpret_cast<char *>(&envCreation), sizeof(int));
+
+                    // Entry 7 (int): context
+                    metaDataFile.write(reinterpret_cast<char *>(&optimization), sizeof(int));
+
+                    // Entry 8 (unsigned int): context
+                    metaDataFile.write(reinterpret_cast<char *>(&numArguments), sizeof(unsigned int));
+
+                    // Entry 9 (size_t): context
+                    metaDataFile.write(reinterpret_cast<char *>(&dotsPosition), sizeof(size_t));
+
+                };
+
+                pirCompileAndSerialize(compiledFun, c, name, opts, serializeCallback, signatureWriter);
+
+            }
+            metaDataFile.close();
+            return Rf_ScalarInteger(length);
+        }
+    }
+
+    Rf_error("Not a valid function");
+
+    return R_FalseValue;
+}
+
 
 REXPORT SEXP rirMarkFunction(SEXP what, SEXP which, SEXP reopt_,
                              SEXP forceInline_, SEXP disableInline_,
@@ -284,6 +418,77 @@ REXPORT SEXP pirSetDebugFlags(SEXP debugFlags) {
     pir::DebugOptions::DefaultDebugOptions.flags =
         pir::DebugOptions::DebugFlags(INTEGER(debugFlags)[0]);
     return R_NilValue;
+}
+
+SEXP pirCompileAndSerialize(SEXP what, const Context& assumptions, const std::string& name,
+                const pir::DebugOptions& debug, std::function<void(llvm::Module*)> sCallback, std::function<void(FunctionSignature &)> signatureCallback) {
+    if (!isValidClosureSEXP(what)) {
+        Rf_error("not a compiled closure");
+    }
+    if (!DispatchTable::check(BODY(what))) {
+        Rf_error("Cannot optimize compiled expression, only closure");
+    }
+
+    PROTECT(what);
+
+    bool dryRun = debug.includes(pir::DebugFlag::DryRun);
+    // compile to pir
+    pir::Module* m = new pir::Module;
+    pir::StreamLogger logger(debug);
+    logger.title("Compiling " + name);
+    pir::Compiler cmp(m, logger);
+    pir::Backend backend(m, logger, name);
+    backend.addSerializer(sCallback, signatureCallback);
+    auto compile = [&](pir::ClosureVersion* c) {
+        logger.flush();
+        cmp.optimizeModule();
+
+        if (dryRun)
+            return;
+
+        rir::Function* done = nullptr;
+        auto apply = [&](SEXP body, pir::ClosureVersion* c) {
+            auto fun = backend.getOrCompile(c);
+            Protect p(fun->container());
+            DispatchTable::unpack(body)->insert(fun);
+            if (body == BODY(what))
+                done = fun;
+        };
+        m->eachPirClosureVersion([&](pir::ClosureVersion* c) {
+            if (c->owner()->hasOriginClosure()) {
+                auto cls = c->owner()->rirClosure();
+                auto body = BODY(cls);
+                auto dt = DispatchTable::unpack(body);
+                if (dt->contains(c->context())) {
+                    auto other = dt->dispatch(c->context());
+                    assert(other != dt->baseline());
+                    assert(other->context() == c->context());
+                    if (other->body()->isCompiled())
+                        return;
+                }
+                // Don't lower functions that have not been called often, as
+                // they have incomplete type-feedback.
+                if (dt->size() == 1 && dt->baseline()->invocationCount() < 2)
+                    return;
+                apply(body, c);
+            }
+        });
+        if (!done)
+            apply(BODY(what), c);
+        // Eagerly compile the main function
+        done->body()->nativeCode();
+    };
+
+    cmp.compileClosure(what, name, assumptions, true, compile,
+                       [&]() {
+                           if (debug.includes(pir::DebugFlag::ShowWarnings))
+                               std::cerr << "Compilation failed\n";
+                       },
+                       {});
+
+    delete m;
+    UNPROTECT(1);
+    return what;
 }
 
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
