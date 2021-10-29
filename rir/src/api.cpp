@@ -22,11 +22,28 @@
 #include <memory>
 #include <string>
 
+#include "compiler/native/pir_jit_llvm.h"
+
+#include "llvm/Bitcode/BitcodeReader.h"
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Support/Error.h"
+#include <llvm/Support/Errno.h>
+
+
 using namespace rir;
 
 extern "C" Rboolean R_Visible;
 
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
+
+struct FunctionMeta {
+    Context c;
+    std::string nativeHandle;
+    FunctionSignature fs;
+};
+
+std::unordered_map<int, std::vector<FunctionMeta>> deserializedHastMap;
 
 static size_t oldMaxInput = 0;
 static size_t oldInlinerMax = 0;
@@ -66,14 +83,71 @@ REXPORT SEXP rirDisassemble(SEXP what, SEXP verbose) {
     return R_NilValue;
 }
 
+static int charToInt(const char* p) {
+    int result = 0;
+    for (size_t i = 0; i < strlen(p); ++i) {
+        result += p[i];
+    }
+    return result;
+}
+
+static void hash_ast(SEXP ast, int & hast) {
+    if (TYPEOF(ast) == LISTSXP || TYPEOF(ast) == LANGSXP) {
+        if (TYPEOF(CAR(ast)) == SYMSXP) {
+            const char * pname = CHAR(PRINTNAME(CAR(ast)));
+            hast += charToInt(pname);
+            return hash_ast(CDR(ast), ++hast);
+        }
+        hash_ast(CAR(ast), ++hast);
+        hash_ast(CDR(ast), ++hast);
+    }
+}
+
 REXPORT SEXP rirCompile(SEXP what, SEXP env) {
     if (TYPEOF(what) == CLOSXP) {
         SEXP body = BODY(what);
         if (TYPEOF(body) == EXTERNALSXP)
             return what;
 
+        SEXP b = BODY(what);
+        if (TYPEOF(body) == BCODESXP) {
+            b = VECTOR_ELT(CDR(body), 0);
+        }
+
+        int hast = 0;
+        hash_ast(BODY(b), hast);
+
         // Change the input closure inplace
         Compiler::compileClosure(what);
+
+        DispatchTable* vtable = DispatchTable::unpack(BODY(what));
+
+
+        for (auto & meta : deserializedHastMap[hast]) {
+            FunctionWriter function;
+            Preserve preserve;
+            for (size_t i = 0; i < meta.fs.numArguments; ++i) {
+                function.addArgWithoutDefault();
+            }
+
+            auto res = rir::Code::New(vtable->baseline()->body()->src);
+            // Can we do better?
+            preserve(res->container());
+
+            function.finalize(res, meta.fs, meta.c);
+
+            function.function()->inheritFlags(vtable->baseline());
+            vtable->insert(function.function());
+
+            res->lazyCodeHandle(meta.nativeHandle);
+
+            llvm::ExitOnError ExitOnErr;
+
+            auto symbol = ExitOnErr(pir::PirJitLLVM::JIT->lookup(meta.nativeHandle));
+            auto nativeCode_ = (NativeCode)symbol.getAddress();
+
+            std::cout << "native code at: " << nativeCode_ << std::endl;
+        }
 
         return what;
     } else {
@@ -83,6 +157,109 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
         SEXP result = Compiler::compileExpression(what);
         return result;
     }
+}
+
+REXPORT SEXP loadBitcode(SEXP metaData) {
+
+    const char * metaDataPath = CHAR(VECTOR_ELT(metaData, 0));
+
+    std::ifstream metaDataFile (metaDataPath, std::ifstream::binary);
+
+    if (metaDataFile) {
+
+        // READ 1: nameLength
+        int nameLen = 0;
+        metaDataFile.read(reinterpret_cast<char *>(&nameLen),sizeof(int));
+
+        // READ 2: functionName
+        char * functionName = new char [nameLen + 1];
+        metaDataFile.read(functionName,nameLen);
+        functionName[nameLen] = '\0';
+
+        // READ 3: hast
+        int hast = 0;
+        metaDataFile.read(reinterpret_cast<char *>(&hast),sizeof(int));
+
+        // READ 4: versions
+        int versions = 0;
+        metaDataFile.read(reinterpret_cast<char *>(&versions),sizeof(int));
+
+        int i = 0;
+        for (i = 0; i < versions; i++) {
+
+            // READ 5: CONTEXTNO
+            unsigned long context = 0;
+            metaDataFile.read(reinterpret_cast<char *>(&context),sizeof(unsigned long));
+
+            // READING CONTEXT
+            Context c(context);
+            std::stringstream ss;
+            ss << hast << "_";
+            ss << c.toI() << ".bc";
+
+
+            // CREATING THE FUNCTION SIGNATURE
+
+            int envCreation = 0;
+            int optimization = 0;
+            unsigned int numArguments = 0;
+            size_t dotsPosition = 0;
+
+            // READ 6: ENVCREATION
+            metaDataFile.read(reinterpret_cast<char *>(&envCreation),sizeof(int));
+
+            // READ 7: OPTIMIZATION
+            metaDataFile.read(reinterpret_cast<char *>(&optimization),sizeof(int));
+
+            // READ 8: NUM ARGS
+            metaDataFile.read(reinterpret_cast<char *>(&numArguments),sizeof(unsigned int));
+
+            // READ 9: DOTS POS
+            metaDataFile.read(reinterpret_cast<char *>(&dotsPosition),sizeof(size_t));
+
+            // READ 10: MAIN FUNCTION LENGTH
+            size_t mainFunctionNameLen = 0;
+            metaDataFile.read(reinterpret_cast<char *>(&mainFunctionNameLen),sizeof(size_t));
+
+            // READ 11: MAIN FUNCTION NAME
+            char * mainFunctionName = new char [mainFunctionNameLen + 1];
+            metaDataFile.read(mainFunctionName,mainFunctionNameLen);
+            mainFunctionName[mainFunctionNameLen] = '\0';
+
+            // CREATE AND LOAD FUNCTION
+                // TODO HANDLE PROMISES TOO
+            FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
+
+            fs.numArguments = numArguments;
+            fs.dotsPosition = dotsPosition;
+
+            // INSERT THE FUNCTION INTO THE JIT
+            pir::Module* m = new pir::Module;
+            pir::StreamLogger logger(pir::DebugOptions::DefaultDebugOptions);
+            logger.title("Compiling " + std::string(functionName));
+            pir::Compiler cmp(m, logger);
+            pir::Backend backend(m, logger, functionName);
+
+            backend.deserialize(c, ss.str()); // passing the context and fileName (remove context later)
+
+            FunctionMeta meta = {c, mainFunctionName, fs};
+
+            deserializedHastMap[hast].push_back(meta);
+        }
+
+        // Good programming practices: make independent modular code
+        // Good analsis scope: inline everything into one function
+
+
+
+
+        delete[] functionName;
+
+    }
+
+
+
+    return R_FalseValue;
 }
 
 REXPORT SEXP rirMarkFunction(SEXP what, SEXP which, SEXP reopt_,

@@ -4,6 +4,8 @@
 #include "R/r.h"
 #include "compiler/log/debug.h"
 #include "runtime/Context.h"
+#include "runtime/Function.h"
+
 #include <stdint.h>
 
 #define REXPORT extern "C"
@@ -27,5 +29,6 @@ REXPORT SEXP rirDeserialize(SEXP file);
 
 REXPORT SEXP rirSetUserContext(SEXP f, SEXP udc);
 REXPORT SEXP rirCreateSimpleIntContext();
+
 
 #endif // API_H_

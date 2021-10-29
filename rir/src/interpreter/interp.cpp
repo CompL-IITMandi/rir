@@ -964,8 +964,10 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
 
         auto table = DispatchTable::unpack(body);
 
+
         inferCurrentContext(call, table->baseline()->signature().formalNargs(),
                             ctx);
+        std::cout << "context: " << call.givenContext.toI() << ", " << call.givenContext << std::endl;
         Function* fun = dispatch(call, table);
         fun->registerInvocation();
 
@@ -1923,6 +1925,7 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
     auto native = c->nativeCode();
     assert((!initialPC || !native) && "Cannot jump into native code");
     if (native) {
+        std::cout << "running native code" << std::endl;
         return native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
                       callCtxt ? callCtxt->callee : nullptr);
     }

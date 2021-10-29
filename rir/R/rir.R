@@ -48,6 +48,11 @@ rir.compile <- function(what) {
     .Call("rirCompile", what)
 }
 
+# loadup bitcode
+f.loadBitcode <- function(metaDataFile) {
+    .Call("loadBitcode", metaDataFile)
+}
+
 # optimizes given rir compiled closure
 pir.compile <- function(what, debugFlags, debugStyle, P_EARLY=FALSE, P_FINAL=FALSE, P_OPT=FALSE, WARN=FALSE) {
     debugFlags <-

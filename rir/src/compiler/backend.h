@@ -23,6 +23,8 @@ class Backend {
 
     rir::Function* getOrCompile(ClosureVersion* cls);
 
+    void deserialize(Context c, std::string path);
+
   private:
     struct LastDestructor {
         LastDestructor();

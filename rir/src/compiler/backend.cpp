@@ -412,6 +412,10 @@ Backend::LastDestructor::LastDestructor() {
     }
 }
 
+void Backend::deserialize(Context c, std::string path) {
+    jit.deserializeAndAddModule(c, path);
+}
+
 rir::Function* Backend::getOrCompile(ClosureVersion* cls) {
     auto res = done.find(cls);
     if (res != done.end())
