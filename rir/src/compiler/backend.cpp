@@ -362,6 +362,14 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         Measuring::startTimer("backend.cpp: pir2llvm");
     }
 
+    int hast = -1;
+    if (cls->owner()->hasOriginClosure()) {
+        auto c = cls->owner()->rirClosure();
+        auto body = BODY(c);
+        auto dt = DispatchTable::unpack(body);
+        hast = dt->baseline()->body()->hast;
+    }
+
     std::unordered_map<Code*, rir::Code*> done;
     std::function<rir::Code*(Code*)> compile = [&](Code* c) {
         if (done.count(c))
@@ -384,15 +392,81 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
                 res->flags.set(rir::Code::NoReflection);
             res->addExtraPoolEntry(code->container());
         }
+        res->hast = hast;
         jit.compile(res, cls, c, promMap.at(c), refcount, needsLdVarForUpdate,
                     log);
         return res;
     };
     auto body = compile(cls);
 
+    std::string mainFunctionName;
+
+    rir::Code * mainFunCodeObj;
+
+    for (auto & element : promMap) {
+        if (element.second.size() > 0) {
+            rir::pir::Code *c = element.first;
+
+            std::stringstream ss;
+            ss << "f" << 0 << "_";
+            ss << std::hex << std::uppercase << element.second.size();
+            ss << "_";
+            ss << std::hex << std::uppercase << done[c]->hast;
+            ss << "_";
+            ss << std::hex << std::uppercase << cls->context().toI();
+
+            mainFunctionName = ss.str();
+
+            mainFunCodeObj = done[c];
+
+            jit.updateFunctionNameInModule(done[c]->mName, mainFunctionName);
+            jit.patchFixupHandle(mainFunctionName, c);
+
+            int i = 0;
+            for (auto & ele : element.second) {
+
+                std::stringstream ss;
+                ss << "p" << 0 << "_";
+                ss << std::hex << std::uppercase << i++;
+                ss << "_";
+                ss << std::hex << std::uppercase << done[c]->hast;
+                ss << "_";
+                ss << std::hex << std::uppercase << cls->context().toI();
+
+                jit.updateFunctionNameInModule(done[ele.first]->mName, ss.str());
+                jit.patchFixupHandle(ss.str(), ele.first);
+
+            }
+        }
+    }
+
+    if (promMap.size() == 1) {
+        for (auto & element : promMap) {
+            rir::pir::Code *c = element.first;
+
+            std::stringstream ss;
+            ss << "f" << 0 << "_";
+            ss << std::hex << std::uppercase << element.second.size();
+            ss << "_";
+            ss << std::hex << std::uppercase << done[c]->hast;
+            ss << "_";
+            ss << std::hex << std::uppercase << cls->context().toI();
+
+            mainFunCodeObj = done[c];
+
+            mainFunctionName = ss.str();
+
+            jit.updateFunctionNameInModule(done[c]->mName, mainFunctionName);
+            jit.patchFixupHandle(mainFunctionName, c);
+        }
+    }
+
+
+    // jit.printModule();
+
     if (sCallback != NULL) {
-        jit.moduleMakeup(sCallback);
-        signatureCallback(signature);
+        jit.moduleMakeup(sCallback, mainFunCodeObj);
+        signatureCallback(signature, mainFunctionName);
     }
 
 
@@ -418,7 +492,7 @@ Backend::LastDestructor::LastDestructor() {
     }
 }
 
-void Backend::addSerializer(std::function<void(llvm::Module*)> call, std::function<void(FunctionSignature &)> signCall) {
+void Backend::addSerializer(std::function<void(llvm::Module*, rir::Code *)> call, std::function<void(FunctionSignature &, std::string &)> signCall) {
     sCallback = call;
     signatureCallback = signCall;
 }

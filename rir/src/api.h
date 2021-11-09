@@ -6,6 +6,7 @@
 #include "runtime/Context.h"
 #include <stdint.h>
 #include "llvm/IR/Module.h"
+#include "utils/Pool.h"
 
 #include "runtime/FunctionSignature.h"
 
@@ -23,12 +24,17 @@ REXPORT SEXP pirSetDebugFlags(SEXP debugFlags);
 SEXP pirCompile(SEXP closure, const rir::Context& assumptions,
                 const std::string& name, const rir::pir::DebugOptions& debug);
 SEXP pirCompileAndSerialize(SEXP closure, const rir::Context& assumptions,
-                const std::string& name, const rir::pir::DebugOptions& debug, std::function<void(llvm::Module*)> sCallback,
-                std::function<void(rir::FunctionSignature &)> signatureCallback);
+                const std::string& name, const rir::pir::DebugOptions& debug, std::function<void(llvm::Module*, rir::Code *)> sCallback,
+                std::function<void(rir::FunctionSignature &, std::string &)> signatureCallback);
 
 extern SEXP rirOptDefaultOpts(SEXP closure, const rir::Context&, SEXP name);
 extern SEXP rirOptDefaultOptsDryrun(SEXP closure, const rir::Context&,
                                     SEXP name);
+
+void hash_ast(SEXP ast, int & hast);
+void printAST(int space, SEXP ast);
+void printAST(int space, int val);
+
 REXPORT SEXP rirSerialize(SEXP data, SEXP file);
 REXPORT SEXP rirDeserialize(SEXP file);
 

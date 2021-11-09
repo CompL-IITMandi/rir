@@ -13,11 +13,16 @@
 #include "compiler/test/PirCheck.h"
 #include "compiler/test/PirTests.h"
 #include "interpreter/interp_incl.h"
+
+#include "utils/Pool.h"
+#include "compiler/native/types_llvm.h"
+
 #include "ir/BC.h"
 #include "ir/Compiler.h"
 #include "llvm/IR/Module.h"
 #include "llvm/Support/raw_os_ostream.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/Transforms/Utils/Cloning.h"
 
 #include <cassert>
 #include <cstdio>
@@ -77,7 +82,216 @@ static int charToInt(const char* p) {
     return result;
 }
 
-static void hash_ast(SEXP ast, int & hast) {
+
+void printSpace(int & lim) {
+    int i = 0;
+    for(i = 0; i < lim; i++ ) {
+        std::cout << " ";
+    }
+}
+
+void printHeader(int & space, const char * title) {
+    std::cout << " » " << title << "}" << std::endl;
+    space++;
+}
+
+void printType(int & space, const char * attr, SEXP ptr) {
+    printSpace(space);
+    std::cout << "└■ " << attr << " {" << TYPEOF(ptr);
+}
+
+void printType(int & space, const char * attr, int val) {
+    printSpace(space);
+    std::cout << "└■ " << attr << " {" << val;
+}
+
+void printLangSXP(int space, SEXP langsxp) {
+    printHeader(space, "LANGSXP");
+
+    auto tag = TAG(langsxp);
+    auto car = CAR(langsxp);
+    auto cdr = CDR(langsxp);
+
+    printType(space, "TAG", tag);
+    printAST(space, tag);
+
+    printType(space, "CAR", car);
+    printAST(space, car);
+
+    printType(space, "CDR", cdr);
+    printAST(space, cdr);
+}
+
+void printSYMSXP(int space, SEXP symsxp) {
+    printHeader(space, "SYMSXP");
+
+    auto pname = PRINTNAME(symsxp);
+    auto value = SYMVALUE(symsxp);
+    auto internal = INTERNAL(symsxp);
+
+    printType(space, "PNAME", pname);
+    printAST(space, pname);
+
+    printType(space, "VALUE", value);
+    // if (symsxp != value) {
+    //     printAST(space, value);
+    // } else {
+    //     std::cout << "}" << std::endl;
+    // }
+
+    std::cout << "}" << std::endl;
+
+    printType(space, "INTERNAL", internal);
+    printAST(space, internal);
+}
+
+void printCHARSXP(int space, SEXP charSXP) {
+    printHeader(space, "CHARSXP");
+
+    printSpace(space);
+    std::cout << CHAR(charSXP) << std::endl;
+}
+
+void printSTRSXP(int space, SEXP strSXP) {
+    printHeader(space, "STRSXP");
+
+    printSpace(space);
+    std::cout << CHAR(STRING_ELT(strSXP, 0)) << std::endl;
+}
+
+void printREALSXP(int space, SEXP realSXP) {
+    printHeader(space, "REALSXP");
+
+    printSpace(space);
+    std::cout << *REAL(realSXP) << std::endl;
+}
+
+void printLISTSXP(int space, SEXP listsxp) {
+    printHeader(space, "LISTSXP");
+
+    auto tag = TAG(listsxp);
+    auto car = CAR(listsxp);
+    auto cdr = CDR(listsxp);
+
+    printType(space, "TAG", tag);
+    printAST(space, tag);
+
+    printType(space, "CAR", car);
+    printAST(space, car);
+
+    printType(space, "CDR", cdr);
+    printAST(space, cdr);
+
+}
+
+void printCLOSXP(int space, SEXP closxp) {
+    printHeader(space, "CLOSXP");
+
+    auto formals = FORMALS(closxp);
+    auto body = BODY(closxp);
+    auto cloenv = CLOENV(closxp);
+
+    printType(space, "FORMALS", formals);
+    printAST(space, formals);
+
+    printType(space, "BODY", body);
+    printAST(space, body);
+
+    printType(space, "CLOENV", cloenv);
+    printAST(space, cloenv);
+
+}
+
+void printExternalCodeEntry(int space, SEXP externalsxp) {
+    printHeader(space, "EXTERNALSXP");
+    if (Code::check(externalsxp)) {
+        Code * code = Code::unpack(externalsxp);
+        code->print(std::cout);
+    }
+}
+
+void printBCODESXP(int space, SEXP bcodeSXP) {
+    printHeader(space, "BCODESXP");
+    printType(space, "VECTOR_ELT(CDR(BCODESXP),0)", bcodeSXP);
+    printAST(space, VECTOR_ELT(CDR(bcodeSXP),0));
+}
+
+void printPROMSXP(int space, SEXP promSXP) {
+    printHeader(space, "PROMSXP");
+
+    auto seen = PRSEEN(promSXP);
+    auto code = PRCODE(promSXP);
+    auto env = PRENV(promSXP);
+    auto value = PRVALUE(promSXP);
+
+    printType(space, "SEEN", seen);
+    printAST(space, seen);
+
+    printType(space, "CODE", code);
+    printAST(space, code);
+
+    printType(space, "ENV", env);
+    printAST(space, env);
+
+    printType(space, "VALUE", value);
+    printAST(space, value);
+}
+
+void printENVSXP(int space, SEXP envSXP) {
+    printHeader(space, "ENVSXP");
+
+    auto frame = FRAME(envSXP);
+    auto encls = FRAME(envSXP);
+    auto hashtab = FRAME(envSXP);
+
+
+    printType(space, "FRAME", frame);
+    printAST(space, frame);
+
+    printType(space, "ENCLS", encls);
+    printAST(space, encls);
+
+    printType(space, "HASHTAB", hashtab);
+    printAST(space, hashtab);
+
+
+}
+
+void printRAWSXP(int space, SEXP rawSXP) {
+    printHeader(space, "ENVSXP");
+
+    Rbyte * rawData = RAW(rawSXP);
+
+    printSpace(space);
+    std::cout << *rawData << std::endl;
+
+}
+
+void printAST(int space, int val) {
+    std::cout << val << "}" << std::endl;
+}
+
+
+void printAST(int space, SEXP ast) {
+    switch(TYPEOF(ast)) {
+        case CLOSXP: printCLOSXP(++space, ast); break;
+        case LANGSXP: printLangSXP(++space, ast); break;
+        case SYMSXP: printSYMSXP(++space, ast); break;
+        case LISTSXP: printLISTSXP(++space, ast); break;
+        case CHARSXP: printCHARSXP(++space, ast); break;
+        case STRSXP: printSTRSXP(++space, ast); break;
+        case REALSXP: printREALSXP(++space, ast); break;
+        case BCODESXP: printBCODESXP(++space, ast); break;
+        case PROMSXP: printPROMSXP(++space, ast); break;
+        case ENVSXP: printENVSXP(++space, ast); break;
+        case RAWSXP: printRAWSXP(++space, ast); break;
+        case EXTERNALSXP: printExternalCodeEntry(++space, ast); break;
+        default: std::cout << "}" << std::endl; break;
+    }
+}
+
+
+void hash_ast(SEXP ast, int & hast) {
     if (TYPEOF(ast) == LISTSXP || TYPEOF(ast) == LANGSXP) {
         if (TYPEOF(CAR(ast)) == SYMSXP) {
             const char * pname = CHAR(PRINTNAME(CAR(ast)));
@@ -100,18 +314,23 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
             b = VECTOR_ELT(CDR(body), 0);
         }
 
-        int hast = 0;
-        hash_ast(BODY(b), hast);
-
         // Change the input closure inplace
         Compiler::compileClosure(what);
 
         DispatchTable* vtable = DispatchTable::unpack(BODY(what));
         auto rirBody = vtable->baseline()->body();
 
+        SEXP ast = src_pool_at(globalContext(), rirBody->src);
+
+        // The hast is inserted into the code object of the bytecode
+        // Calculate hast for the given function
+        int hast = 0;
+        hash_ast(ast, hast);
+
+
         rirBody->hast = hast;
 
-        Code::hastMap[hast] = rirBody;
+        Code::hastMap[hast] = vtable;
 
         return what;
     } else {
@@ -127,11 +346,11 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
     if (TYPEOF(fun) == CLOSXP) {
         std::ofstream metaDataFile;
 
-
+        // Get or compile bytecode
         auto compiledFun = rirCompile(fun, R_EmptyEnv);
-
         DispatchTable* vtable = DispatchTable::unpack(BODY(compiledFun));
 
+        // Hast is calculated at bytecode compilation time,
         auto hast = vtable->baseline()->body()->hast;
 
         pir::DebugOptions opts = pir::DebugOptions::DefaultDebugOptions;
@@ -140,77 +359,225 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
             name = CHAR(PRINTNAME(funName));
 
 
-        if (TYPEOF(versions) == REALSXP) {
-            int length = Rf_length(versions);
+        std::vector<unsigned long> contextList;
 
-            std::stringstream ss;
-            ss << name << "_" << hast << ".meta";
-
-            metaDataFile.open(ss.str(), std::ios::binary | std::ios::out);
-
-            // First line of the file contains generic metadata about the function
-            int nameLen = strlen(name.c_str());
-
-            // Entry 1 (int): length of string containing the name
-            metaDataFile.write(reinterpret_cast<char *>(&nameLen), sizeof(int));
-
-            // Entry 2 (bytes...): bytes containing the name
-            metaDataFile.write(name.c_str(), sizeof(name.c_str()));
-
-            // Entry 3 (int): hast of the function
-            metaDataFile.write(reinterpret_cast<char *>(&hast) , sizeof(int));
-
-            // Entry 4 (int): number of contexts serialized
-            metaDataFile.write(reinterpret_cast<char *>(&length), sizeof(int));
-
-            int i = 0;
-            for (i = 0; i < length; i++) {
-                std::stringstream versionData;
-                Context c(REAL(versions)[i]);
-
-                unsigned long con = c.toI();
-
-                // Entry 5 (unsigned long): context
-                metaDataFile.write(reinterpret_cast<char *>(&con), sizeof(unsigned long));
-
-                auto serializeCallback = [&](llvm::Module* module) {
-                    if (module) {
-                        std::ofstream bitcodeFile;
-                        std::stringstream ss;
-                        ss << hast << "_";
-                        ss << c.toI() << ".bc";
-                        bitcodeFile.open(ss.str());
-                        llvm::raw_os_ostream ooo(bitcodeFile);
-                        WriteBitcodeToFile(*module,ooo);
-                    }
-                };
-
-                auto signatureWriter = [&](FunctionSignature & fs) {
-                    int envCreation = (int)fs.envCreation;
-                    int optimization = (int)fs.optimization;
-                    unsigned int numArguments = fs.numArguments;
-                    size_t dotsPosition = fs.dotsPosition;
-
-                    // Entry 6 (int): context
-                    metaDataFile.write(reinterpret_cast<char *>(&envCreation), sizeof(int));
-
-                    // Entry 7 (int): context
-                    metaDataFile.write(reinterpret_cast<char *>(&optimization), sizeof(int));
-
-                    // Entry 8 (unsigned int): context
-                    metaDataFile.write(reinterpret_cast<char *>(&numArguments), sizeof(unsigned int));
-
-                    // Entry 9 (size_t): context
-                    metaDataFile.write(reinterpret_cast<char *>(&dotsPosition), sizeof(size_t));
-
-                };
-
-                pirCompileAndSerialize(compiledFun, c, name, opts, serializeCallback, signatureWriter);
-
+        if (TYPEOF(versions) == NILSXP) {
+            for (int i = 1; i < vtable->size(); i++) {
+                contextList.push_back(vtable->get(i)->context().toI());
             }
-            metaDataFile.close();
-            return Rf_ScalarInteger(length);
+        } else if (TYPEOF(versions) == REALSXP) {
+            for (int i = 0; i < Rf_length(versions); i++) {
+                contextList.push_back(REAL(versions)[i]);
+            }
+        } else {
+            Rf_error("Invalid context list");
         }
+
+        if (contextList.size() == 0) {
+            Rf_error("No contexts found");
+        }
+
+
+        if (strlen(name.c_str()) == 0) {
+            name = "UKN";
+        }
+
+        std::stringstream ss;
+        ss << name << "_" << hast << ".meta";
+
+        metaDataFile.open(ss.str(), std::ios::binary | std::ios::out);
+
+        // First line of the file contains generic metadata about the function
+        int nameLen = strlen(name.c_str());
+
+        // Entry 1 (int): length of string containing the name
+        metaDataFile.write(reinterpret_cast<char *>(&nameLen), sizeof(int));
+
+        // Entry 2 (bytes...): bytes containing the name
+        metaDataFile.write(name.c_str(), sizeof(char) * nameLen);
+
+        // Entry 3 (size_t): hast of the function
+        metaDataFile.write(reinterpret_cast<char *>(&hast) , sizeof(size_t));
+
+        // Entry 4 (int): number of contexts serialized
+        int s = contextList.size();
+        metaDataFile.write(reinterpret_cast<char *>(&s), sizeof(int));
+
+        std::cout << "Saving bitcode for " << name << "(" << hast << ")" << ", found " << contextList.size() << " version(s)" << std::endl;
+
+
+        int i = 0;
+        for (i = 0; i < contextList.size(); i++) {
+            // Looping over all the contexts
+            Context c(contextList.at(i));
+
+            unsigned long con = c.toI();
+
+            size_t ePoolEntriesSize = 0;
+
+            // Entry 5 (unsigned long): context
+            metaDataFile.write(reinterpret_cast<char *>(&con), sizeof(unsigned long));
+
+            auto signatureWriter = [&](FunctionSignature & fs, std::string & mainName) {
+                // Entry 6 (int): envCreation
+                int envCreation = (int)fs.envCreation;
+                metaDataFile.write(reinterpret_cast<char *>(&envCreation), sizeof(int));
+
+                // Entry 7 (int): optimization
+                int optimization = (int)fs.optimization;
+                metaDataFile.write(reinterpret_cast<char *>(&optimization), sizeof(int));
+
+                // Entry 8 (unsigned int): numArguments
+                unsigned int numArguments = fs.numArguments;
+                metaDataFile.write(reinterpret_cast<char *>(&numArguments), sizeof(unsigned int));
+
+                // Entry 9 (size_t): dotsPosition
+                size_t dotsPosition = fs.dotsPosition;
+                metaDataFile.write(reinterpret_cast<char *>(&dotsPosition), sizeof(size_t));
+
+                // Entry 10 (size_t): mainNameLength
+                size_t mainNameLen = strlen(mainName.c_str());
+                metaDataFile.write(reinterpret_cast<char *>(&mainNameLen), sizeof(size_t));
+
+                // Entry 11 (bytes...): name
+                metaDataFile.write(mainName.c_str(), sizeof(char) * mainNameLen);
+
+                // Entry 12 (size_t): ePoolEntriesSize
+                metaDataFile.write(reinterpret_cast<char *>(&ePoolEntriesSize), sizeof(size_t));
+            };
+
+            auto serializeCallback = [&](llvm::Module* m, rir::Code * code) {
+                if (m) {
+                    // We clone the module because we dont want to update constant pool references in the original module
+                    auto module = llvm::CloneModule(*m);
+                    std::vector<int64_t> cpEntries;
+                    std::vector<SEXP> ePoolEntries;
+
+                    int patchValue = 0;
+
+                    // Iterating over all globals
+                    for (auto & global : module->getGlobalList()) {
+                        auto pre = global.getName().str().substr(0,6) == "copool";
+
+                        auto epe = global.getName().str().substr(0, 4) == "epe_"; // extra pool entry for deopts
+
+                        // All constant pool references have a copool prefix
+                        if (pre) {
+                            llvm::raw_os_ostream ost(std::cout);
+                            auto con = global.getInitializer();
+                            if (auto * v = llvm::dyn_cast<llvm::ConstantDataArray>(con)) {
+
+                                std::cout << "ConstantDataArray: " << global.getName().str() << std::endl;
+
+                                // Constant data array
+                                std::vector<llvm::Constant*> patchedIndices;
+
+                                auto arrSize = v->getNumElements();
+
+                                for (auto i = 0; i < arrSize; i++) {
+                                    auto val = v->getElementAsAPInt(i).getSExtValue();
+                                    cpEntries.push_back(val);
+
+                                    std::cout << "oldVal: " << val << ", newVal: " << patchValue << std::endl;
+
+                                    // Offset relative to the serialized pool
+                                    llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
+                                    patchedIndices.push_back(replacementValue);
+
+                                }
+
+                                auto ty = llvm::ArrayType::get(rir::pir::t::Int, patchedIndices.size());
+                                auto newInit = llvm::ConstantArray::get(ty, patchedIndices);
+
+                                global.setInitializer(newInit);
+                            } else  if (auto * v = llvm::dyn_cast<llvm::ConstantInt>(con)) {
+                                // Simple constant ints
+                                auto val = v->getSExtValue();
+                                cpEntries.push_back(val);
+
+                                // Offset relative to the serialized pool
+                                llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
+
+                                global.setInitializer(replacementValue);
+                            } else  if (auto * v = llvm::dyn_cast<llvm::ConstantStruct>(con)) {
+                                // the symbol used in this should be added to HAST_REQUIRED list
+                            } else {
+                                llvm::raw_os_ostream ooo(std::cout);
+                                ooo << *module;
+                                std::cout << "Unknown constant pool entry type: " << global.getName().str() << std::endl;
+                                Rf_error("Unknown constant pool entry");
+                            }
+                        }
+
+                        if (epe) {
+                            auto firstDel = global.getName().str().find('_');
+                            auto secondDel = global.getName().str().find('_', firstDel + 1);
+                            auto thirdDel = global.getName().str().find('_', secondDel + 1);
+                            
+                            // auto hast = std::stoi(global.getName().str().substr(firstDel + 1, secondDel - firstDel - 1));
+                            auto extraPoolOffset = std::stoi(global.getName().str().substr(secondDel + 1, thirdDel - secondDel - 1));
+                            // auto context = std::stoul(global.getName().str().substr(thirdDel + 1));
+
+                            std::cout << "extraPoolOffset: " << extraPoolOffset << std::endl;
+
+                            SEXP entry = code->getExtraPoolEntry(extraPoolOffset);
+                            ePoolEntries.push_back(entry);
+
+                            std::cout << "Adding ePoolEntry: " << TYPEOF(entry) << std::endl;
+
+                            ePoolEntriesSize++;
+
+                        }
+                    }
+
+                    // Creating a vector containing all constant pool references
+                    auto constantPoolEntries = Rf_allocVector(VECSXP, cpEntries.size() + ePoolEntries.size());
+                    int i = 0;
+                    for (auto & ele : cpEntries) {
+                        SEXP obj = Pool::get(ele);
+                        SET_VECTOR_ELT(constantPoolEntries, i++, obj);
+                    }
+
+                    for (auto & ele : ePoolEntries) {
+                        SET_VECTOR_ELT(constantPoolEntries, i++, ele);
+                    }
+
+                    // SERIALIZE THE CONSTANT POOL
+                    std::stringstream cp_stream_path;
+                    cp_stream_path << hast << "_";
+                    cp_stream_path << c.toI() << ".pool";
+
+                    R_outpstream_st outputStream;
+                    FILE *fptr;
+                    fptr = fopen(cp_stream_path.str().c_str(),"w");
+                    R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
+                    R_Serialize(constantPoolEntries, &outputStream);
+                    fclose(fptr);
+
+                    // SERIALIZE THE LLVM MODULE
+                    std::ofstream bitcodeFile;
+                    std::stringstream ss;
+                    ss << hast << "_";
+                    ss << c.toI() << ".bc";
+                    bitcodeFile.open(ss.str());
+                    llvm::raw_os_ostream ooo(bitcodeFile);
+                    WriteBitcodeToFile(*module,ooo);
+
+                    // DEBUG
+
+                    llvm::raw_os_ostream debugOp(std::cout);
+                    debugOp << *module;
+                }
+            };
+
+
+            pirCompileAndSerialize(compiledFun, c, name, pir::DebugOptions::DefaultDebugOptions, serializeCallback, signatureWriter);
+
+            std::cout << "serialized context: " << c.toI() << std::endl;
+
+        }
+        metaDataFile.close();
+        return Rf_ScalarInteger(contextList.size());
     }
 
     Rf_error("Not a valid function");
@@ -421,7 +788,7 @@ REXPORT SEXP pirSetDebugFlags(SEXP debugFlags) {
 }
 
 SEXP pirCompileAndSerialize(SEXP what, const Context& assumptions, const std::string& name,
-                const pir::DebugOptions& debug, std::function<void(llvm::Module*)> sCallback, std::function<void(FunctionSignature &)> signatureCallback) {
+                const pir::DebugOptions& debug, std::function<void(llvm::Module*, rir::Code *)> sCallback, std::function<void(FunctionSignature &, std::string &)> signatureCallback) {
     if (!isValidClosureSEXP(what)) {
         Rf_error("not a compiled closure");
     }

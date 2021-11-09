@@ -7,6 +7,8 @@
 #include "utils/filesystem.h"
 #include "R/Funtab.h"
 
+#include "runtime/DispatchTable.h"
+
 #include "llvm/ExecutionEngine/JITSymbol.h"
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
@@ -318,16 +320,55 @@ PirJitLLVM::~PirJitLLVM() {
 }
 
 void PirJitLLVM::finalizeAndFixup() {
+    static int count = 0;
     // TODO: maybe later have TSM from the start and use locking
     //       to allow concurrent compilation?
+    for (auto& fix : jitFixup) {
+        auto e = JIT->lookup(fix.second.second);
+        if (e.takeError()) {
+            continue;
+        } else {
+            std::cout << "found: " << fix.second.second << std::endl;
+            auto firstUnder = fix.second.second.find_first_of('_');
+
+            auto fun = M.get()->getFunction(fix.second.second);
+
+            std::stringstream ss;
+            ss << "f" << ++count << fix.second.second.substr(firstUnder);
+            fix.second.second = ss.str();
+            std::cout << "newName: " << fix.second.second << std::endl;
+
+            fun->setName(fix.second.second);
+        }
+    }
+
     auto TSM = llvm::orc::ThreadSafeModule(std::move(M), TSC);
     ExitOnErr(JIT->addIRModule(std::move(TSM)));
-    for (auto& fix : jitFixup)
-        fix.second.first->lazyCodeHandle(fix.second.second.str());
+    for (auto& fix : jitFixup) {
+        fix.second.first->lazyCodeHandle(fix.second.second);
+    }
 }
 
-void PirJitLLVM::moduleMakeup(std::function<void(llvm::Module*)> sCallback) {
-    sCallback(M.get());
+void PirJitLLVM::moduleMakeup(std::function<void(llvm::Module*, rir::Code *)> sCallback, rir::Code * code) {
+    sCallback(M.get(), code);
+}
+
+void PirJitLLVM::updateFunctionNameInModule(std::string oldName, std::string newName) {
+    if (M) {
+        llvm::Function * f = M->getFunction(llvm::StringRef(oldName));
+        f->setName(newName);
+    } else {
+        Rf_error("unable to update names in the module");
+    }
+}
+
+void PirJitLLVM::patchFixupHandle(std::string newName, Code * code) {
+    jitFixup[code].second = newName;
+}
+
+void PirJitLLVM::printModule() {
+    llvm::raw_os_ostream ro(std::cout);
+    ro << *M;
 }
 
 void PirJitLLVM::compile(
@@ -372,6 +413,8 @@ void PirJitLLVM::compile(
     }
 
     std::string mangledName = JIT->mangle(makeName(code));
+
+    target->mName = mangledName;
 
     LowerFunctionLLVM funCompiler(
         target, mangledName, closure, code, promMap, refcount,
@@ -584,6 +627,9 @@ void PirJitLLVM::initializeLLVM() {
                 // auto lang = n.substr(0, 4) ==  "lan_"; // constant pool langsxp
 
                 auto gcode = n.substr(0, 4) == "cod_"; // callable pointer to builtin
+                auto hast = n.substr(0, 5) == "hast_"; // replace this symbol with the start of the corresponding Code *
+
+                auto epe = n.substr(0, 4) == "epe_"; // extra pool entry
 
                 if (ept || efn) {
                     auto addrStr = n.substr(4);
@@ -669,6 +715,8 @@ void PirJitLLVM::initializeLLVM() {
                         addr = reinterpret_cast<uintptr_t>(&R_Visible);
                     } else if (constantName.compare("opaqueTrue") == 0) {
                         addr = reinterpret_cast<uintptr_t>(&opaqueTrue);
+                    } else if (constantName.compare("constantPool") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(globalContext());
                     }
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
@@ -735,6 +783,57 @@ void PirJitLLVM::initializeLLVM() {
                             reinterpret_cast<uintptr_t>(getBuiltin(ptr))),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
+                } else if (hast) {
+                    auto id = std::stoi(n.substr(5));
+                    if (rir::Code::hastMap.count(id) == 0) {
+                        std::cout << "hast symbol not found" << std::endl;
+                    }
+                    auto addr = ((rir::DispatchTable *)rir::Code::hastMap[id])->baseline()->body();
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(addr)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (epe) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+                    auto thirdDel = n.find('_', secondDel + 1);
+
+                    std::cout << "symbol: " << n << std::endl;
+                    std::cout << "firstDel: " << firstDel << std::endl;
+                    std::cout << "secondDel: " << secondDel << std::endl;
+                    std::cout << "thirdDel: " << thirdDel << std::endl;
+
+                    auto hast = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    auto extraPoolOffset = std::stoi(n.substr(secondDel + 1, thirdDel - secondDel - 1));
+                    auto context = std::stoul(n.substr(thirdDel + 1));
+                    std::cout << "hast: " << hast << std::endl;
+                    std::cout << "extraPoolOffset: " << extraPoolOffset << std::endl;
+                    std::cout << "context: " << context << std::endl;
+
+                    Context c(context);
+
+                    rir::DispatchTable * dtable = ((rir::DispatchTable *)rir::Code::hastMap[hast]);
+
+                    rir::Code * code;
+
+                    for (size_t i = 1; i < dtable->size(); ++i) {
+                        auto e = dtable->get(i);
+                        if (e->context() == c) {
+                            code = e->body();
+                        }
+                    }
+
+                    if (!code) {
+                        std::cout << "failed to find the version in dispatch table" << std::endl;
+                    }
+
+                    auto res = DATAPTR(code->getExtraPoolEntry(extraPoolOffset));
+                    std::cout << "resolved DeoptMetadata: " << ((uintptr_t)res) << std::endl;
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(res)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
                 } else {
                     std::cout << "unknown symbol " << n << "\n";
                 }

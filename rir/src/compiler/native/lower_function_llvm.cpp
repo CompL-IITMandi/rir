@@ -90,10 +90,13 @@ class NativeAllocator : public SSAAllocator {
 
 llvm::Value* LowerFunctionLLVM::globalConst(llvm::Constant* init,
                                             llvm::Type* ty) {
+    static int num = 0;
     if (!ty)
         ty = init->getType();
+    std::stringstream name;
+    name << "copool_" << num++;
     return new llvm::GlobalVariable(getModule(), ty, true,
-                                    llvm::GlobalValue::PrivateLinkage, init);
+                                    llvm::GlobalValue::PrivateLinkage, init, name.str());
 }
 
 llvm::FunctionCallee
@@ -132,6 +135,22 @@ LowerFunctionLLVM::convertToFunction(const void* what, llvm::FunctionType* ty) {
     char name[17];
     sprintf(name, "efn_%lx", (uintptr_t)what);
     return getModule().getOrInsertFunction(name, ty);
+}
+
+llvm::FunctionCallee
+LowerFunctionLLVM::convertToFunctionSymbol(SEXP what, llvm::FunctionType* ty) {
+    assert(what);
+    std::stringstream ss;
+    ss << "cod_";
+    ss << getBuiltinNr(what);
+
+    return getModule().getOrInsertFunction(ss.str(), ty);
+}
+
+void LowerFunctionLLVM::addDebugMsg(llvm::Value *v, int tag, int location) {
+    auto pos = builder.CreateBitCast(v, t::i64ptr);
+    call(NativeBuiltins::get(NativeBuiltins::Id::llDebugMsg),
+         {pos, c(tag), c(location)});
 }
 
 void LowerFunctionLLVM::setVisible(int i) {
@@ -324,13 +343,13 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
         return convertToPointer(co, true);
     }
 
-    if (TYPEOF(co) == REALSXP) {
-        double d = Rf_asReal(co);
-        std::stringstream ss;
-        ss << "cpreal_";
-        ss << d;
-        return convertToExternalSymbol(ss.str());
-    }
+    // if (TYPEOF(co) == REALSXP) {
+    //     double d = Rf_asReal(co);
+    //     std::stringstream ss;
+    //     ss << "cpreal_";
+    //     ss << d;
+    //     return convertToExternalSymbol(ss.str());
+    // }
 
     // if (TYPEOF(co) == LANGSXP) {
     //     if (target->hast == -1) {
@@ -366,11 +385,20 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     //     eternalConst.count(co))
     //     return convertToPointer(co, true);
 
-    auto i = Pool::insert(co);
+    auto cpIndex = Pool::insert(co);
+    // std::cout << "cp here" << std::endl;
+    // cpCall(cpIndex);
+
+    // auto i = Pool::insert(co);
+    auto i = cpIndex;
+
+    auto iVal = globalConst(c(i), t::i32);
+    auto iLoad = builder.CreateLoad(iVal);
+
     llvm::Value* pos = builder.CreateLoad(constantpool);
     pos = builder.CreateBitCast(dataPtr(pos, false),
                                 PointerType::get(t::SEXP, 0));
-    pos = builder.CreateGEP(pos, c(i));
+    pos = builder.CreateGEP(pos, iLoad);
     return builder.CreateLoad(pos);
 }
 
@@ -443,7 +471,8 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
         });
     }
 
-    auto f = convertToFunction((void*)builtinFun, t::builtinFunction);
+    // auto f = convertToFunction((void*)builtinFun, t::builtinFunction);
+    auto f = convertToFunctionSymbol(builtin, t::builtinFunction);
 
     std::stack<llvm::Value*> loadedArgs;
     auto n = numTemps;
@@ -543,13 +572,27 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
         auto dr = (DeoptReasonWrapper*)val;
-        auto srcAddr = (Constant*)builder.CreateIntToPtr(
-            llvm::ConstantInt::get(
-                PirJitLLVM::getContext(),
-                llvm::APInt(64,
-                            reinterpret_cast<uint64_t>(dr->reason.srcCode()),
-                            false)),
-            t::voidPtr);
+
+        Constant * srcAddr;
+
+        if (dr->reason.srcCode()->hast != -1) {
+            std::stringstream ss;
+            ss << "hast_" << dr->reason.srcCode()->hast;
+            srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
+        } else {
+            std::cout << "hast not found for the code object!" << std::endl;
+            srcAddr = (Constant*)builder.CreateIntToPtr(
+                llvm::ConstantInt::get(
+                    PirJitLLVM::getContext(),
+                    llvm::APInt(64,
+                                reinterpret_cast<uint64_t>(dr->reason.srcCode()),
+                                false)),
+                t::voidPtr);
+        }
+
+        std::cout << "deoptReason PC: " << dr->reason.pc() << std::endl;
+
+        
         auto drs = llvm::ConstantStruct::get(
             t::DeoptReason, {c(dr->reason.reason, 32),
                              c(dr->reason.origin.offset(), 32), srcAddr});
@@ -1938,11 +1981,15 @@ bool LowerFunctionLLVM::compileDotcall(
     calli->eachCallArg([&](Value* v) {
         if (auto exp = ExpandDots::Cast(v)) {
             args.push_back(exp);
-            newNames.push_back(Pool::insert(symbol::expandDotsTrigger));
+            auto cpIndex = Pool::insert(symbol::expandDotsTrigger);
+            // cpCall(cpIndex);
+            newNames.push_back(cpIndex);
             seenDots = true;
         } else {
             assert(!DotsList::Cast(v));
-            newNames.push_back(Pool::insert(names(pos)));
+            auto cpIndex = Pool::insert(names(pos));
+            // cpCall(cpIndex);
+            newNames.push_back(cpIndex);
             args.push_back(v);
         }
         pos++;
@@ -2262,7 +2309,9 @@ void LowerFunctionLLVM::compile() {
             }
         };
 
-        constantpool = builder.CreateIntToPtr(c(globalContext()), t::SEXP_ptr);
+
+        auto speSym = convertToExternalSymbol("spe_constantPool", t::i64);
+        constantpool = builder.CreateIntToPtr(speSym, t::SEXP_ptr);
         constantpool = builder.CreateGEP(constantpool, c(1));
 
         Visitor::run(code->entry, [&](BB* bb) {
@@ -3439,8 +3488,11 @@ void LowerFunctionLLVM::compile() {
                 Context asmpt = b->inferAvailableAssumptions();
 
                 std::vector<BC::PoolIdx> names;
-                for (size_t i = 0; i < b->names.size(); ++i)
-                    names.push_back(Pool::insert((b->names[i])));
+                for (size_t i = 0; i < b->names.size(); ++i) {
+                    auto cpIndex = Pool::insert((b->names[i]));
+                    // cpCall(cpIndex);
+                    names.push_back(cpIndex);
+                }
                 auto namesConst = c(names);
                 auto namesStore = globalConst(namesConst);
 
@@ -3595,6 +3647,8 @@ void LowerFunctionLLVM::compile() {
                 // TODO, this is copied from pir2rir... rather ugly
                 DeoptMetadata* m = nullptr;
                 auto deopt = Deopt::Cast(i);
+                std::stringstream ssN;
+
                 std::vector<Value*> args;
                 {
                     std::vector<FrameState*> frames;
@@ -3618,17 +3672,32 @@ void LowerFunctionLLVM::compile() {
                         for (size_t pos = 0; pos < fs->stackSize; pos++)
                             args.push_back(fs->arg(pos).val());
                         args.push_back(fs->env());
-                        m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
+
+                        uintptr_t offset = (uintptr_t)fs->pc - ((uintptr_t)fs->code);
+
+                        
+                        std::cout << "actual frame[" << frameNr << "] PC: " << fs->pc << std::endl;
+
+
+                        m->frames[frameNr] = {offset, fs->code->hast, fs->stackSize,
                                                 fs->inPromise};
+                        frameNr = frameNr - 1;
                     }
 
-                    target->addExtraPoolEntry(store);
+                    if (target->hast == -1) {
+                        std::cout << "Failed to create a pointer to extra pool deopt entry" << std::endl;
+                    }
+
+                    auto extraPoolIndex = target->addExtraPoolEntry(store);
+                    ssN << "epe_" << target->hast << "_" << extraPoolIndex << "_" << cls->context().toI(); 
                 }
+                std::cout << "DeoptMetadata actual:" << ((uintptr_t)m) << std::endl;
 
                 withCallFrame(args, [&]() {
                     return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
                                 {paramCode(), paramClosure(),
-                                 convertToPointer(m, t::i8, true), paramArgs(),
+                                // convertToPointer(m, t::i8, true), paramArgs(),
+                                 convertToExternalSymbol(ssN.str(), t::i8), paramArgs(),
                                  load(deopt->deoptReason()),
                                  loadSxp(deopt->deoptTrigger())});
                 });
@@ -3645,7 +3714,9 @@ void LowerFunctionLLVM::compile() {
                     auto n = mkenv->varName[i];
                     if (mkenv->missing[i])
                         n = CONS_NR(n, R_NilValue);
-                    names.push_back(Pool::insert(n));
+                    auto cpIndex = Pool::insert(n);
+                    // cpCall(cpIndex);
+                    names.push_back(cpIndex);
                 }
                 auto namesConst = c(names);
                 auto namesStore = globalConst(namesConst);

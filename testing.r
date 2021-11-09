@@ -1,14 +1,63 @@
-a <- 10
-f <- function() {
-  a;
+# g <- function(b) {
+#   b;
+# }
+
+# a <- 10
+# f <- function() {
+#   g(a);
+# }
+
+# f.serialize(f, c(15))
+
+# invisible(rir.compile(matrix))
+
+# matrix(10)
+# matrix(10)
+# matrix(10)
+# matrix(c(1,2,3,4))
+# matrix(c(1,2,3,4))
+# matrix(c(1,2,3,4))
+# matrix(c(1,2,3,4), nrow=2)
+# matrix(c(1,2,3,4), nrow=2)
+# matrix(c(1,2,3,4), nrow=2)
+
+# f.serialize(matrix)
+
+# matrix(10)
+
+
+# matrix(c(1,2,3,4), ncol=2)
+# matrix(c(1,2,3,4), ncol=2)
+# matrix(c(1,2,3,4), ncol=2)
+
+b <- 10
+
+f <- function(a) {
+  a + b;
 }
 
-# f()
-# f()
-# f()
-# f()
-# f()
+invisible(rir.compile(f))
+f(10)
+f(10)
+f(10)
+f(10)
+b <- c(1,2,3)
+f(10)
+f(10)
+f(10)
+# f(10)
 
-f.serialize(f, c(95))
 
-# f.serialize(getClassDef, c(2199026450447, 3298535948303, 2199024320527, 1099512692751, 2199023255567));
+
+# f(c(10,11))
+# f(c(10,11))
+# f(c(10,11))
+# f(10)
+# f(10)
+# f(10)
+# f(10)
+# f(10,2)
+# f(10,2)
+# f(10,2)
+# f(10,2)
+f.serialize(f)

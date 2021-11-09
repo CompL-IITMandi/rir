@@ -6,6 +6,7 @@
 #include "ir/BC.h"
 #include "utils/Pool.h"
 
+
 #include <llvm/ExecutionEngine/JITSymbol.h>
 #include <llvm/Support/Errno.h>
 
@@ -160,7 +161,7 @@ void Code::serialize(SEXP refTable, R_outpstream_t out) const {
     }
 }
 
-std::unordered_map<int, Code*> Code::hastMap;
+std::unordered_map<int, void*> Code::hastMap;
 
 void Code::disassemble(std::ostream& out, const std::string& prefix) const {
     if (auto map = pirTypeFeedback()) {

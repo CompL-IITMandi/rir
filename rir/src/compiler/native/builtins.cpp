@@ -826,6 +826,17 @@ static SEXP deoptSentinelContainer = []() {
 
 void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                DeoptReason* deoptReason, SEXP deoptTrigger) {
+    
+    for (int i = 0; i < m->numFrames; i++) {
+        if (m->frames[i].code == 0) {
+            m->frames[i].code = ((DispatchTable *)rir::Code::hastMap[m->frames[i].hast])->baseline()->body();
+            m->frames[i].pc = (rir::Opcode *) ((uintptr_t)m->frames[i].code + m->frames[i].offset);
+            std::cout << "resolved frame[" << i << "]" << " PC: " << m->frames[i].pc << std::endl;
+        }
+    }
+
+    std::cout << "deoptImpl PC: " << deoptReason->pc() << std::endl;
+
     recordDeoptReason(deoptTrigger, *deoptReason);
 
     assert(m->numFrames >= 1);
@@ -2076,6 +2087,34 @@ SEXP makeVectorImpl(int mode, size_t len) {
     return s;
 }
 
+void llDebugMsgImpl(void * ptr, int tag, int location) {
+
+    std::cout << "At location: " << location;
+
+    switch (tag) {
+    case 0:
+        std::cout << " ( SEXP: " << (SEXP)ptr << " )" << std::endl;
+        break;
+    case 1:
+        std::cout << " ( R_bcstack_t: " << (R_bcstack_t *)ptr << " )" << std::endl;
+        if (((R_bcstack_t *)ptr)->tag == 0) {
+            SEXP val = ((R_bcstack_t *)ptr)->u.sxpval;
+            std::cout << "SEXP VALUE: " << val << " )" << std::endl;
+        } else {
+            std::cout << "UNBOXED SCALAR VALUE )" << std::endl;
+            std::cout << "    ival: " << ((R_bcstack_t *)ptr)->u.dval << std::endl;
+            std::cout << "    dval: " << ((R_bcstack_t *)ptr)->u.ival << std::endl;
+        }
+        break;
+    case 2:
+        std::cout << "CASE 2: " << (intptr_t)ptr << std::endl;
+        break;
+    default:
+        break;
+    }
+
+}
+
 double prodrImpl(SEXP v) {
     double res = 1;
     auto len = XLENGTH(v);
@@ -2499,6 +2538,10 @@ void NativeBuiltins::initializeBuiltins() {
         llvm::FunctionType::get(
             t::i32, {llvm::PointerType::get(t::i32, 0), t::i32}, false)};
 #else
+
+    get_(Id::llDebugMsg) = {
+        "llDebugMsg", (void*)&llDebugMsgImpl,
+        llvm::FunctionType::get(t::t_void, {t::i64ptr, t::Int, t::Int}, false)};
     get_(Id::sigsetjmp) = {
         "__sigsetjmp", (void*)&__sigsetjmp,
         llvm::FunctionType::get(t::i32, {t::setjmp_buf_ptr, t::i32}, false)};

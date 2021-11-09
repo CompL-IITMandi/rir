@@ -49,7 +49,7 @@ rir.compile <- function(what) {
 }
 
 # compiles given closure, or expression and returns the compiled version.
-f.serialize <- function(fun, versions) {
+f.serialize <- function(fun, versions=NULL) {
     .Call("vSerialize", fun, as.name(as.character(substitute(fun))), versions)
 }
 

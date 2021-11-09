@@ -53,7 +53,11 @@ class PirJitLLVM {
                  const std::unordered_set<Instruction*>& needsLdVarForUpdate,
                  ClosureStreamLogger& log);
 
-    void moduleMakeup(std::function<void(llvm::Module*)> sCallback);
+    void moduleMakeup(std::function<void(llvm::Module*, rir::Code *)> sCallback, rir::Code * code);
+
+    void updateFunctionNameInModule(std::string, std::string);
+    void patchFixupHandle(std::string newName, Code * code);
+    void printModule();
 
     using GetModule = std::function<llvm::Module&()>;
     using GetFunction = std::function<llvm::Function*(Code*)>;
@@ -65,7 +69,6 @@ class PirJitLLVM {
 
   private:
     std::string name;
-
     // Initialized on the first call to compile
     std::unique_ptr<llvm::Module> M;
 
@@ -83,7 +86,7 @@ class PirJitLLVM {
         return ss.str().substr(0, rir::Code::MAX_CODE_HANDLE_LENGTH - 6);
     }
 
-    std::unordered_map<Code*, std::pair<rir::Code*, llvm::StringRef>> jitFixup;
+    std::unordered_map<Code*, std::pair<rir::Code*, std::string>> jitFixup;
     void finalizeAndFixup();
 
     static size_t nModules;

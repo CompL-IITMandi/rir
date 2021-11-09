@@ -78,6 +78,8 @@ class LowerFunctionLLVM {
     llvm::Function* fun;
     MkEnv* myPromenv = nullptr;
 
+
+
     LowerFunctionLLVM(
         rir::Code* target, const std::string& name, ClosureVersion* cls,
         Code* code, const PromMap& promMap,
@@ -110,7 +112,7 @@ class LowerFunctionLLVM {
     }
 
     llvm::FunctionCallee getBuiltin(const rir::pir::NativeBuiltin& b);
-
+    llvm::FunctionCallee convertToFunctionSymbol(SEXP what, llvm::FunctionType* ty);
     llvm::FunctionCallee convertToFunction(const void* what,
                                            llvm::FunctionType* ty);
     llvm::Value* convertToPointer(const void* what, llvm::Type* ty,
@@ -271,6 +273,7 @@ class LowerFunctionLLVM {
     void envStubSetMissing(llvm::Value* x, int i);
 
     void setVisible(int i);
+    void addDebugMsg(llvm::Value *v, int tag, int location);
 
     std::array<std::string, 4> argNames = {"code", "args", "env", "closure"};
     std::vector<llvm::Value*> args;

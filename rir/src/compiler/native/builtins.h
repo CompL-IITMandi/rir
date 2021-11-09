@@ -155,6 +155,7 @@ struct NativeBuiltins {
         clsEq,
         checkType,
         shallowDuplicate,
+        llDebugMsg,
         sigsetjmp,
         // Warning: keep LAST in sync!
 
