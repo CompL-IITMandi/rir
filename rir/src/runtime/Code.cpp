@@ -160,6 +160,8 @@ void Code::serialize(SEXP refTable, R_outpstream_t out) const {
     }
 }
 
+std::unordered_map<int, void*> Code::hastMap;
+
 void Code::disassemble(std::ostream& out, const std::string& prefix) const {
     if (auto map = pirTypeFeedback()) {
         map->forEachSlot([&](size_t i,
