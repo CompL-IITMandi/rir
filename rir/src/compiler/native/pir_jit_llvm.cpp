@@ -45,12 +45,6 @@ std::string dbgFolder;
 
 } // namespace
 
-#if DEBUG_MODULE_NAME_UPDATES == 1
-std::unordered_map<Code*, std::pair<rir::Code*, std::string>> & PirJitLLVM::getJitFixup() {
-    return jitFixup;
-}
-#endif
-
 void PirJitLLVM::DebugInfo::addCode(Code* c) {
     assert(!codeLoc.count(c));
     codeLoc[c] = line++;

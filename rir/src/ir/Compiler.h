@@ -101,9 +101,6 @@ class Compiler {
         hash_ast(ast_1, hast);
 
         rirBody->hast = hast;
-
-        std::cout << "hast1: " << hast << std::endl;
-
         Code::hastMap[hast] = vtable;
 
         return vtable->container();
@@ -139,7 +136,7 @@ class Compiler {
         // Set the closure fields.
         SET_BODY(inClosure, vtable->container());
 
-        
+
         auto rirBody = vtable->baseline()->body();
 
         SEXP ast_1 = src_pool_at(globalContext(), rirBody->src);
@@ -150,9 +147,6 @@ class Compiler {
         hash_ast(ast_1, hast);
 
         rirBody->hast = hast;
-
-        std::cout << "hast2: " << hast << std::endl;
-
         Code::hastMap[hast] = vtable;
     }
 };

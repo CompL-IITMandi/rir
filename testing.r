@@ -1,18 +1,18 @@
-invisible(rir.compile(matrix))
-for (i in 1:10) {
-  matrix(1:9,3,3)
-  matrix(1:9,3,3)
-  matrix(1:9,3,3)
-  matrix(1:9)
-  matrix(1:9)
-  matrix(1:9)
-  matrix(1:9)
-  matrix(1:9)
-  matrix(1:9, 3)
-  matrix(1:9, 3)
-  matrix(1:9, 3)
-}
-f.serialize(matrix)
+# invisible(rir.compile(matrix))
+# for (i in 1:10) {
+#   matrix(1:9,3,3)
+#   matrix(1:9,3,3)
+#   matrix(1:9,3,3)
+#   matrix(1:9)
+#   matrix(1:9)
+#   matrix(1:9)
+#   matrix(1:9)
+#   matrix(1:9)
+#   matrix(1:9, 3)
+#   matrix(1:9, 3)
+#   matrix(1:9, 3)
+# }
+# f.serialize(matrix)
 
 # invisible(rir.compile(matrix))
 # invisible(rir.compile(rnorm))
@@ -31,15 +31,15 @@ f.serialize(matrix)
 
 # TODO: Promises within promises
 
-# x <- list(a = 1:10, beta = exp(-3:3), logic = c(TRUE,FALSE,FALSE,TRUE))
-# invisible(rir.compile(lapply))
+x <- list(a = 1:10, beta = exp(-3:3), logic = c(TRUE,FALSE,FALSE,TRUE))
+invisible(rir.compile(lapply))
 
-# lapply(x, mean)
-# lapply(x, mean)
-# lapply(x, mean)
-# lapply(x, mean)
+lapply(x, mean)
+lapply(x, mean)
+lapply(x, mean)
+lapply(x, mean)
 
-# f.serialize(lapply)
+f.serialize(lapply)
 
 # invisible(rir.compile(substr))
 # x <- c("asfef", "qwerty", "yuiop[", "b", "stuff.blah.yech")

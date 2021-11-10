@@ -61,10 +61,6 @@ class PirJitLLVM {
     void patchFixupHandle(std::string newName, Code * code);
     void printModule();
 
-    #if DEBUG_MODULE_NAME_UPDATES == 1
-    std::unordered_map<Code*, std::pair<rir::Code*, std::string>> & getJitFixup();
-    #endif
-
     using GetModule = std::function<llvm::Module&()>;
     using GetFunction = std::function<llvm::Function*(Code*)>;
     using GetBuiltin = std::function<llvm::Function*(const NativeBuiltin&)>;

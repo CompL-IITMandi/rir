@@ -390,34 +390,42 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
         int s = contextList.size();
         metaDataFile.write(reinterpret_cast<char *>(&s), sizeof(int));
 
-        #if DEBUG_MSG == 1
-        std::cout << "Serializing bitcode: " << name << "(" << hast << ")" << ", found " << contextList.size() << " version(s)" << std::endl;
+        #if API_DEBUG_CALLBACKS == 1
+        std::cout << "Entry 1(nameLen): " << nameLen << std::endl;
+        std::cout << "Entry 2(name): " << name.c_str() << std::endl;
+        std::cout << "Entry 3(hast): " << hast << std::endl;
+        std::cout << "Entry 4(number of contexts): " << s << std::endl;
         #endif
 
+        #if PRINT_DESERIALIZER_PROGRESS == 1
+        std::cout << "Serializing bitcode: " << name << "(" << hast << ")" << ", found " << contextList.size() << " version(s)" << std::endl;
+        #endif
         int i = 0;
         for (i = 0; i < contextList.size(); i++) {
+
             // Looping over all the contexts
             Context c(contextList.at(i));
-
             unsigned long con = c.toI();
 
-            #if DEBUG_MSG == 1
-            std::cout << "Serializing Context: " << c << " (" << con << ")" << std::endl;
+            #if PRINT_DESERIALIZER_PROGRESS == 1
+            std::cout << "(" << con << ") : " << c << std::endl;
             #endif
+
 
             // This represents the number of extra pool entries that will be needed to be inserted
             // into the extra pool upon deserialization
 
             size_t ePoolEntriesSize = 0;
 
+            #if API_DEBUG_CALLBACKS == 1
+            std::cout << "Entry 5 [" << i << "] :" << std::endl;
+            std::cout << "Context: " << con << std::endl;
+            #endif
+
             // Entry 5 (unsigned long): context
             metaDataFile.write(reinterpret_cast<char *>(&con), sizeof(unsigned long));
 
             auto signatureWriter = [&](FunctionSignature & fs, std::string & mainName) {
-
-                #if DEBUG_CALLBACKS == 1
-                std::cout << "Signature Writer called" << std::endl;
-                #endif
 
                 // Entry 6 (int): envCreation
                 int envCreation = (int)fs.envCreation;
@@ -445,30 +453,26 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
                 // Entry 12 (size_t): ePoolEntriesSize
                 metaDataFile.write(reinterpret_cast<char *>(&ePoolEntriesSize), sizeof(size_t));
 
-                #if DEBUG_CALLBACKS == 1
-                std::cout << "Signature Writer callback " << std::endl;
-                std::cout << "Entry 6: " << envCreation << std::endl;
-                std::cout << "Entry 7: " << optimization << std::endl;
-                std::cout << "Entry 8: " << numArguments << std::endl;
-                std::cout << "Entry 9: " << dotsPosition << std::endl;
-                std::cout << "Entry 10: " << mainNameLen << std::endl;
-                std::cout << "Entry 11: " << mainName.c_str() << std::endl;
-                std::cout << "Entry 12: " << ePoolEntriesSize << std::endl;
+                #if API_DEBUG_CALLBACKS == 1
+                std::cout << "envCreation: " << envCreation << std::endl;
+                std::cout << "optimization: " << optimization << std::endl;
+                std::cout << "numArguments: " << numArguments << std::endl;
+                std::cout << "dotsPosition: " << dotsPosition << std::endl;
+                std::cout << "mainNameLen: " << mainNameLen << std::endl;
+                std::cout << "name: " << mainName.c_str() << std::endl;
+                std::cout << "ePoolEntriesSize: " << ePoolEntriesSize << std::endl;
                 #endif
+
             };
 
             auto serializeCallback = [&](llvm::Module* m, rir::Code * code) {
-                #if DEBUG_CALLBACKS == 1
-                std::cout << "Serializer Callback called" << std::endl;
-                #endif
                 if (m) {
                     // We clone the module because we dont want to update constant pool references in the original module
                     auto module = llvm::CloneModule(*m);
                     std::vector<int64_t> cpEntries;
                     std::vector<SEXP> ePoolEntries;
 
-                    #if DEBUG_PRINT_EARLY_MODULE == 1
-                    std::cout << "EARLY LLVM MODULE HERE" << std::endl;
+                    #if API_PRINT_MODULE_BEFORE_POOL_PATCHES == 1
                     llvm::raw_os_ostream dbg_stream(std::cout);
                     dbg_stream << *m;
                     dbg_stream << "\n";
@@ -540,17 +544,38 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
                         }
                     }
 
+                    #if API_DEBUG_CALLBACKS == 1
+                    std::cout << "Constant Pool Patches: [ ";
+                    #endif
+
                     // Creating a vector containing all constant pool references
                     auto constantPoolEntries = Rf_allocVector(VECSXP, cpEntries.size() + ePoolEntries.size());
                     int i = 0;
                     for (auto & ele : cpEntries) {
                         SEXP obj = Pool::get(ele);
+                        #if API_DEBUG_CALLBACKS == 1
+                        std::cout << ele << "->" << i << " ";
+                        #endif
                         SET_VECTOR_ELT(constantPoolEntries, i++, obj);
                     }
+                    #if API_DEBUG_CALLBACKS == 1
+                    std::cout << " ]" << std::endl;
+                    #endif
+
+                    #if API_DEBUG_CALLBACKS == 1
+                    std::cout << "Extra Pool Entries: [ ";
+                    #endif
 
                     for (auto & ele : ePoolEntries) {
+                        #if API_DEBUG_CALLBACKS == 1
+                        std::cout << i << " ";
+                        #endif
                         SET_VECTOR_ELT(constantPoolEntries, i++, ele);
                     }
+
+                    #if API_DEBUG_CALLBACKS == 1
+                    std::cout << " ]" << std::endl;
+                    #endif
 
                     // SERIALIZE THE CONSTANT POOL
                     std::stringstream cp_stream_path;
@@ -573,17 +598,14 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
                     llvm::raw_os_ostream ooo(bitcodeFile);
                     WriteBitcodeToFile(*module,ooo);
 
-                    // DEBUG
+                    #if API_PRINT_MODULE_AFTER_POOL_PATCHES == 1
+                    llvm::raw_os_ostream debugOp(std::cout);
+                    debugOp << *module;
+                    #endif
 
-                    // llvm::raw_os_ostream debugOp(std::cout);
-                    // debugOp << *module;
                 }
             };
-
-
             pirCompileAndSerialize(compiledFun, c, name, pir::DebugOptions::DefaultDebugOptions, serializeCallback, signatureWriter);
-
-            std::cout << "serialized context: " << c.toI() << std::endl;
 
         }
         metaDataFile.close();

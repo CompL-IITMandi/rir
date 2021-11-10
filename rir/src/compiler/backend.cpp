@@ -305,6 +305,27 @@ static void toCSSA(Module* m, Code* code) {
     });
 }
 
+static void updateModuleNames(std::string name,  Code* c, PirJitLLVM * jit, Code * mainFunCodeObj,
+    std::unordered_map<Code*,
+        std::unordered_map<Code*, std::pair<unsigned, MkArg*>>> & promMap,
+        std::unordered_map<Code*, rir::Code*> & done
+        ) {
+    #if BACKEND_PRINT_NAME_UPDATES == 1
+    std::cout << "Updating name: " << done[c]->mName << " -> " << name << std::endl;
+    #endif
+    jit->updateFunctionNameInModule(done[c]->mName, name);
+    jit->patchFixupHandle(name, c);
+    int i = 0;
+    for (auto & promise : promMap[c]) {
+        std::stringstream ss;
+        ss << name;
+        ss << "_";
+        ss << i++;
+
+        updateModuleNames(ss.str(), promise.first, jit, mainFunCodeObj, promMap, done);
+    }
+}
+
 bool MEASURE_COMPILER_BACKEND_PERF =
     getenv("PIR_MEASURE_COMPILER_BACKEND") ? true : false;
 
@@ -403,118 +424,82 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         return res;
     };
 
-    #if BACKEND_INITIAL_COMPILATION_SUCCESS_MSG == 1
-    std::cout << "BACKEND_INITIAL_COMPILATION_SUCCESS_MSG" << std::endl;
-    #endif
-
     auto body = compile(cls);
 
     // sCallback is non null if we are trying to serialize the function
     if (sCallback != NULL) {
-
         #if BACKEND_INITIAL_COMPILATION_SUCCESS_MSG == 1
-        std::cout << "Serialization callback exists" << std::endl;
+        std::cout << "Initial compilation successful, name patching begins now" << std::endl;
         #endif
 
-        #if BACKEND_INITIAL_LLVM == 1
+        #if BACKEND_PRINT_INITIAL_LLVM == 1
         std::cout << "BACKEND_INITIAL_LLVM" << std::endl;
         jit.printModule();
         #endif
 
-        static int uid = 0;
+        // Identify root node
+        // The code object that does not exist in any promise set is the root node
         std::string mainFunctionName;
-        rir::Code * mainFunCodeObj;
+        Code * mainFunCodeObj = NULL;
 
-        #if DEBUG_MODULE_NAME_UPDATES == 1
-        std::unordered_map<Code*, std::pair<rir::Code*, std::string>> initialFixups = jit.getJitFixup();
-        #endif
-
-        // This is broken for case of promises within promises
         for (auto & element : promMap) {
-            if (element.second.size() > 0) {
-                #if DEBUG_MODULE_NAME_UPDATES == 1
-                std::cout << "DEBUG_MODULE_NAME_UPDATES: Case 1, Code object with promises encountered" << std::endl;
-                #endif
+            rir::pir::Code *curr_codeObj = element.first;
+            bool trigger = false;
 
-                rir::pir::Code *c = element.first;
-
-                // Function name in module
-                std::stringstream ss;
-                ss << "f" << uid << "_";
-                ss << std::hex << std::uppercase << element.second.size();
-                ss << "_";
-                ss << std::hex << std::uppercase << done[c]->hast;
-                ss << "_";
-                ss << std::hex << std::uppercase << cls->context().toI();
-
-                mainFunCodeObj = done[c];
-                mainFunctionName = ss.str();
-
-                #if DEBUG_MODULE_NAME_UPDATES == 1
-                std::cout << "(Name) Function: " << initialFixups[c].second << " -> " << ss.str() << std::endl;
-                #endif
-
-                jit.updateFunctionNameInModule(done[c]->mName, mainFunctionName);
-                jit.patchFixupHandle(mainFunctionName, c);
-
-                int i = 0;
-                for (auto & ele : element.second) {
-                    // Promise name in module
-                    std::stringstream ss;
-                    ss << "p" << uid << "_";
-                    ss << std::hex << std::uppercase << i++;
-                    ss << "_";
-                    ss << std::hex << std::uppercase << done[c]->hast;
-                    ss << "_";
-                    ss << std::hex << std::uppercase << cls->context().toI();
-
-                    #if DEBUG_MODULE_NAME_UPDATES == 1
-                    std::cout << "(Name) Promise: " << initialFixups[ele.first].second << " -> " << ss.str() << std::endl;
-                    #endif
-
-                    jit.updateFunctionNameInModule(done[ele.first]->mName, ss.str());
-                    jit.patchFixupHandle(ss.str(), ele.first);
-
+            // check if the current code object is a part of some other code's promises array
+            for (auto & e : promMap) {
+                if (e.second.count(curr_codeObj) > 0) {
+                    trigger = true;
+                    break;
                 }
-                uid++;
+
             }
+
+            if (trigger == false) {
+                if (mainFunCodeObj != NULL) {
+                    #if DEBUG_ERR_MSG == 1
+                    std::cout << "More than one root node is not possible, previous node: " << mainFunCodeObj  << std::endl;
+                    #endif
+                    Rf_error("More than one root node is not possible");
+                }
+                mainFunCodeObj = curr_codeObj;
+            }
+
         }
 
-        // In case there is just a single code object for the function
-        if (promMap.size() == 1) {
-            #if DEBUG_MODULE_NAME_UPDATES == 1
-            std::cout << "DEBUG_MODULE_NAME_UPDATES: Case 2, only one code object inside the promise Map." << std::endl;
-            #endif
+        if (!mainFunCodeObj) {
+            #if DEBUG_ERR_MSG == 1
             for (auto & element : promMap) {
-                rir::pir::Code *c = element.first;
-                // Function name in module
-                std::stringstream ss;
-                ss << "f" << uid << "_";
-                ss << std::hex << std::uppercase << element.second.size();
-                ss << "_";
-                ss << std::hex << std::uppercase << done[c]->hast;
-                ss << "_";
-                ss << std::hex << std::uppercase << cls->context().toI();
-
-
-                mainFunCodeObj = done[c];
-                mainFunctionName = ss.str();
-
-                #if DEBUG_MODULE_NAME_UPDATES == 1
-                std::cout << "(Name) Function: " << initialFixups[c].second << " -> " << ss.str() << std::endl;
-                #endif
-
-                jit.updateFunctionNameInModule(done[c]->mName, mainFunctionName);
-                jit.patchFixupHandle(mainFunctionName, c);
+                std::cout << element.first << " : [ ";
+                for (auto & prom : element.second) {
+                    std::cout << prom.first << " ";
+                }
+                std::cout << "]" << std::endl;
             }
-            uid++;
+            #endif
+            Rf_error("No root node found!");
         }
+
+        std::stringstream ss;
+        ss << std::hex << std::uppercase << done[mainFunCodeObj]->hast;
+        ss << "_";
+        ss << std::hex << std::uppercase << cls->context().toI();
+
+        // Updates the names in a scheme that allows it to be read by the deserializer
+        updateModuleNames(ss.str(), mainFunCodeObj, &jit, mainFunCodeObj, promMap, done);
+
+
         // Callback to patch the symbols and serialize the to bc
-        jit.moduleMakeup(sCallback, mainFunCodeObj);
+        jit.moduleMakeup(sCallback, done[mainFunCodeObj]);
 
         // The JIT handle and function signature to recreate the function upon deserializing
         signatureCallback(signature, mainFunctionName);
     }
+
+    #if BACKEND_PRINT_FINAL_LLVM == 1
+    std::cout << "BACKEND_INITIAL_LLVM" << std::endl;
+    jit.printModule();
+    #endif
 
 
     if (MEASURE_COMPILER_BACKEND_PERF) {
