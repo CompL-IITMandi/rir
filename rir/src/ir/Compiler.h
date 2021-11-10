@@ -8,6 +8,8 @@
 #include "utils/FunctionWriter.h"
 #include "utils/Pool.h"
 
+#include "api.h"
+
 #include <unordered_map>
 #include <iostream>
 #include <functional>
@@ -88,6 +90,22 @@ class Compiler {
 
         // Set the closure fields.
         UNPROTECT(1);
+
+        auto rirBody = vtable->baseline()->body();
+
+        SEXP ast_1 = src_pool_at(globalContext(), rirBody->src);
+
+        // The hast is inserted into the code object of the bytecode
+        // Calculate hast for the given function
+        int hast = 0;
+        hash_ast(ast_1, hast);
+
+        rirBody->hast = hast;
+
+        std::cout << "hast1: " << hast << std::endl;
+
+        Code::hastMap[hast] = vtable;
+
         return vtable->container();
     }
 
@@ -120,6 +138,22 @@ class Compiler {
 
         // Set the closure fields.
         SET_BODY(inClosure, vtable->container());
+
+        
+        auto rirBody = vtable->baseline()->body();
+
+        SEXP ast_1 = src_pool_at(globalContext(), rirBody->src);
+
+        // The hast is inserted into the code object of the bytecode
+        // Calculate hast for the given function
+        int hast = 0;
+        hash_ast(ast_1, hast);
+
+        rirBody->hast = hast;
+
+        std::cout << "hast2: " << hast << std::endl;
+
+        Code::hastMap[hast] = vtable;
     }
 };
 

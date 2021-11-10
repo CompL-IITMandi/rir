@@ -17,6 +17,8 @@
 #include "utils/Pool.h"
 #include "compiler/native/types_llvm.h"
 
+#include "patches.h"
+
 #include "ir/BC.h"
 #include "ir/Compiler.h"
 #include "llvm/IR/Module.h"
@@ -317,21 +319,6 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
         // Change the input closure inplace
         Compiler::compileClosure(what);
 
-        DispatchTable* vtable = DispatchTable::unpack(BODY(what));
-        auto rirBody = vtable->baseline()->body();
-
-        SEXP ast = src_pool_at(globalContext(), rirBody->src);
-
-        // The hast is inserted into the code object of the bytecode
-        // Calculate hast for the given function
-        int hast = 0;
-        hash_ast(ast, hast);
-
-
-        rirBody->hast = hast;
-
-        Code::hastMap[hast] = vtable;
-
         return what;
     } else {
         if (TYPEOF(what) == BCODESXP) {
@@ -403,8 +390,9 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
         int s = contextList.size();
         metaDataFile.write(reinterpret_cast<char *>(&s), sizeof(int));
 
-        std::cout << "Saving bitcode for " << name << "(" << hast << ")" << ", found " << contextList.size() << " version(s)" << std::endl;
-
+        #if DEBUG_MSG == 1
+        std::cout << "Serializing bitcode: " << name << "(" << hast << ")" << ", found " << contextList.size() << " version(s)" << std::endl;
+        #endif
 
         int i = 0;
         for (i = 0; i < contextList.size(); i++) {
@@ -413,12 +401,24 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
 
             unsigned long con = c.toI();
 
+            #if DEBUG_MSG == 1
+            std::cout << "Serializing Context: " << c << " (" << con << ")" << std::endl;
+            #endif
+
+            // This represents the number of extra pool entries that will be needed to be inserted
+            // into the extra pool upon deserialization
+
             size_t ePoolEntriesSize = 0;
 
             // Entry 5 (unsigned long): context
             metaDataFile.write(reinterpret_cast<char *>(&con), sizeof(unsigned long));
 
             auto signatureWriter = [&](FunctionSignature & fs, std::string & mainName) {
+
+                #if DEBUG_CALLBACKS == 1
+                std::cout << "Signature Writer called" << std::endl;
+                #endif
+
                 // Entry 6 (int): envCreation
                 int envCreation = (int)fs.envCreation;
                 metaDataFile.write(reinterpret_cast<char *>(&envCreation), sizeof(int));
@@ -444,14 +444,35 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
 
                 // Entry 12 (size_t): ePoolEntriesSize
                 metaDataFile.write(reinterpret_cast<char *>(&ePoolEntriesSize), sizeof(size_t));
+
+                #if DEBUG_CALLBACKS == 1
+                std::cout << "Signature Writer callback " << std::endl;
+                std::cout << "Entry 6: " << envCreation << std::endl;
+                std::cout << "Entry 7: " << optimization << std::endl;
+                std::cout << "Entry 8: " << numArguments << std::endl;
+                std::cout << "Entry 9: " << dotsPosition << std::endl;
+                std::cout << "Entry 10: " << mainNameLen << std::endl;
+                std::cout << "Entry 11: " << mainName.c_str() << std::endl;
+                std::cout << "Entry 12: " << ePoolEntriesSize << std::endl;
+                #endif
             };
 
             auto serializeCallback = [&](llvm::Module* m, rir::Code * code) {
+                #if DEBUG_CALLBACKS == 1
+                std::cout << "Serializer Callback called" << std::endl;
+                #endif
                 if (m) {
                     // We clone the module because we dont want to update constant pool references in the original module
                     auto module = llvm::CloneModule(*m);
                     std::vector<int64_t> cpEntries;
                     std::vector<SEXP> ePoolEntries;
+
+                    #if DEBUG_PRINT_EARLY_MODULE == 1
+                    std::cout << "EARLY LLVM MODULE HERE" << std::endl;
+                    llvm::raw_os_ostream dbg_stream(std::cout);
+                    dbg_stream << *m;
+                    dbg_stream << "\n";
+                    #endif
 
                     int patchValue = 0;
 
@@ -467,8 +488,6 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
                             auto con = global.getInitializer();
                             if (auto * v = llvm::dyn_cast<llvm::ConstantDataArray>(con)) {
 
-                                std::cout << "ConstantDataArray: " << global.getName().str() << std::endl;
-
                                 // Constant data array
                                 std::vector<llvm::Constant*> patchedIndices;
 
@@ -477,8 +496,6 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
                                 for (auto i = 0; i < arrSize; i++) {
                                     auto val = v->getElementAsAPInt(i).getSExtValue();
                                     cpEntries.push_back(val);
-
-                                    std::cout << "oldVal: " << val << ", newVal: " << patchValue << std::endl;
 
                                     // Offset relative to the serialized pool
                                     llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
@@ -513,17 +530,10 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
                             auto firstDel = global.getName().str().find('_');
                             auto secondDel = global.getName().str().find('_', firstDel + 1);
                             auto thirdDel = global.getName().str().find('_', secondDel + 1);
-                            
-                            // auto hast = std::stoi(global.getName().str().substr(firstDel + 1, secondDel - firstDel - 1));
                             auto extraPoolOffset = std::stoi(global.getName().str().substr(secondDel + 1, thirdDel - secondDel - 1));
-                            // auto context = std::stoul(global.getName().str().substr(thirdDel + 1));
-
-                            std::cout << "extraPoolOffset: " << extraPoolOffset << std::endl;
 
                             SEXP entry = code->getExtraPoolEntry(extraPoolOffset);
                             ePoolEntries.push_back(entry);
-
-                            std::cout << "Adding ePoolEntry: " << TYPEOF(entry) << std::endl;
 
                             ePoolEntriesSize++;
 
@@ -565,8 +575,8 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
 
                     // DEBUG
 
-                    llvm::raw_os_ostream debugOp(std::cout);
-                    debugOp << *module;
+                    // llvm::raw_os_ostream debugOp(std::cout);
+                    // debugOp << *module;
                 }
             };
 

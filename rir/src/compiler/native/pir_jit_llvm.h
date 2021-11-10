@@ -22,6 +22,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "patches.h"
+
 namespace rir {
 
 struct Code;
@@ -58,6 +60,10 @@ class PirJitLLVM {
     void updateFunctionNameInModule(std::string, std::string);
     void patchFixupHandle(std::string newName, Code * code);
     void printModule();
+
+    #if DEBUG_MODULE_NAME_UPDATES == 1
+    std::unordered_map<Code*, std::pair<rir::Code*, std::string>> & getJitFixup();
+    #endif
 
     using GetModule = std::function<llvm::Module&()>;
     using GetFunction = std::function<llvm::Function*(Code*)>;

@@ -340,59 +340,13 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
 
     // TODO
     if (TYPEOF(co) == SPECIALSXP) {
+        std::cout << "specialSXP" << std::endl;
         return convertToPointer(co, true);
     }
 
-    // if (TYPEOF(co) == REALSXP) {
-    //     double d = Rf_asReal(co);
-    //     std::stringstream ss;
-    //     ss << "cpreal_";
-    //     ss << d;
-    //     return convertToExternalSymbol(ss.str());
-    // }
-
-    // if (TYPEOF(co) == LANGSXP) {
-    //     if (target->hast == -1) {
-    //         std::cout << "constantPoolPointerErr: no Hast found" << std::endl;
-    //     } else {
-    //         auto found_ast = rir::Code::hastMap[target->hast];
-    //         auto srcPool = globalContext()->src.list;
-
-    //         SEXP el = VECTOR_ELT(srcPool, found_ast->src);
-    //         int path = find_path(el, co);
-
-    //         if (path != -1 && get_from_path(path, el) == co) {
-    //             std::stringstream ss;
-    //             ss << "lan_";
-    //             ss << target->hast << "_";
-    //             ss << path;
-    //             return convertToExternalSymbol(ss.str());
-    //         } else {
-    //             std::cout << "constantPoolPointerErr: invalid path to AST " << path << std::endl;
-    //         }
-    //     }
-    // }
-
-    // static std::unordered_set<SEXP> eternal = {R_GlobalEnv, R_BaseEnv,
-    //                                            R_BaseNamespace};
-    // if (TYPEOF(co) == SYMSXP || eternal.count(co))
-    //     return convertToPointer(co);
-
-    // static std::unordered_set<SEXP> eternalConst = {
-    //     R_TrueValue,  R_NilValue,       R_FalseValue, R_UnboundValue,
-    //     R_MissingArg, R_LogicalNAValue, R_EmptyEnv};
-    // if (TYPEOF(co) == BUILTINSXP || TYPEOF(co) == SPECIALSXP ||
-    //     eternalConst.count(co))
-    //     return convertToPointer(co, true);
-
     auto cpIndex = Pool::insert(co);
-    // std::cout << "cp here" << std::endl;
-    // cpCall(cpIndex);
 
-    // auto i = Pool::insert(co);
-    auto i = cpIndex;
-
-    auto iVal = globalConst(c(i), t::i32);
+    auto iVal = globalConst(c(cpIndex), t::i32);
     auto iLoad = builder.CreateLoad(iVal);
 
     llvm::Value* pos = builder.CreateLoad(constantpool);
@@ -580,7 +534,6 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             ss << "hast_" << dr->reason.srcCode()->hast;
             srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
         } else {
-            std::cout << "hast not found for the code object!" << std::endl;
             srcAddr = (Constant*)builder.CreateIntToPtr(
                 llvm::ConstantInt::get(
                     PirJitLLVM::getContext(),
@@ -590,9 +543,6 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
                 t::voidPtr);
         }
 
-        std::cout << "deoptReason PC: " << dr->reason.pc() << std::endl;
-
-        
         auto drs = llvm::ConstantStruct::get(
             t::DeoptReason, {c(dr->reason.reason, 32),
                              c(dr->reason.origin.offset(), 32), srcAddr});
@@ -3675,10 +3625,6 @@ void LowerFunctionLLVM::compile() {
 
                         uintptr_t offset = (uintptr_t)fs->pc - ((uintptr_t)fs->code);
 
-                        
-                        std::cout << "actual frame[" << frameNr << "] PC: " << fs->pc << std::endl;
-
-
                         m->frames[frameNr] = {offset, fs->code->hast, fs->stackSize,
                                                 fs->inPromise};
                         frameNr = frameNr - 1;
@@ -3689,9 +3635,8 @@ void LowerFunctionLLVM::compile() {
                     }
 
                     auto extraPoolIndex = target->addExtraPoolEntry(store);
-                    ssN << "epe_" << target->hast << "_" << extraPoolIndex << "_" << cls->context().toI(); 
+                    ssN << "epe_" << target->hast << "_" << extraPoolIndex << "_" << cls->context().toI();
                 }
-                std::cout << "DeoptMetadata actual:" << ((uintptr_t)m) << std::endl;
 
                 withCallFrame(args, [&]() {
                     return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),

@@ -1,47 +1,203 @@
-Executing Context(0): 
-[1] 20
-Executing Context(0): 
-[1] 20
-actual frame[0] PC: 0x5625bfefb826
-DeoptMetadata actual:94720122977416
-deoptReason PC: 0x5625bfefb834
-Executing Context(4296032527): !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,NonRefl0,!Obj0,SimpleReal0
-symbol: epe_367_0_4296032527
-firstDel: 3
-secondDel: 7
-thirdDel: 9
-hast: 367
-extraPoolOffset: 0
-context: 4296032527
-resolved DeoptMetadata: 94720122977416
-Executing native code
-[1] 20
-Executing Context(4296032527): !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,NonRefl0,!Obj0,SimpleReal0
-Executing native code
-[1] 20
-Executing Context(4296032527): !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,NonRefl0,!Obj0,SimpleReal0
-Executing native code
-resolved frame[0] PC: 0x5625bfefb826
-deoptImpl PC: 0x5625bfefb834
-[1] 11 12 13
-Executing Context(0): 
-[1] 11 12 13
-actual frame[0] PC: 0x5625bfefb826
-DeoptMetadata actual:94720122978200
-deoptReason PC: 0x5625bfefb834
-found: f0_0_16F_10010410F
-newName: f1_0_16F_10010410F
-Executing Context(4296032527): !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,NonRefl0,!Obj0,SimpleReal0
-Executing native code
-[1] 11 12 13
-Saving bitcode for f(367), found 1 version(s)
-actual frame[0] PC: 0x5625bfefb826
-DeoptMetadata actual:94720122978536
-deoptReason PC: 0x5625bfefb834
-ConstantDataArray: copool_4
-oldVal: 1, newVal: 0
-extraPoolOffset: 0
-Adding ePoolEntry: 24
+hast2: 11761
+
+╞════════════════════════════╡  Compiling matrix  ╞════════════════════════════╡
+BACKEND_INITIAL_COMPILATION_SUCCESS_MSG
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ matrix[0x556a09639f70]                                                       │
+│ Context: !ExpMi,CorrOrd,!TMany,Argmatch;Eager1,Eager2,NonRefl1,NonRefl2,!Obj1,!Obj2,SimpleReal1,SimpleReal2 miss: 2│
+│ Properties:  ForceOrd: 0                                                     │
+├────── Final PIR Version
+matrix[0x556a09639f70]
+BB0
+  real$~-         %0.0  = LdArg                    2
+  real$~-         %0.1  = LdArg                    1
+  val^            %0.2  = LdArg                    0
+  env             e0.3  = MkEnv              l     data=%0.2, nrow=%0.1, ncol=%0.0, byrow(miss)=false, dimnames(miss)=nil, parent=BaseNamespace, context 1
+  val?            %0.4  = Force!<lazy>       !v    %0.2, e0.3   <int->
+  lgl$#-          %0.5  = IsType                   %0.4 isA int-
+  void                    Branch                   %0.5 -> BB6 (if true) | BB7 (if false)
+BB6   <- [0]
+  val?^           %6.0  = LdVar              eR    is.atomic, e0.3
+  lgl$#-          %6.1  = Identical                .Primitive("is.atomic"), %6.0   <true>
+  void                    Branch                   %6.1 -> BB8 (if true) | BB9 (if false)
+BB7   <- [0]
+  void                    Nop                !     
+  val?            %7.1  = %0.4
+  dr              %7.2  = Typecheck@0x556a089f4afe
+  goto BB5
+BB8   <- [6]
+  val?^           %8.0  = LdVar              eR    data, e0.3
+  val?            %8.1  = Force!<wrapped>    !v    %8.0, e0.3   <int->
+  lgl$#-          %8.2  = IsType                   %8.1 isA int-
+  void                    Branch                   %8.2 -> BB10 (if true) | BB11 (if false)
+BB9   <- [6]
+  void                    Nop                !     
+  lgl$#-          %9.1  = %6.1
+  dr              %9.2  = DeadBranchReached@0x556a089f4b2c
+  goto BB5
+BB5   <- [7, 9]
+  val?^           %5.0  = Phi                      %7.1:BB7, %9.1:BB9
+  val?^           %5.1  = %5.0
+  dr              %5.2  = Phi                      %7.2:BB7, %9.2:BB9
+  dr              %5.3  = %5.2
+  fs              %5.4  = FrameState         lRL   0x556a089f49e0+81: [.Primitive("is.object"), %0.4], env=e0.3
+  void                    Deopt              !v    %5.4, %5.3, %5.1
+BB10   <- [8]
+  val?^           %10.0 = LdVar              eR    data, e0.3
+  val?            %10.1 = Force!<wrapped>    !v    %10.0, e0.3   <int->
+  val?^           %10.2 = LdVar              eR    nrow, e0.3
+  val?            %10.3 = Force!<value>      !v    %10.2, e0.3   <real$->
+  val?^           %10.4 = LdVar              eR    ncol, e0.3
+  val?            %10.5 = Force!<value>      !v    %10.4, e0.3   <real$->
+  val?^           %10.6 = LdVar              eR    byrow, e0.3
+  val?            %10.7 = Force!<lazy>       !v    %10.6, e0.3   <lgl$->
+  val?^           %10.8 = LdVar              eR    dimnames, e0.3
+  val?            %10.9 = Force!<lazy>       !v    %10.8, e0.3   <nil->
+  lgl$-           %10.10 = Missing            eR    nrow, e0.3
+  lgl$-           %10.11 = Missing            eR    ncol, e0.3
+  val+            %10.12 = CallSafeBuiltin    vwed  matrix(%10.1, %10.3, %10.5, %10.7, %10.9, %10.10, %10.11) 
+  void                    Return                   %10.12
+BB11   <- [8]
+  fs              %11.0 = FrameState         lRL   0x556a089f49e0+196: [false, .Primitive("is.atomic"), %8.1], env=e0.3
+  void                    Deopt              !v    %11.0, Typecheck@0x556a089f4b71, %8.1
+
+│ matrix[0x556a09639f70]                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+╞════════════════════════════╡  Compiling matrix  ╞════════════════════════════╡
+BACKEND_INITIAL_COMPILATION_SUCCESS_MSG
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ matrix[0x556a0aa56f50]                                                       │
+│ Context: !ExpMi,CorrOrd,!TMany,Argmatch miss: 4                              │
+│ Properties:  Eager, ForceOrd: 0                                              │
+├────── Final PIR Version
+matrix[0x556a0aa56f50]
+BB0
+  val^            %0.0  = LdArg                    0
+  env             e0.1  = MkEnv              l     data=%0.0, nrow(miss)=1, ncol(miss)=1, byrow(miss)=false, dimnames(miss)=nil, parent=BaseNamespace, context 1
+  val?            %0.2  = Force!<lazy>       !v    %0.0, e0.1   <int->
+  lgl$#-          %0.3  = IsType                   %0.2 isA int-
+  void                    Branch                   %0.3 -> BB6 (if true) | BB7 (if false)
+BB6   <- [0]
+  val?^           %6.0  = LdVar              eR    is.atomic, e0.1
+  lgl$#-          %6.1  = Identical                .Primitive("is.atomic"), %6.0   <true>
+  void                    Branch                   %6.1 -> BB8 (if true) | BB9 (if false)
+BB7   <- [0]
+  void                    Nop                !     
+  val?            %7.1  = %0.2
+  dr              %7.2  = Typecheck@0x556a089f4afe
+  goto BB5
+BB8   <- [6]
+  val?^           %8.0  = LdVar              eR    data, e0.1
+  val?            %8.1  = Force!<wrapped>    !v    %8.0, e0.1   <int->
+  lgl$#-          %8.2  = IsType                   %8.1 isA int-
+  void                    Branch                   %8.2 -> BB10 (if true) | BB11 (if false)
+BB9   <- [6]
+  void                    Nop                !     
+  lgl$#-          %9.1  = %6.1
+  dr              %9.2  = DeadBranchReached@0x556a089f4b2c
+  goto BB5
+BB5   <- [7, 9]
+  val?^           %5.0  = Phi                      %7.1:BB7, %9.1:BB9
+  val?^           %5.1  = %5.0
+  dr              %5.2  = Phi                      %7.2:BB7, %9.2:BB9
+  dr              %5.3  = %5.2
+  fs              %5.4  = FrameState         lRL   0x556a089f49e0+81: [.Primitive("is.object"), %0.2], env=e0.1
+  void                    Deopt              !v    %5.4, %5.3, %5.1
+BB10   <- [8]
+  val?^           %10.0 = LdVar              eR    data, e0.1
+  val?            %10.1 = Force!<wrapped>    !v    %10.0, e0.1   <int->
+  val?^           %10.2 = LdVar              eR    nrow, e0.1
+  val?            %10.3 = Force!<lazy>       !v    %10.2, e0.1   <real$->
+  val?^           %10.4 = LdVar              eR    ncol, e0.1
+  val?            %10.5 = Force!<lazy>       !v    %10.4, e0.1   <real$->
+  val?^           %10.6 = LdVar              eR    byrow, e0.1
+  val?            %10.7 = Force!<lazy>       !v    %10.6, e0.1   <lgl$->
+  val?^           %10.8 = LdVar              eR    dimnames, e0.1
+  val?            %10.9 = Force!<lazy>       !v    %10.8, e0.1   <nil->
+  lgl$-           %10.10 = Missing            eR    nrow, e0.1
+  lgl$-           %10.11 = Missing            eR    ncol, e0.1
+  val+            %10.12 = CallSafeBuiltin    vwed  matrix(%10.1, %10.3, %10.5, %10.7, %10.9, %10.10, %10.11) 
+  void                    Return                   %10.12
+BB11   <- [8]
+  fs              %11.0 = FrameState         lRL   0x556a089f49e0+196: [false, .Primitive("is.atomic"), %8.1], env=e0.1
+  void                    Deopt              !v    %11.0, Typecheck@0x556a089f4b71, %8.1
+
+│ matrix[0x556a0aa56f50]                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+╞════════════════════════════╡  Compiling matrix  ╞════════════════════════════╡
+BACKEND_INITIAL_COMPILATION_SUCCESS_MSG
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ matrix[0x556a0aa0f400]                                                       │
+│ Context: !ExpMi,CorrOrd,!TMany,Argmatch;Eager1,NonRefl1,!Obj1,SimpleReal1 miss: 3│
+│ Properties:  ForceOrd: 0                                                     │
+├────── Final PIR Version
+matrix[0x556a0aa0f400]
+BB0
+  real$~-         %0.0  = LdArg                    1
+  val^            %0.1  = LdArg                    0
+  env             e0.2  = MkEnv              l     data=%0.1, nrow=%0.0, ncol(miss)=1, byrow(miss)=false, dimnames(miss)=nil, parent=BaseNamespace, context 1
+  val?            %0.3  = Force!<lazy>       !v    %0.1, e0.2   <int->
+  lgl$#-          %0.4  = IsType                   %0.3 isA int-
+  void                    Branch                   %0.4 -> BB6 (if true) | BB7 (if false)
+BB6   <- [0]
+  val?^           %6.0  = LdVar              eR    is.atomic, e0.2
+  lgl$#-          %6.1  = Identical                .Primitive("is.atomic"), %6.0   <true>
+  void                    Branch                   %6.1 -> BB8 (if true) | BB9 (if false)
+BB7   <- [0]
+  void                    Nop                !     
+  val?            %7.1  = %0.3
+  dr              %7.2  = Typecheck@0x556a089f4afe
+  goto BB5
+BB8   <- [6]
+  val?^           %8.0  = LdVar              eR    data, e0.2
+  val?            %8.1  = Force!<wrapped>    !v    %8.0, e0.2   <int->
+  lgl$#-          %8.2  = IsType                   %8.1 isA int-
+  void                    Branch                   %8.2 -> BB10 (if true) | BB11 (if false)
+BB9   <- [6]
+  void                    Nop                !     
+  lgl$#-          %9.1  = %6.1
+  dr              %9.2  = DeadBranchReached@0x556a089f4b2c
+  goto BB5
+BB5   <- [7, 9]
+  val?^           %5.0  = Phi                      %7.1:BB7, %9.1:BB9
+  val?^           %5.1  = %5.0
+  dr              %5.2  = Phi                      %7.2:BB7, %9.2:BB9
+  dr              %5.3  = %5.2
+  fs              %5.4  = FrameState         lRL   0x556a089f49e0+81: [.Primitive("is.object"), %0.3], env=e0.2
+  void                    Deopt              !v    %5.4, %5.3, %5.1
+BB10   <- [8]
+  val?^           %10.0 = LdVar              eR    data, e0.2
+  val?            %10.1 = Force!<wrapped>    !v    %10.0, e0.2   <int->
+  val?^           %10.2 = LdVar              eR    nrow, e0.2
+  val?            %10.3 = Force!<lazy>       !v    %10.2, e0.2   <real$->
+  val?^           %10.4 = LdVar              eR    ncol, e0.2
+  val?            %10.5 = Force!<lazy>       !v    %10.4, e0.2   <real$->
+  val?^           %10.6 = LdVar              eR    byrow, e0.2
+  val?            %10.7 = Force!<lazy>       !v    %10.6, e0.2   <lgl$->
+  val?^           %10.8 = LdVar              eR    dimnames, e0.2
+  val?            %10.9 = Force!<lazy>       !v    %10.8, e0.2   <nil->
+  lgl$-           %10.10 = Missing            eR    nrow, e0.2
+  lgl$-           %10.11 = Missing            eR    ncol, e0.2
+  val+            %10.12 = CallSafeBuiltin    vwed  matrix(%10.1, %10.3, %10.5, %10.7, %10.9, %10.10, %10.11) 
+  void                    Return                   %10.12
+BB11   <- [8]
+  fs              %11.0 = FrameState         lRL   0x556a089f49e0+196: [false, .Primitive("is.atomic"), %8.1], env=e0.2
+  void                    Deopt              !v    %11.0, Typecheck@0x556a089f4b71, %8.1
+
+│ matrix[0x556a0aa0f400]                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+Serializing bitcode: matrix(11761), found 3 version(s)
+Serializing Context: !ExpMi,CorrOrd,!TMany,Argmatch;Eager1,Eager2,NonRefl1,NonRefl2,!Obj1,!Obj2,SimpleReal1,SimpleReal2 miss: 2 (2224799450639)
+
+╞════════════════════════════╡  Compiling matrix  ╞════════════════════════════╡
+BACKEND_INITIAL_COMPILATION_SUCCESS_MSG
+Serialization callback exists
+BACKEND_INITIAL_LLVM
 
 %R_bcstack_t = type { i32, i32, %struct.SEXPREC* }
 %struct.SEXPREC = type { %struct.sxpinfo_struct, %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*, %union.SEXP_SEXP_SEXP }
@@ -50,250 +206,945 @@ Adding ePoolEntry: 24
 %DeoptReason = type <{ i32, i32, i8* }>
 %struct.VECTOR_SEXPREC = type { %struct.sxpinfo_struct, %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*, %struct.vecsxp_struct }
 %struct.vecsxp_struct = type { i64, i64 }
-%LazyEnvironment = type { i32, i32, i32, i64, i8* }
 
 @spe_BCNodeStackTop = available_externally externally_initialized global %R_bcstack_t*
 @spe_constantPool = available_externally externally_initialized global i64
-@sym_b = available_externally externally_initialized global %struct.SEXPREC
+@dcs_102 = available_externally externally_initialized global %struct.SEXPREC
+@copool_18 = private constant [5 x i32] [i32 8, i32 15, i32 16, i32 78, i32 79]
+@dcs_105 = available_externally externally_initialized global %struct.SEXPREC
+@dcs_104 = available_externally externally_initialized global %struct.SEXPREC
+@sym_dimnames = available_externally externally_initialized global %struct.SEXPREC
+@sym_byrow = available_externally externally_initialized global %struct.SEXPREC
+@sym_ncol = available_externally externally_initialized global %struct.SEXPREC
+@sym_nrow = available_externally externally_initialized global %struct.SEXPREC
+@sym_data = available_externally externally_initialized global %struct.SEXPREC
+@dcs_106 = available_externally externally_initialized global %struct.SEXPREC
+@dcs_111 = available_externally externally_initialized global %struct.SEXPREC
+@hast_11761 = available_externally externally_initialized global i8
+@copool_19 = private constant %DeoptReason <{ i32 1, i32 286, i8* @hast_11761 }>
+@sym_is.atomic = available_externally externally_initialized global %struct.SEXPREC
 @dcs_107 = available_externally externally_initialized global %struct.SEXPREC
 @0 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
-@dcs_106 = available_externally externally_initialized global %struct.SEXPREC
 @1 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
-@dcs_104 = available_externally externally_initialized global %struct.SEXPREC
-@dcs_111 = available_externally externally_initialized global %struct.SEXPREC
-@dcs_100 = available_externally externally_initialized global %struct.SEXPREC
-@copool_4 = private constant [1 x i32] zeroinitializer
-@epe_367_0_4296032527 = available_externally externally_initialized global i8
-@hast_367 = available_externally externally_initialized global i8
-@copool_5 = private constant %DeoptReason <{ i32 1, i32 228, i8* @hast_367 }>
+@gcb_400 = available_externally externally_initialized global %struct.SEXPREC
+@copool_20 = private constant %DeoptReason <{ i32 6, i32 332, i8* @hast_11761 }>
+@dcs_103 = available_externally externally_initialized global %struct.SEXPREC
+@2 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@3 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@4 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@5 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@6 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@7 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@8 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@9 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@10 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@11 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@12 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@13 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@dcs_101 = available_externally externally_initialized global %struct.SEXPREC
+@"msg_expected unboxed logical to be 0,1, or NA" = available_externally externally_initialized global i8
+@dcs_108 = available_externally externally_initialized global %struct.SEXPREC
+@copool_21 = private constant i32 19
+@spe_Visible = available_externally externally_initialized global i32
+@gcb_117 = available_externally externally_initialized global %struct.SEXPREC
+@gcb_395 = available_externally externally_initialized global %struct.SEXPREC
+@epe_11761_0_2224799450639 = available_externally externally_initialized global i8
+@epe_11761_1_2224799450639 = available_externally externally_initialized global i8
+@copool_22 = private constant %DeoptReason <{ i32 1, i32 401, i8* @hast_11761 }>
 
-define %struct.SEXPREC* @f0_0_16F_10010410F(i8* %code, %R_bcstack_t* %args, %struct.SEXPREC* %env, %struct.SEXPREC* %closure) {
+define %struct.SEXPREC* @rsh4_0x556a0a85b2d0(i8* %code, %R_bcstack_t* %args, %struct.SEXPREC* %env, %struct.SEXPREC* %closure) {
   %1 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
-  %2 = alloca %struct.SEXPREC*, i64 0, align 8
-  %"PIR%0.2" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
-  %"PIR%4.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
-  %"PIR%4.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
-  %PIRe5.0 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 1, i32 2
+  %2 = alloca %struct.SEXPREC*, i64 6, align 8
+  %"PIR%5.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%5.2" = alloca %DeoptReason*, i64 1, align 8
+  %PIRe0.3 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 1, i32 2
+  %"PIR%0.4" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
+  %"PIR%6.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%5.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%8.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%8.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%10.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%10.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%10.2" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
+  %"PIR%10.3" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
+  %"PIR%10.4" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 3, i32 2
+  %"PIR%10.5" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 3, i32 2
+  %"PIR%10.6" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 4, i32 2
+  %"PIR%10.7" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 4, i32 2
+  %"PIR%10.8" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 5, i32 2
+  %"PIR%10.9" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 5, i32 2
+  %"PIR%10.12" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%7.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
   %3 = getelementptr %R_bcstack_t, %R_bcstack_t* %args, i32 0, i32 2
   %4 = load %struct.SEXPREC*, %struct.SEXPREC** %3, align 8
-  %5 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
-  %6 = bitcast %R_bcstack_t* %5 to i8*
-  call void @llvm.memset.p0i8.i64(i8* align 8 %6, i8 0, i64 64, i1 false)
-  %7 = getelementptr %R_bcstack_t, %R_bcstack_t* %5, i32 4
-  store %R_bcstack_t* %7, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %5 = getelementptr %R_bcstack_t, %R_bcstack_t* %args, i32 1, i32 2
+  %6 = load %struct.SEXPREC*, %struct.SEXPREC** %5, align 8
+  %7 = getelementptr %R_bcstack_t, %R_bcstack_t* %args, i32 2, i32 2
+  %8 = load %struct.SEXPREC*, %struct.SEXPREC** %7, align 8
+  %9 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %10 = bitcast %R_bcstack_t* %9 to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %10, i8 0, i64 112, i1 false)
+  %11 = getelementptr %R_bcstack_t, %R_bcstack_t* %9, i32 7
+  store %R_bcstack_t* %11, %R_bcstack_t** @spe_BCNodeStackTop, align 8
   br label %BB0
 
 BB0:                                              ; preds = %0
+  %12 = call %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC* @dcs_104, %struct.SEXPREC* @sym_dimnames, %struct.SEXPREC* @dcs_104)
+  %13 = call %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC* @dcs_105, %struct.SEXPREC* @sym_byrow, %struct.SEXPREC* %12)
+  %14 = call %struct.SEXPREC* @createBindingCellImpl(%struct.SEXPREC* %8, %struct.SEXPREC* @sym_ncol, %struct.SEXPREC* %13)
+  %15 = call %struct.SEXPREC* @createBindingCellImpl(%struct.SEXPREC* %6, %struct.SEXPREC* @sym_nrow, %struct.SEXPREC* %14)
+  %16 = call %struct.SEXPREC* @createBindingCellImpl(%struct.SEXPREC* %4, %struct.SEXPREC* @sym_data, %struct.SEXPREC* %15)
+  %PIRe0.31 = call %struct.SEXPREC* @createEnvironment(%struct.SEXPREC* @dcs_102, %struct.SEXPREC* %16, i32 1)
+  store %struct.SEXPREC* %PIRe0.31, %struct.SEXPREC** %PIRe0.3, align 8
+  %17 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 5
+  store %struct.SEXPREC* null, %struct.SEXPREC** %17, align 8
+  %18 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 4
+  store %struct.SEXPREC* null, %struct.SEXPREC** %18, align 8
+  %19 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 2
+  store %struct.SEXPREC* null, %struct.SEXPREC** %19, align 8
+  %20 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 1
+  store %struct.SEXPREC* null, %struct.SEXPREC** %20, align 8
+  %21 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 3
+  store %struct.SEXPREC* null, %struct.SEXPREC** %21, align 8
+  %22 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 0
+  store %struct.SEXPREC* null, %struct.SEXPREC** %22, align 8
   %sxpinfo = getelementptr %struct.SEXPREC, %struct.SEXPREC* %4, i32 0, i32 0, i32 0
-  %8 = load i64, i64* %sxpinfo, align 4
-  %9 = and i64 %8, 31
-  %10 = trunc i64 %9 to i32
-  %11 = icmp eq i32 %10, 5
-  br i1 %11, label %isProm, label %14, !prof !0
+  %23 = load i64, i64* %sxpinfo, align 4
+  %24 = and i64 %23, 31
+  %25 = trunc i64 %24 to i32
+  %26 = icmp eq i32 %25, 5
+  br i1 %26, label %27, label %33
 
-isProm:                                           ; preds = %BB0
-  %12 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %4, i32 0, i32 4, i32 0
-  %13 = load %struct.SEXPREC*, %struct.SEXPREC** %12, align 8
-  br label %15
+27:                                               ; preds = %BB0
+  %28 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %4, i32 0, i32 4, i32 0
+  %29 = load %struct.SEXPREC*, %struct.SEXPREC** %28, align 8
+  %30 = icmp eq %struct.SEXPREC* %29, @dcs_106
+  br i1 %30, label %31, label %34, !prof !0
 
-14:                                               ; preds = %BB0
-  br label %15
+31:                                               ; preds = %27
+  %32 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %4)
+  br label %35
 
-15:                                               ; preds = %14, %isProm
-  %16 = phi %struct.SEXPREC* [ %13, %isProm ], [ %4, %14 ]
-  %sxpinfo1 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %16, i32 0, i32 0, i32 0
-  %17 = load i64, i64* %sxpinfo1, align 4
-  %18 = and i64 %17, 31
-  %19 = trunc i64 %18 to i32
-  %20 = icmp eq i32 %19, 14
-  br i1 %20, label %isReal, label %notReal
+33:                                               ; preds = %BB0
+  br label %35
 
-21:                                               ; preds = %32, %isNa, %isReal
-  %"PIR%0.1" = phi double [ %33, %32 ], [ 0x7FF8000000000000, %isNa ], [ %26, %isReal ]
-  %b = call %struct.SEXPREC* @ldvarGlobal(%struct.SEXPREC* @sym_b)
-  %22 = icmp eq %struct.SEXPREC* %b, @dcs_107
-  br i1 %22, label %36, label %34, !prof !1
+34:                                               ; preds = %27
+  br label %35
 
-isReal:                                           ; preds = %15
-  %23 = bitcast %struct.SEXPREC* %16 to %struct.VECTOR_SEXPREC*
-  %24 = getelementptr %struct.VECTOR_SEXPREC, %struct.VECTOR_SEXPREC* %23, i32 1
-  %25 = bitcast %struct.VECTOR_SEXPREC* %24 to double*
-  %26 = load double, double* %25, align 8
-  br label %21
+35:                                               ; preds = %34, %33, %31
+  %"PIR%0.42" = phi %struct.SEXPREC* [ %32, %31 ], [ %4, %33 ], [ %29, %34 ]
+  store %struct.SEXPREC* %"PIR%0.42", %struct.SEXPREC** %"PIR%0.4", align 8
+  %36 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.4", align 8
+  %sxpinfo3 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %36, i32 0, i32 0, i32 0
+  %37 = load i64, i64* %sxpinfo3, align 4
+  %38 = and i64 %37, 31
+  %39 = trunc i64 %38 to i32
+  %40 = icmp eq i32 %39, 13
+  %41 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %36, i32 0, i32 1
+  %42 = load %struct.SEXPREC*, %struct.SEXPREC** %41, align 8
+  %43 = icmp eq %struct.SEXPREC* %42, @dcs_104
+  %44 = and i1 %40, %43
+  %45 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %36, i32 0, i32 1
+  %46 = load %struct.SEXPREC*, %struct.SEXPREC** %45, align 8
+  %47 = icmp eq %struct.SEXPREC* %46, @dcs_104
+  %sxpinfo4 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %36, i32 0, i32 0, i32 0
+  %48 = load i64, i64* %sxpinfo4, align 4
+  %49 = and i64 %48, 64
+  %50 = icmp ne i64 0, %49
+  %51 = xor i1 %50, true
+  %52 = and i1 %51, %47
+  br i1 %52, label %61, label %53
 
-notReal:                                          ; preds = %15
-  %27 = bitcast %struct.SEXPREC* %16 to %struct.VECTOR_SEXPREC*
-  %28 = getelementptr %struct.VECTOR_SEXPREC, %struct.VECTOR_SEXPREC* %27, i32 1
-  %29 = bitcast %struct.VECTOR_SEXPREC* %28 to i32*
-  %30 = load i32, i32* %29, align 4
-  %31 = icmp ne i32 %30, -2147483648
-  br i1 %31, label %32, label %isNa, !prof !2
-
-isNa:                                             ; preds = %notReal
-  br label %21
-
-32:                                               ; preds = %notReal
-  %33 = sitofp i32 %30 to double
-  br label %21
-
-34:                                               ; preds = %36, %21
-  %35 = icmp eq %struct.SEXPREC* %b, @dcs_106
-  br i1 %35, label %55, label %37, !prof !1
-
-36:                                               ; preds = %21
-  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @0, i32 0, i32 0))
-  br label %34
-
-37:                                               ; preds = %55, %34
-  store %struct.SEXPREC* %b, %struct.SEXPREC** %"PIR%0.2", align 8
-  %38 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.2", align 8
-  %sxpinfo2 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %38, i32 0, i32 0, i32 0
-  %39 = load i64, i64* %sxpinfo2, align 4
-  %40 = and i64 %39, 31
-  %41 = trunc i64 %40 to i32
-  %42 = icmp eq i32 %41, 14
-  %43 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %38, i32 0, i32 1
-  %44 = load %struct.SEXPREC*, %struct.SEXPREC** %43, align 8
-  %45 = icmp eq %struct.SEXPREC* %44, @dcs_104
-  %46 = and i1 %42, %45
-  %47 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %38, i32 0, i32 1
-  %48 = load %struct.SEXPREC*, %struct.SEXPREC** %47, align 8
-  %49 = icmp eq %struct.SEXPREC* %48, @dcs_104
-  %sxpinfo3 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %38, i32 0, i32 0, i32 0
-  %50 = load i64, i64* %sxpinfo3, align 4
-  %51 = and i64 %50, 64
-  %52 = icmp ne i64 0, %51
-  %53 = xor i1 %52, true
-  %54 = and i1 %53, %49
-  br i1 %54, label %64, label %56
-
-55:                                               ; preds = %34
-  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @1, i32 0, i32 0))
-  br label %37
-
-56:                                               ; preds = %37
-  %57 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %48, i32 0, i32 4, i32 2
+53:                                               ; preds = %35
+  %54 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %46, i32 0, i32 4, i32 2
+  %55 = load %struct.SEXPREC*, %struct.SEXPREC** %54, align 8
+  %56 = icmp eq %struct.SEXPREC* %55, @dcs_111
+  %57 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %46, i32 0, i32 4, i32 1
   %58 = load %struct.SEXPREC*, %struct.SEXPREC** %57, align 8
-  %59 = icmp eq %struct.SEXPREC* %58, @dcs_111
-  %60 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %48, i32 0, i32 4, i32 1
-  %61 = load %struct.SEXPREC*, %struct.SEXPREC** %60, align 8
-  %62 = icmp eq %struct.SEXPREC* %61, @dcs_104
-  %63 = and i1 %59, %62
-  br label %64
+  %59 = icmp eq %struct.SEXPREC* %58, @dcs_104
+  %60 = and i1 %56, %59
+  br label %61
 
-64:                                               ; preds = %56, %37
-  %65 = phi i1 [ true, %37 ], [ %63, %56 ]
-  %66 = and i1 %46, %65
-  %"PIR%0.3" = zext i1 %66 to i32
-  %67 = icmp ne i32 %"PIR%0.3", 0
-  br i1 %67, label %BB4, label %BB5, !prof !3
+61:                                               ; preds = %35, %53
+  %62 = phi i1 [ true, %35 ], [ %60, %53 ]
+  %63 = and i1 %44, %62
+  %"PIR%0.5" = zext i1 %63 to i32
+  %64 = icmp ne i32 %"PIR%0.5", 0
+  br i1 %64, label %BB6, label %BB7, !prof !1
 
-BB4:                                              ; preds = %64
-  %"PIR%4.04" = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.2", align 8
-  store %struct.SEXPREC* %"PIR%4.04", %struct.SEXPREC** %"PIR%4.0", align 8
-  %68 = call %struct.SEXPREC* @newReal(double %"PIR%0.1")
-  %69 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
-  store volatile %struct.SEXPREC* %68, %struct.SEXPREC** %69, align 8
-  %70 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%4.0", align 8
-  %"PIR%4.15" = call %struct.SEXPREC* @binop(%struct.SEXPREC* %68, %struct.SEXPREC* %70, i32 0)
-  store %struct.SEXPREC* %"PIR%4.15", %struct.SEXPREC** %"PIR%4.1", align 8
-  %71 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%4.1", align 8
-  %72 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
-  %73 = getelementptr %R_bcstack_t, %R_bcstack_t* %72, i32 -4
-  store %R_bcstack_t* %73, %R_bcstack_t** @spe_BCNodeStackTop, align 8
-  ret %struct.SEXPREC* %71
+BB6:                                              ; preds = %61
+  %65 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 0
+  %66 = load %struct.SEXPREC*, %struct.SEXPREC** %65, align 8
+  %67 = ptrtoint %struct.SEXPREC* %66 to i64
+  %68 = icmp ule i64 %67, 2
+  br i1 %68, label %90, label %82, !prof !0
 
-BB5:                                              ; preds = %64
-  %PIRe5.09 = call %struct.SEXPREC* @createStubEnvironment(%struct.SEXPREC* @dcs_100, i32 1, i32* getelementptr inbounds ([1 x i32], [1 x i32]* @copool_4, i32 0, i32 0), i32 1)
-  %74 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
-  store volatile %struct.SEXPREC* %PIRe5.09, %struct.SEXPREC** %74, align 8
-  %sxpinfo6 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %PIRe5.09, i32 0, i32 0, i32 0
-  %75 = load i64, i64* %sxpinfo6, align 4
-  %76 = and i64 %75, 16777216
-  %77 = icmp ne i64 %76, 0
-  br i1 %77, label %92, label %83
+BB7:                                              ; preds = %61
+  %"PIR%7.15" = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.4", align 8
+  store %struct.SEXPREC* %"PIR%7.15", %struct.SEXPREC** %"PIR%7.1", align 8
+  store %DeoptReason* @copool_19, %DeoptReason** %"PIR%5.2", align 8
+  br label %BB5
 
-78:                                               ; preds = %100, %83
-  %sxpinfo8 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %4, i32 0, i32 0, i32 0
-  %79 = load i64, i64* %sxpinfo8, align 4
-  %80 = lshr i64 %79, 32
-  %81 = and i64 %80, 65535
-  %82 = icmp eq i64 %81, 7
-  br i1 %82, label %106, label %101
-
-83:                                               ; preds = %96, %BB5
-  %84 = bitcast %struct.SEXPREC* %PIRe5.09 to %struct.VECTOR_SEXPREC*
-  %85 = getelementptr %struct.VECTOR_SEXPREC, %struct.VECTOR_SEXPREC* %84, i32 1
-  %86 = bitcast %struct.VECTOR_SEXPREC* %85 to %LazyEnvironment*
-  %87 = getelementptr %LazyEnvironment, %LazyEnvironment* %86, i32 1
-  %88 = bitcast %LazyEnvironment* %87 to i8*
-  %89 = getelementptr i8, i8* %88, i64 1
-  %90 = bitcast i8* %89 to %struct.SEXPREC**
-  %91 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %90, i32 2
-  store %struct.SEXPREC* %4, %struct.SEXPREC** %91, align 8
-  br label %78
-
-92:                                               ; preds = %BB5
-  %sxpinfo7 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %4, i32 0, i32 0, i32 0
-  %93 = load i64, i64* %sxpinfo7, align 4
-  %94 = and i64 %93, 16777216
-  %95 = icmp ne i64 %94, 0
-  br i1 %95, label %96, label %100
-
-96:                                               ; preds = %92
-  %97 = and i64 %75, 268435456
-  %98 = and i64 %93, 268435456
-  %99 = icmp ugt i64 %97, %98
-  br i1 %99, label %100, label %83, !prof !0
-
-100:                                              ; preds = %96, %92
-  call void @externalsxpSetEntry(%struct.SEXPREC* %PIRe5.09, i32 2, %struct.SEXPREC* %4)
-  br label %78
-
-101:                                              ; preds = %78
-  %102 = add nuw nsw i64 %81, 1
-  %103 = shl i64 %102, 32
-  %104 = and i64 %79, -281470681743361
-  %105 = or i64 %104, %103
-  store i64 %105, i64* %sxpinfo8, align 4
-  br label %106
-
-106:                                              ; preds = %101, %78
-  store %struct.SEXPREC* %PIRe5.09, %struct.SEXPREC** %PIRe5.0, align 8
-  %107 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
-  %108 = getelementptr %R_bcstack_t, %R_bcstack_t* %107, i32 2
-  store %R_bcstack_t* %108, %R_bcstack_t** @spe_BCNodeStackTop, align 8
-  %109 = call %struct.SEXPREC* @newReal(double %"PIR%0.1")
-  %110 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 3, i32 2
-  store volatile %struct.SEXPREC* %109, %struct.SEXPREC** %110, align 8
-  %111 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe5.0, align 8
-  %112 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
-  %113 = getelementptr %R_bcstack_t, %R_bcstack_t* %112, i64 -2
-  %114 = bitcast %R_bcstack_t* %113 to i8*
-  call void @llvm.memset.p0i8.i64(i8* align 8 %114, i8 0, i64 32, i1 false)
-  %115 = getelementptr %R_bcstack_t, %R_bcstack_t* %112, i64 -2, i32 2
-  store %struct.SEXPREC* %109, %struct.SEXPREC** %115, align 8
-  %116 = getelementptr %R_bcstack_t, %R_bcstack_t* %112, i64 -1, i32 2
-  store %struct.SEXPREC* %111, %struct.SEXPREC** %116, align 8
-  %117 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.2", align 8
-  call void @deopt(i8* %code, %struct.SEXPREC* %closure, i8* @epe_367_0_4296032527, %R_bcstack_t* %args, %DeoptReason* @copool_5, %struct.SEXPREC* %117)
-  %118 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
-  %119 = getelementptr %R_bcstack_t, %R_bcstack_t* %118, i32 -2
-  store %R_bcstack_t* %119, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+BB5:                                              ; preds = %142, %BB7
+  %"PIR%5.3" = load %DeoptReason*, %DeoptReason** %"PIR%5.2", align 8
+  %69 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %70 = getelementptr %R_bcstack_t, %R_bcstack_t* %69, i32 3
+  store %R_bcstack_t* %70, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %71 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.4", align 8
+  %72 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %73 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %74 = getelementptr %R_bcstack_t, %R_bcstack_t* %73, i64 -3
+  %75 = bitcast %R_bcstack_t* %74 to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %75, i8 0, i64 48, i1 false)
+  %76 = getelementptr %R_bcstack_t, %R_bcstack_t* %73, i64 -3, i32 2
+  store %struct.SEXPREC* @gcb_395, %struct.SEXPREC** %76, align 8
+  %77 = getelementptr %R_bcstack_t, %R_bcstack_t* %73, i64 -2, i32 2
+  store %struct.SEXPREC* %71, %struct.SEXPREC** %77, align 8
+  %78 = getelementptr %R_bcstack_t, %R_bcstack_t* %73, i64 -1, i32 2
+  store %struct.SEXPREC* %72, %struct.SEXPREC** %78, align 8
+  %79 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%5.1", align 8
+  call void @deopt(i8* %code, %struct.SEXPREC* %closure, i8* @epe_11761_0_2224799450639, %R_bcstack_t* %args, %DeoptReason* %"PIR%5.3", %struct.SEXPREC* %79)
+  %80 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %81 = getelementptr %R_bcstack_t, %R_bcstack_t* %80, i32 -3
+  store %R_bcstack_t* %81, %R_bcstack_t** @spe_BCNodeStackTop, align 8
   unreachable
+
+82:                                               ; preds = %BB6
+  %83 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %66, i32 0, i32 4, i32 0
+  %84 = load %struct.SEXPREC*, %struct.SEXPREC** %83, align 8
+  %85 = icmp eq %struct.SEXPREC* %84, @dcs_106
+  br i1 %85, label %90, label %86, !prof !0
+
+86:                                               ; preds = %82
+  %sxpinfo6 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %84, i32 0, i32 0, i32 0
+  %87 = load i64, i64* %sxpinfo6, align 4
+  %88 = and i64 %87, 281470681743360
+  %89 = icmp eq i64 %88, 0
+  br i1 %89, label %notNamed, label %96
+
+90:                                               ; preds = %82, %BB6
+  %91 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %92 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_is.atomic, %struct.SEXPREC* %91, %struct.SEXPREC** %65)
+  br label %93
+
+93:                                               ; preds = %90, %96
+  %is.atomic = phi %struct.SEXPREC* [ %84, %96 ], [ %92, %90 ]
+  %94 = icmp eq %struct.SEXPREC* %is.atomic, @dcs_107
+  br i1 %94, label %99, label %97, !prof !2
+
+notNamed:                                         ; preds = %86
+  %95 = or i64 %87, 4294967296
+  store i64 %95, i64* %sxpinfo6, align 4
+  br label %96
+
+96:                                               ; preds = %notNamed, %86
+  br label %93
+
+97:                                               ; preds = %99, %93
+  %98 = icmp eq %struct.SEXPREC* %is.atomic, @dcs_106
+  br i1 %98, label %106, label %100, !prof !2
+
+99:                                               ; preds = %93
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @0, i32 0, i32 0))
+  br label %97
+
+100:                                              ; preds = %106, %97
+  store %struct.SEXPREC* %is.atomic, %struct.SEXPREC** %"PIR%6.0", align 8
+  %101 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%6.0", align 8
+  %sxpinfo7 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %101, i32 0, i32 0, i32 0
+  %102 = load i64, i64* %sxpinfo7, align 4
+  %103 = and i64 %102, 31
+  %104 = trunc i64 %103 to i32
+  %105 = icmp eq i32 %104, 5
+  br i1 %105, label %isProm, label %109, !prof !0
+
+106:                                              ; preds = %97
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @1, i32 0, i32 0))
+  br label %100
+
+isProm:                                           ; preds = %100
+  %107 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %101, i32 0, i32 4, i32 0
+  %108 = load %struct.SEXPREC*, %struct.SEXPREC** %107, align 8
+  br label %110
+
+109:                                              ; preds = %100
+  br label %110
+
+110:                                              ; preds = %109, %isProm
+  %111 = phi %struct.SEXPREC* [ %108, %isProm ], [ %101, %109 ]
+  %112 = icmp eq %struct.SEXPREC* @gcb_400, %111
+  %113 = icmp ne %struct.SEXPREC* %111, @dcs_106
+  %114 = and i1 %112, %113
+  br i1 %114, label %129, label %115
+
+115:                                              ; preds = %110
+  %116 = load i64, i64* getelementptr inbounds (%struct.SEXPREC, %struct.SEXPREC* @gcb_400, i32 0, i32 0, i32 0), align 4
+  %117 = and i64 %116, 31
+  %118 = trunc i64 %117 to i32
+  %119 = icmp eq i32 %118, 3
+  %sxpinfo8 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %111, i32 0, i32 0, i32 0
+  %120 = load i64, i64* %sxpinfo8, align 4
+  %121 = and i64 %120, 31
+  %122 = trunc i64 %121 to i32
+  %123 = icmp eq i32 %122, 3
+  %124 = and i1 %119, %123
+  br i1 %124, label %125, label %127
+
+125:                                              ; preds = %115
+  %126 = call i1 @cksEq(%struct.SEXPREC* @gcb_400, %struct.SEXPREC* %111)
+  br label %127
+
+127:                                              ; preds = %115, %125
+  %128 = phi i1 [ %126, %125 ], [ false, %115 ]
+  br label %129
+
+129:                                              ; preds = %110, %127
+  %130 = phi i1 [ true, %110 ], [ %128, %127 ]
+  %"PIR%6.1" = zext i1 %130 to i32
+  %131 = icmp ne i32 %"PIR%6.1", 0
+  br i1 %131, label %BB8, label %BB9, !prof !1
+
+BB8:                                              ; preds = %129
+  %132 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 1
+  %133 = load %struct.SEXPREC*, %struct.SEXPREC** %132, align 8
+  %134 = ptrtoint %struct.SEXPREC* %133 to i64
+  %135 = icmp ule i64 %134, 2
+  br i1 %135, label %151, label %143, !prof !0
+
+BB9:                                              ; preds = %129
+  %136 = icmp ne i32 %"PIR%6.1", 0
+  %137 = select i1 %136, %struct.SEXPREC* @dcs_103, %struct.SEXPREC* @dcs_105
+  %sxpinfo9 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %137, i32 0, i32 0, i32 0
+  %138 = load i64, i64* %sxpinfo9, align 4
+  %139 = and i64 %138, 281470681743360
+  %140 = icmp eq i64 %139, 0
+  br i1 %140, label %notNamed10, label %142
+
+notNamed10:                                       ; preds = %BB9
+  %141 = or i64 %138, 4294967296
+  store i64 %141, i64* %sxpinfo9, align 4
+  br label %142
+
+142:                                              ; preds = %notNamed10, %BB9
+  store %struct.SEXPREC* %137, %struct.SEXPREC** %"PIR%5.0", align 8
+  store %DeoptReason* @copool_20, %DeoptReason** %"PIR%5.2", align 8
+  br label %BB5
+
+143:                                              ; preds = %BB8
+  %144 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %133, i32 0, i32 4, i32 0
+  %145 = load %struct.SEXPREC*, %struct.SEXPREC** %144, align 8
+  %146 = icmp eq %struct.SEXPREC* %145, @dcs_106
+  br i1 %146, label %151, label %147, !prof !0
+
+147:                                              ; preds = %143
+  %sxpinfo11 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %145, i32 0, i32 0, i32 0
+  %148 = load i64, i64* %sxpinfo11, align 4
+  %149 = and i64 %148, 281470681743360
+  %150 = icmp eq i64 %149, 0
+  br i1 %150, label %notNamed12, label %157
+
+151:                                              ; preds = %143, %BB8
+  %152 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %153 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_data, %struct.SEXPREC* %152, %struct.SEXPREC** %132)
+  br label %154
+
+154:                                              ; preds = %151, %157
+  %data = phi %struct.SEXPREC* [ %145, %157 ], [ %153, %151 ]
+  %155 = icmp eq %struct.SEXPREC* %data, @dcs_107
+  br i1 %155, label %160, label %158, !prof !2
+
+notNamed12:                                       ; preds = %147
+  %156 = or i64 %148, 4294967296
+  store i64 %156, i64* %sxpinfo11, align 4
+  br label %157
+
+157:                                              ; preds = %notNamed12, %147
+  br label %154
+
+158:                                              ; preds = %160, %154
+  %159 = icmp eq %struct.SEXPREC* %data, @dcs_106
+  br i1 %159, label %167, label %161, !prof !2
+
+160:                                              ; preds = %154
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @2, i32 0, i32 0))
+  br label %158
+
+161:                                              ; preds = %167, %158
+  store %struct.SEXPREC* %data, %struct.SEXPREC** %"PIR%8.0", align 8
+  %162 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.0", align 8
+  %sxpinfo13 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %162, i32 0, i32 0, i32 0
+  %163 = load i64, i64* %sxpinfo13, align 4
+  %164 = and i64 %163, 31
+  %165 = trunc i64 %164 to i32
+  %166 = icmp eq i32 %165, 5
+  br i1 %166, label %168, label %174
+
+167:                                              ; preds = %158
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @3, i32 0, i32 0))
+  br label %161
+
+168:                                              ; preds = %161
+  %169 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %162, i32 0, i32 4, i32 0
+  %170 = load %struct.SEXPREC*, %struct.SEXPREC** %169, align 8
+  %171 = icmp eq %struct.SEXPREC* %170, @dcs_106
+  br i1 %171, label %172, label %175, !prof !0
+
+172:                                              ; preds = %168
+  %173 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %162)
+  br label %176
+
+174:                                              ; preds = %161
+  br label %176
+
+175:                                              ; preds = %168
+  br label %176
+
+176:                                              ; preds = %175, %174, %172
+  %"PIR%8.114" = phi %struct.SEXPREC* [ %173, %172 ], [ %162, %174 ], [ %170, %175 ]
+  store %struct.SEXPREC* %"PIR%8.114", %struct.SEXPREC** %"PIR%8.1", align 8
+  %177 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.1", align 8
+  %sxpinfo15 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %177, i32 0, i32 0, i32 0
+  %178 = load i64, i64* %sxpinfo15, align 4
+  %179 = and i64 %178, 31
+  %180 = trunc i64 %179 to i32
+  %181 = icmp eq i32 %180, 13
+  %182 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %177, i32 0, i32 1
+  %183 = load %struct.SEXPREC*, %struct.SEXPREC** %182, align 8
+  %184 = icmp eq %struct.SEXPREC* %183, @dcs_104
+  %185 = and i1 %181, %184
+  %186 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %177, i32 0, i32 1
+  %187 = load %struct.SEXPREC*, %struct.SEXPREC** %186, align 8
+  %188 = icmp eq %struct.SEXPREC* %187, @dcs_104
+  %sxpinfo16 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %177, i32 0, i32 0, i32 0
+  %189 = load i64, i64* %sxpinfo16, align 4
+  %190 = and i64 %189, 64
+  %191 = icmp ne i64 0, %190
+  %192 = xor i1 %191, true
+  %193 = and i1 %192, %188
+  br i1 %193, label %202, label %194
+
+194:                                              ; preds = %176
+  %195 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %187, i32 0, i32 4, i32 2
+  %196 = load %struct.SEXPREC*, %struct.SEXPREC** %195, align 8
+  %197 = icmp eq %struct.SEXPREC* %196, @dcs_111
+  %198 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %187, i32 0, i32 4, i32 1
+  %199 = load %struct.SEXPREC*, %struct.SEXPREC** %198, align 8
+  %200 = icmp eq %struct.SEXPREC* %199, @dcs_104
+  %201 = and i1 %197, %200
+  br label %202
+
+202:                                              ; preds = %176, %194
+  %203 = phi i1 [ true, %176 ], [ %201, %194 ]
+  %204 = and i1 %185, %203
+  %"PIR%8.2" = zext i1 %204 to i32
+  %205 = icmp ne i32 %"PIR%8.2", 0
+  br i1 %205, label %BB10, label %BB11, !prof !1
+
+BB10:                                             ; preds = %202
+  %206 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 1
+  %207 = load %struct.SEXPREC*, %struct.SEXPREC** %206, align 8
+  %208 = ptrtoint %struct.SEXPREC* %207 to i64
+  %209 = icmp ule i64 %208, 2
+  br i1 %209, label %232, label %224, !prof !0
+
+BB11:                                             ; preds = %202
+  %210 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %211 = getelementptr %R_bcstack_t, %R_bcstack_t* %210, i32 4
+  store %R_bcstack_t* %211, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %212 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.1", align 8
+  %213 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %214 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %215 = getelementptr %R_bcstack_t, %R_bcstack_t* %214, i64 -4
+  %216 = bitcast %R_bcstack_t* %215 to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %216, i8 0, i64 64, i1 false)
+  %217 = getelementptr %R_bcstack_t, %R_bcstack_t* %214, i64 -4, i32 2
+  store %struct.SEXPREC* @dcs_105, %struct.SEXPREC** %217, align 8
+  %218 = getelementptr %R_bcstack_t, %R_bcstack_t* %214, i64 -3, i32 2
+  store %struct.SEXPREC* @gcb_400, %struct.SEXPREC** %218, align 8
+  %219 = getelementptr %R_bcstack_t, %R_bcstack_t* %214, i64 -2, i32 2
+  store %struct.SEXPREC* %212, %struct.SEXPREC** %219, align 8
+  %220 = getelementptr %R_bcstack_t, %R_bcstack_t* %214, i64 -1, i32 2
+  store %struct.SEXPREC* %213, %struct.SEXPREC** %220, align 8
+  %221 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.1", align 8
+  call void @deopt(i8* %code, %struct.SEXPREC* %closure, i8* @epe_11761_1_2224799450639, %R_bcstack_t* %args, %DeoptReason* @copool_22, %struct.SEXPREC* %221)
+  %222 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %223 = getelementptr %R_bcstack_t, %R_bcstack_t* %222, i32 -4
+  store %R_bcstack_t* %223, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  unreachable
+
+224:                                              ; preds = %BB10
+  %225 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %207, i32 0, i32 4, i32 0
+  %226 = load %struct.SEXPREC*, %struct.SEXPREC** %225, align 8
+  %227 = icmp eq %struct.SEXPREC* %226, @dcs_106
+  br i1 %227, label %232, label %228, !prof !0
+
+228:                                              ; preds = %224
+  %sxpinfo17 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %226, i32 0, i32 0, i32 0
+  %229 = load i64, i64* %sxpinfo17, align 4
+  %230 = and i64 %229, 281470681743360
+  %231 = icmp eq i64 %230, 0
+  br i1 %231, label %notNamed18, label %238
+
+232:                                              ; preds = %224, %BB10
+  %233 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %234 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_data, %struct.SEXPREC* %233, %struct.SEXPREC** %206)
+  br label %235
+
+235:                                              ; preds = %232, %238
+  %data19 = phi %struct.SEXPREC* [ %226, %238 ], [ %234, %232 ]
+  %236 = icmp eq %struct.SEXPREC* %data19, @dcs_107
+  br i1 %236, label %241, label %239, !prof !2
+
+notNamed18:                                       ; preds = %228
+  %237 = or i64 %229, 4294967296
+  store i64 %237, i64* %sxpinfo17, align 4
+  br label %238
+
+238:                                              ; preds = %notNamed18, %228
+  br label %235
+
+239:                                              ; preds = %241, %235
+  %240 = icmp eq %struct.SEXPREC* %data19, @dcs_106
+  br i1 %240, label %248, label %242, !prof !2
+
+241:                                              ; preds = %235
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @4, i32 0, i32 0))
+  br label %239
+
+242:                                              ; preds = %248, %239
+  store %struct.SEXPREC* %data19, %struct.SEXPREC** %"PIR%10.0", align 8
+  %243 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.0", align 8
+  %sxpinfo20 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %243, i32 0, i32 0, i32 0
+  %244 = load i64, i64* %sxpinfo20, align 4
+  %245 = and i64 %244, 31
+  %246 = trunc i64 %245 to i32
+  %247 = icmp eq i32 %246, 5
+  br i1 %247, label %249, label %255
+
+248:                                              ; preds = %239
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @5, i32 0, i32 0))
+  br label %242
+
+249:                                              ; preds = %242
+  %250 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %243, i32 0, i32 4, i32 0
+  %251 = load %struct.SEXPREC*, %struct.SEXPREC** %250, align 8
+  %252 = icmp eq %struct.SEXPREC* %251, @dcs_106
+  br i1 %252, label %253, label %256, !prof !0
+
+253:                                              ; preds = %249
+  %254 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %243)
+  br label %257
+
+255:                                              ; preds = %242
+  br label %257
+
+256:                                              ; preds = %249
+  br label %257
+
+257:                                              ; preds = %256, %255, %253
+  %"PIR%10.121" = phi %struct.SEXPREC* [ %254, %253 ], [ %243, %255 ], [ %251, %256 ]
+  store %struct.SEXPREC* %"PIR%10.121", %struct.SEXPREC** %"PIR%10.1", align 8
+  %258 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 2
+  %259 = load %struct.SEXPREC*, %struct.SEXPREC** %258, align 8
+  %260 = ptrtoint %struct.SEXPREC* %259 to i64
+  %261 = icmp ule i64 %260, 2
+  br i1 %261, label %270, label %262, !prof !0
+
+262:                                              ; preds = %257
+  %263 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %259, i32 0, i32 4, i32 0
+  %264 = load %struct.SEXPREC*, %struct.SEXPREC** %263, align 8
+  %265 = icmp eq %struct.SEXPREC* %264, @dcs_106
+  br i1 %265, label %270, label %266, !prof !0
+
+266:                                              ; preds = %262
+  %sxpinfo22 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %264, i32 0, i32 0, i32 0
+  %267 = load i64, i64* %sxpinfo22, align 4
+  %268 = and i64 %267, 281470681743360
+  %269 = icmp eq i64 %268, 0
+  br i1 %269, label %notNamed23, label %276
+
+270:                                              ; preds = %262, %257
+  %271 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %272 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_nrow, %struct.SEXPREC* %271, %struct.SEXPREC** %258)
+  br label %273
+
+273:                                              ; preds = %270, %276
+  %nrow = phi %struct.SEXPREC* [ %264, %276 ], [ %272, %270 ]
+  %274 = icmp eq %struct.SEXPREC* %nrow, @dcs_107
+  br i1 %274, label %279, label %277, !prof !2
+
+notNamed23:                                       ; preds = %266
+  %275 = or i64 %267, 4294967296
+  store i64 %275, i64* %sxpinfo22, align 4
+  br label %276
+
+276:                                              ; preds = %notNamed23, %266
+  br label %273
+
+277:                                              ; preds = %279, %273
+  %278 = icmp eq %struct.SEXPREC* %nrow, @dcs_106
+  br i1 %278, label %286, label %280, !prof !2
+
+279:                                              ; preds = %273
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @6, i32 0, i32 0))
+  br label %277
+
+280:                                              ; preds = %286, %277
+  store %struct.SEXPREC* %nrow, %struct.SEXPREC** %"PIR%10.2", align 8
+  %281 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.2", align 8
+  %sxpinfo24 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %281, i32 0, i32 0, i32 0
+  %282 = load i64, i64* %sxpinfo24, align 4
+  %283 = and i64 %282, 31
+  %284 = trunc i64 %283 to i32
+  %285 = icmp eq i32 %284, 5
+  br i1 %285, label %287, label %293
+
+286:                                              ; preds = %277
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @7, i32 0, i32 0))
+  br label %280
+
+287:                                              ; preds = %280
+  %288 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %281, i32 0, i32 4, i32 0
+  %289 = load %struct.SEXPREC*, %struct.SEXPREC** %288, align 8
+  %290 = icmp eq %struct.SEXPREC* %289, @dcs_106
+  br i1 %290, label %291, label %294, !prof !0
+
+291:                                              ; preds = %287
+  %292 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %281)
+  br label %295
+
+293:                                              ; preds = %280
+  br label %295
+
+294:                                              ; preds = %287
+  br label %295
+
+295:                                              ; preds = %294, %293, %291
+  %"PIR%10.325" = phi %struct.SEXPREC* [ %292, %291 ], [ %281, %293 ], [ %289, %294 ]
+  store %struct.SEXPREC* %"PIR%10.325", %struct.SEXPREC** %"PIR%10.3", align 8
+  %296 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 3
+  %297 = load %struct.SEXPREC*, %struct.SEXPREC** %296, align 8
+  %298 = ptrtoint %struct.SEXPREC* %297 to i64
+  %299 = icmp ule i64 %298, 2
+  br i1 %299, label %308, label %300, !prof !0
+
+300:                                              ; preds = %295
+  %301 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %297, i32 0, i32 4, i32 0
+  %302 = load %struct.SEXPREC*, %struct.SEXPREC** %301, align 8
+  %303 = icmp eq %struct.SEXPREC* %302, @dcs_106
+  br i1 %303, label %308, label %304, !prof !0
+
+304:                                              ; preds = %300
+  %sxpinfo26 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %302, i32 0, i32 0, i32 0
+  %305 = load i64, i64* %sxpinfo26, align 4
+  %306 = and i64 %305, 281470681743360
+  %307 = icmp eq i64 %306, 0
+  br i1 %307, label %notNamed27, label %314
+
+308:                                              ; preds = %300, %295
+  %309 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %310 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_ncol, %struct.SEXPREC* %309, %struct.SEXPREC** %296)
+  br label %311
+
+311:                                              ; preds = %308, %314
+  %ncol = phi %struct.SEXPREC* [ %302, %314 ], [ %310, %308 ]
+  %312 = icmp eq %struct.SEXPREC* %ncol, @dcs_107
+  br i1 %312, label %317, label %315, !prof !2
+
+notNamed27:                                       ; preds = %304
+  %313 = or i64 %305, 4294967296
+  store i64 %313, i64* %sxpinfo26, align 4
+  br label %314
+
+314:                                              ; preds = %notNamed27, %304
+  br label %311
+
+315:                                              ; preds = %317, %311
+  %316 = icmp eq %struct.SEXPREC* %ncol, @dcs_106
+  br i1 %316, label %324, label %318, !prof !2
+
+317:                                              ; preds = %311
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @8, i32 0, i32 0))
+  br label %315
+
+318:                                              ; preds = %324, %315
+  store %struct.SEXPREC* %ncol, %struct.SEXPREC** %"PIR%10.4", align 8
+  %319 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.4", align 8
+  %sxpinfo28 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %319, i32 0, i32 0, i32 0
+  %320 = load i64, i64* %sxpinfo28, align 4
+  %321 = and i64 %320, 31
+  %322 = trunc i64 %321 to i32
+  %323 = icmp eq i32 %322, 5
+  br i1 %323, label %325, label %331
+
+324:                                              ; preds = %315
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @9, i32 0, i32 0))
+  br label %318
+
+325:                                              ; preds = %318
+  %326 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %319, i32 0, i32 4, i32 0
+  %327 = load %struct.SEXPREC*, %struct.SEXPREC** %326, align 8
+  %328 = icmp eq %struct.SEXPREC* %327, @dcs_106
+  br i1 %328, label %329, label %332, !prof !0
+
+329:                                              ; preds = %325
+  %330 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %319)
+  br label %333
+
+331:                                              ; preds = %318
+  br label %333
+
+332:                                              ; preds = %325
+  br label %333
+
+333:                                              ; preds = %332, %331, %329
+  %"PIR%10.529" = phi %struct.SEXPREC* [ %330, %329 ], [ %319, %331 ], [ %327, %332 ]
+  store %struct.SEXPREC* %"PIR%10.529", %struct.SEXPREC** %"PIR%10.5", align 8
+  %334 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 4
+  %335 = load %struct.SEXPREC*, %struct.SEXPREC** %334, align 8
+  %336 = ptrtoint %struct.SEXPREC* %335 to i64
+  %337 = icmp ule i64 %336, 2
+  br i1 %337, label %346, label %338, !prof !0
+
+338:                                              ; preds = %333
+  %339 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %335, i32 0, i32 4, i32 0
+  %340 = load %struct.SEXPREC*, %struct.SEXPREC** %339, align 8
+  %341 = icmp eq %struct.SEXPREC* %340, @dcs_106
+  br i1 %341, label %346, label %342, !prof !0
+
+342:                                              ; preds = %338
+  %sxpinfo30 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %340, i32 0, i32 0, i32 0
+  %343 = load i64, i64* %sxpinfo30, align 4
+  %344 = and i64 %343, 281470681743360
+  %345 = icmp eq i64 %344, 0
+  br i1 %345, label %notNamed31, label %352
+
+346:                                              ; preds = %338, %333
+  %347 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %348 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_byrow, %struct.SEXPREC* %347, %struct.SEXPREC** %334)
+  br label %349
+
+349:                                              ; preds = %346, %352
+  %byrow = phi %struct.SEXPREC* [ %340, %352 ], [ %348, %346 ]
+  %350 = icmp eq %struct.SEXPREC* %byrow, @dcs_107
+  br i1 %350, label %355, label %353, !prof !2
+
+notNamed31:                                       ; preds = %342
+  %351 = or i64 %343, 4294967296
+  store i64 %351, i64* %sxpinfo30, align 4
+  br label %352
+
+352:                                              ; preds = %notNamed31, %342
+  br label %349
+
+353:                                              ; preds = %355, %349
+  %354 = icmp eq %struct.SEXPREC* %byrow, @dcs_106
+  br i1 %354, label %362, label %356, !prof !2
+
+355:                                              ; preds = %349
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @10, i32 0, i32 0))
+  br label %353
+
+356:                                              ; preds = %362, %353
+  store %struct.SEXPREC* %byrow, %struct.SEXPREC** %"PIR%10.6", align 8
+  %357 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.6", align 8
+  %sxpinfo32 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %357, i32 0, i32 0, i32 0
+  %358 = load i64, i64* %sxpinfo32, align 4
+  %359 = and i64 %358, 31
+  %360 = trunc i64 %359 to i32
+  %361 = icmp eq i32 %360, 5
+  br i1 %361, label %363, label %369
+
+362:                                              ; preds = %353
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @11, i32 0, i32 0))
+  br label %356
+
+363:                                              ; preds = %356
+  %364 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %357, i32 0, i32 4, i32 0
+  %365 = load %struct.SEXPREC*, %struct.SEXPREC** %364, align 8
+  %366 = icmp eq %struct.SEXPREC* %365, @dcs_106
+  br i1 %366, label %367, label %370, !prof !0
+
+367:                                              ; preds = %363
+  %368 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %357)
+  br label %371
+
+369:                                              ; preds = %356
+  br label %371
+
+370:                                              ; preds = %363
+  br label %371
+
+371:                                              ; preds = %370, %369, %367
+  %"PIR%10.733" = phi %struct.SEXPREC* [ %368, %367 ], [ %357, %369 ], [ %365, %370 ]
+  store %struct.SEXPREC* %"PIR%10.733", %struct.SEXPREC** %"PIR%10.7", align 8
+  %372 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 5
+  %373 = load %struct.SEXPREC*, %struct.SEXPREC** %372, align 8
+  %374 = ptrtoint %struct.SEXPREC* %373 to i64
+  %375 = icmp ule i64 %374, 2
+  br i1 %375, label %384, label %376, !prof !0
+
+376:                                              ; preds = %371
+  %377 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %373, i32 0, i32 4, i32 0
+  %378 = load %struct.SEXPREC*, %struct.SEXPREC** %377, align 8
+  %379 = icmp eq %struct.SEXPREC* %378, @dcs_106
+  br i1 %379, label %384, label %380, !prof !0
+
+380:                                              ; preds = %376
+  %sxpinfo34 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %378, i32 0, i32 0, i32 0
+  %381 = load i64, i64* %sxpinfo34, align 4
+  %382 = and i64 %381, 281470681743360
+  %383 = icmp eq i64 %382, 0
+  br i1 %383, label %notNamed35, label %390
+
+384:                                              ; preds = %376, %371
+  %385 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %386 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_dimnames, %struct.SEXPREC* %385, %struct.SEXPREC** %372)
+  br label %387
+
+387:                                              ; preds = %384, %390
+  %dimnames = phi %struct.SEXPREC* [ %378, %390 ], [ %386, %384 ]
+  %388 = icmp eq %struct.SEXPREC* %dimnames, @dcs_107
+  br i1 %388, label %393, label %391, !prof !2
+
+notNamed35:                                       ; preds = %380
+  %389 = or i64 %381, 4294967296
+  store i64 %389, i64* %sxpinfo34, align 4
+  br label %390
+
+390:                                              ; preds = %notNamed35, %380
+  br label %387
+
+391:                                              ; preds = %393, %387
+  %392 = icmp eq %struct.SEXPREC* %dimnames, @dcs_106
+  br i1 %392, label %400, label %394, !prof !2
+
+393:                                              ; preds = %387
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @12, i32 0, i32 0))
+  br label %391
+
+394:                                              ; preds = %400, %391
+  store %struct.SEXPREC* %dimnames, %struct.SEXPREC** %"PIR%10.8", align 8
+  %395 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.8", align 8
+  %sxpinfo36 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %395, i32 0, i32 0, i32 0
+  %396 = load i64, i64* %sxpinfo36, align 4
+  %397 = and i64 %396, 31
+  %398 = trunc i64 %397 to i32
+  %399 = icmp eq i32 %398, 5
+  br i1 %399, label %401, label %407
+
+400:                                              ; preds = %391
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @13, i32 0, i32 0))
+  br label %394
+
+401:                                              ; preds = %394
+  %402 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %395, i32 0, i32 4, i32 0
+  %403 = load %struct.SEXPREC*, %struct.SEXPREC** %402, align 8
+  %404 = icmp eq %struct.SEXPREC* %403, @dcs_106
+  br i1 %404, label %405, label %408, !prof !0
+
+405:                                              ; preds = %401
+  %406 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %395)
+  br label %409
+
+407:                                              ; preds = %394
+  br label %409
+
+408:                                              ; preds = %401
+  br label %409
+
+409:                                              ; preds = %408, %407, %405
+  %"PIR%10.937" = phi %struct.SEXPREC* [ %406, %405 ], [ %395, %407 ], [ %403, %408 ]
+  store %struct.SEXPREC* %"PIR%10.937", %struct.SEXPREC** %"PIR%10.9", align 8
+  %410 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %"PIR%10.10" = call i32 @isMissing(%struct.SEXPREC* @sym_nrow, %struct.SEXPREC* %410)
+  %411 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.3, align 8
+  %"PIR%10.11" = call i32 @isMissing(%struct.SEXPREC* @sym_ncol, %struct.SEXPREC* %411)
+  %412 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.1", align 8
+  %413 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.3", align 8
+  %414 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.5", align 8
+  %415 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.7", align 8
+  %416 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.9", align 8
+  %417 = icmp eq i32 %"PIR%10.10", 0
+  %418 = icmp eq i32 %"PIR%10.10", 1
+  %419 = icmp eq i32 %"PIR%10.10", -2147483648
+  %420 = or i1 %418, %419
+  %421 = or i1 %417, %420
+  br i1 %421, label %assertOk, label %assertFail, !prof !1
+
+assertFail:                                       ; preds = %409
+  call void @assertFail(i8* @"msg_expected unboxed logical to be 0,1, or NA")
+  unreachable
+
+assertOk:                                         ; preds = %409
+  %422 = icmp eq i32 %"PIR%10.10", 0
+  %423 = icmp eq i32 %"PIR%10.10", -2147483648
+  %424 = select i1 %423, %struct.SEXPREC* @dcs_108, %struct.SEXPREC* @dcs_103
+  %425 = select i1 %422, %struct.SEXPREC* @dcs_105, %struct.SEXPREC* %424
+  %426 = icmp eq i32 %"PIR%10.11", 0
+  %427 = icmp eq i32 %"PIR%10.11", 1
+  %428 = icmp eq i32 %"PIR%10.11", -2147483648
+  %429 = or i1 %427, %428
+  %430 = or i1 %426, %429
+  br i1 %430, label %assertOk39, label %assertFail38, !prof !1
+
+assertFail38:                                     ; preds = %assertOk
+  call void @assertFail(i8* @"msg_expected unboxed logical to be 0,1, or NA")
+  unreachable
+
+assertOk39:                                       ; preds = %assertOk
+  %431 = icmp eq i32 %"PIR%10.11", 0
+  %432 = icmp eq i32 %"PIR%10.11", -2147483648
+  %433 = select i1 %432, %struct.SEXPREC* @dcs_108, %struct.SEXPREC* @dcs_103
+  %434 = select i1 %431, %struct.SEXPREC* @dcs_105, %struct.SEXPREC* %433
+  %435 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %434, %struct.SEXPREC* @dcs_104)
+  %436 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %425, %struct.SEXPREC* %435)
+  %437 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %416, %struct.SEXPREC* %436)
+  %438 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %415, %struct.SEXPREC* %437)
+  %439 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %414, %struct.SEXPREC* %438)
+  %440 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %413, %struct.SEXPREC* %439)
+  %441 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %412, %struct.SEXPREC* %440)
+  %442 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 6, i32 2
+  store volatile %struct.SEXPREC* %441, %struct.SEXPREC** %442, align 8
+  %443 = load i32, i32* @copool_21, align 4
+  %444 = load %struct.SEXPREC*, %struct.SEXPREC** getelementptr (%struct.SEXPREC*, %struct.SEXPREC** inttoptr (i64* @spe_constantPool to %struct.SEXPREC**), i32 1), align 8
+  %445 = bitcast %struct.SEXPREC* %444 to %struct.VECTOR_SEXPREC*
+  %446 = getelementptr %struct.VECTOR_SEXPREC, %struct.VECTOR_SEXPREC* %445, i32 1
+  %447 = bitcast %struct.VECTOR_SEXPREC* %446 to %struct.SEXPREC**
+  %448 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %447, i32 %443
+  %449 = load %struct.SEXPREC*, %struct.SEXPREC** %448, align 8
+  store i32 1, i32* @spe_Visible, align 4
+  %"PIR%10.1240" = call %struct.SEXPREC* @cod_117(%struct.SEXPREC* %449, %struct.SEXPREC* @gcb_117, %struct.SEXPREC* %441, %struct.SEXPREC* @dcs_101)
+  store i32 1, i32* @spe_Visible, align 4
+  store %struct.SEXPREC* %"PIR%10.1240", %struct.SEXPREC** %"PIR%10.12", align 8
+  %450 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.12", align 8
+  %451 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %452 = getelementptr %R_bcstack_t, %R_bcstack_t* %451, i32 -7
+  store %R_bcstack_t* %452, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  ret %struct.SEXPREC* %450
 }
 
-declare %struct.SEXPREC* @ldvarGlobal(%struct.SEXPREC*)
+declare %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*)
+
+declare %struct.SEXPREC* @createBindingCellImpl(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*)
+
+declare %struct.SEXPREC* @createEnvironment(%struct.SEXPREC*, %struct.SEXPREC*, i32)
+
+declare %struct.SEXPREC* @forcePromise(%struct.SEXPREC*)
+
+declare %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC**)
 
 declare void @error(i8*)
 
-declare %struct.SEXPREC* @newReal(double)
+declare i1 @cksEq(%struct.SEXPREC*, %struct.SEXPREC*)
 
-declare %struct.SEXPREC* @binop(%struct.SEXPREC*, %struct.SEXPREC*, i32)
+declare i32 @isMissing(%struct.SEXPREC*, %struct.SEXPREC*)
 
-declare %struct.SEXPREC* @createStubEnvironment(%struct.SEXPREC*, i32, i32*, i32)
+declare %struct.SEXPREC* @cod_117(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*)
 
-declare void @externalsxpSetEntry(%struct.SEXPREC*, i32, %struct.SEXPREC*)
+declare void @assertFail(i8*)
+
+declare %struct.SEXPREC* @consNr(%struct.SEXPREC*, %struct.SEXPREC*)
 
 ; Function Attrs: argmemonly nofree nosync nounwind willreturn writeonly
 declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1 immarg) #0
@@ -303,10 +1154,2174 @@ declare void @deopt(i8*, %struct.SEXPREC*, i8*, %R_bcstack_t*, %DeoptReason*, %s
 attributes #0 = { argmemonly nofree nosync nounwind willreturn writeonly }
 
 !0 = !{!"branch_weights", i32 1, i32 1000}
-!1 = !{!"branch_weights", i32 1, i32 100000000}
-!2 = !{!"branch_weights", i32 1000, i32 1}
-!3 = !{!"branch_weights", i32 100000000, i32 1}
-found: f0_0_16F_10010410F
-newName: f2_0_16F_10010410F
-serialized context: 4296032527
-[1] 1
+!1 = !{!"branch_weights", i32 100000000, i32 1}
+!2 = !{!"branch_weights", i32 1, i32 100000000}
+DEBUG_MODULE_NAME_UPDATES: Case 2, only one code object inside the promise Map.
+(Name) Function: rsh4_0x556a0a85b2d0 -> f0_0_2DF1_2060061860F
+Serializer Callback called
+Signature Writer called
+Signature Writer callback 
+Entry 6: 1
+Entry 7: 1
+Entry 8: 5
+Entry 9: 18446744073709551615
+Entry 10: 21
+Entry 11: f0_0_2DF1_2060061860F
+Entry 12: 2
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ matrix[0x556a0a85b2d0]                                                       │
+│ Context: !ExpMi,CorrOrd,!TMany,Argmatch;Eager1,Eager2,NonRefl1,NonRefl2,!Obj1,!Obj2,SimpleReal1,SimpleReal2 miss: 2│
+│ Properties:  ForceOrd: 0                                                     │
+├────── Final PIR Version
+matrix[0x556a0a85b2d0]
+BB0
+  real$~-         %0.0  = LdArg                    2
+  real$~-         %0.1  = LdArg                    1
+  val^            %0.2  = LdArg                    0
+  env             e0.3  = MkEnv              l     data=%0.2, nrow=%0.1, ncol=%0.0, byrow(miss)=false, dimnames(miss)=nil, parent=BaseNamespace, context 1
+  val?            %0.4  = Force!<lazy>       !v    %0.2, e0.3   <int->
+  lgl$#-          %0.5  = IsType                   %0.4 isA int-
+  void                    Branch                   %0.5 -> BB6 (if true) | BB7 (if false)
+BB6   <- [0]
+  val?^           %6.0  = LdVar              eR    is.atomic, e0.3
+  lgl$#-          %6.1  = Identical                .Primitive("is.atomic"), %6.0   <true>
+  void                    Branch                   %6.1 -> BB8 (if true) | BB9 (if false)
+BB7   <- [0]
+  void                    Nop                !     
+  val?            %7.1  = %0.4
+  dr              %7.2  = Typecheck@0x556a089f4afe
+  goto BB5
+BB8   <- [6]
+  val?^           %8.0  = LdVar              eR    data, e0.3
+  val?            %8.1  = Force!<wrapped>    !v    %8.0, e0.3   <int->
+  lgl$#-          %8.2  = IsType                   %8.1 isA int-
+  void                    Branch                   %8.2 -> BB10 (if true) | BB11 (if false)
+BB9   <- [6]
+  void                    Nop                !     
+  lgl$#-          %9.1  = %6.1
+  dr              %9.2  = DeadBranchReached@0x556a089f4b2c
+  goto BB5
+BB5   <- [7, 9]
+  val?^           %5.0  = Phi                      %7.1:BB7, %9.1:BB9
+  val?^           %5.1  = %5.0
+  dr              %5.2  = Phi                      %7.2:BB7, %9.2:BB9
+  dr              %5.3  = %5.2
+  fs              %5.4  = FrameState         lRL   0x556a089f49e0+81: [.Primitive("is.object"), %0.4], env=e0.3
+  void                    Deopt              !v    %5.4, %5.3, %5.1
+BB10   <- [8]
+  val?^           %10.0 = LdVar              eR    data, e0.3
+  val?            %10.1 = Force!<wrapped>    !v    %10.0, e0.3   <int->
+  val?^           %10.2 = LdVar              eR    nrow, e0.3
+  val?            %10.3 = Force!<lazy>       !v    %10.2, e0.3   <real$->
+  val?^           %10.4 = LdVar              eR    ncol, e0.3
+  val?            %10.5 = Force!<lazy>       !v    %10.4, e0.3   <real$->
+  val?^           %10.6 = LdVar              eR    byrow, e0.3
+  val?            %10.7 = Force!<lazy>       !v    %10.6, e0.3   <lgl$->
+  val?^           %10.8 = LdVar              eR    dimnames, e0.3
+  val?            %10.9 = Force!<lazy>       !v    %10.8, e0.3   <nil->
+  lgl$-           %10.10 = Missing            eR    nrow, e0.3
+  lgl$-           %10.11 = Missing            eR    ncol, e0.3
+  val+            %10.12 = CallSafeBuiltin    vwed  matrix(%10.1, %10.3, %10.5, %10.7, %10.9, %10.10, %10.11) 
+  void                    Return                   %10.12
+BB11   <- [8]
+  fs              %11.0 = FrameState         lRL   0x556a089f49e0+196: [false, .Primitive("is.atomic"), %8.1], env=e0.3
+  void                    Deopt              !v    %11.0, Typecheck@0x556a089f4b71, %8.1
+
+│ matrix[0x556a0a85b2d0]                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+serialized context: 2224799450639
+Serializing Context: !ExpMi,CorrOrd,!TMany,Argmatch;Eager1,NonRefl1,!Obj1,SimpleReal1 miss: 3 (3307126948367)
+
+╞════════════════════════════╡  Compiling matrix  ╞════════════════════════════╡
+BACKEND_INITIAL_COMPILATION_SUCCESS_MSG
+Serialization callback exists
+BACKEND_INITIAL_LLVM
+
+%R_bcstack_t = type { i32, i32, %struct.SEXPREC* }
+%struct.SEXPREC = type { %struct.sxpinfo_struct, %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*, %union.SEXP_SEXP_SEXP }
+%struct.sxpinfo_struct = type { i64 }
+%union.SEXP_SEXP_SEXP = type { %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC* }
+%DeoptReason = type <{ i32, i32, i8* }>
+%struct.VECTOR_SEXPREC = type { %struct.sxpinfo_struct, %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*, %struct.vecsxp_struct }
+%struct.vecsxp_struct = type { i64, i64 }
+
+@spe_BCNodeStackTop = available_externally externally_initialized global %R_bcstack_t*
+@spe_constantPool = available_externally externally_initialized global i64
+@dcs_102 = available_externally externally_initialized global %struct.SEXPREC
+@copool_23 = private constant [5 x i32] [i32 8, i32 15, i32 80, i32 81, i32 82]
+@copool_24 = private constant i32 3
+@dcs_105 = available_externally externally_initialized global %struct.SEXPREC
+@dcs_104 = available_externally externally_initialized global %struct.SEXPREC
+@sym_dimnames = available_externally externally_initialized global %struct.SEXPREC
+@sym_byrow = available_externally externally_initialized global %struct.SEXPREC
+@sym_ncol = available_externally externally_initialized global %struct.SEXPREC
+@sym_nrow = available_externally externally_initialized global %struct.SEXPREC
+@sym_data = available_externally externally_initialized global %struct.SEXPREC
+@dcs_106 = available_externally externally_initialized global %struct.SEXPREC
+@dcs_111 = available_externally externally_initialized global %struct.SEXPREC
+@hast_11761 = available_externally externally_initialized global i8
+@copool_25 = private constant %DeoptReason <{ i32 1, i32 286, i8* @hast_11761 }>
+@sym_is.atomic = available_externally externally_initialized global %struct.SEXPREC
+@dcs_107 = available_externally externally_initialized global %struct.SEXPREC
+@0 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@1 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@gcb_400 = available_externally externally_initialized global %struct.SEXPREC
+@copool_26 = private constant %DeoptReason <{ i32 6, i32 332, i8* @hast_11761 }>
+@dcs_103 = available_externally externally_initialized global %struct.SEXPREC
+@2 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@3 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@4 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@5 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@6 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@7 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@8 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@9 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@10 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@11 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@12 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@13 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@dcs_101 = available_externally externally_initialized global %struct.SEXPREC
+@"msg_expected unboxed logical to be 0,1, or NA" = available_externally externally_initialized global i8
+@dcs_108 = available_externally externally_initialized global %struct.SEXPREC
+@copool_27 = private constant i32 19
+@spe_Visible = available_externally externally_initialized global i32
+@gcb_117 = available_externally externally_initialized global %struct.SEXPREC
+@gcb_395 = available_externally externally_initialized global %struct.SEXPREC
+@epe_11761_0_3307126948367 = available_externally externally_initialized global i8
+@epe_11761_1_3307126948367 = available_externally externally_initialized global i8
+@copool_28 = private constant %DeoptReason <{ i32 1, i32 401, i8* @hast_11761 }>
+
+define %struct.SEXPREC* @rsh5_0x556a0a863800(i8* %code, %R_bcstack_t* %args, %struct.SEXPREC* %env, %struct.SEXPREC* %closure) {
+  %1 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %2 = alloca %struct.SEXPREC*, i64 6, align 8
+  %"PIR%5.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%5.2" = alloca %DeoptReason*, i64 1, align 8
+  %PIRe0.2 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 1, i32 2
+  %"PIR%0.3" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
+  %"PIR%6.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%5.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%8.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%8.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%10.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%10.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%10.2" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
+  %"PIR%10.3" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
+  %"PIR%10.4" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 3, i32 2
+  %"PIR%10.5" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 3, i32 2
+  %"PIR%10.6" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 4, i32 2
+  %"PIR%10.7" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 4, i32 2
+  %"PIR%10.8" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 5, i32 2
+  %"PIR%10.9" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 5, i32 2
+  %"PIR%10.12" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%7.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %3 = getelementptr %R_bcstack_t, %R_bcstack_t* %args, i32 0, i32 2
+  %4 = load %struct.SEXPREC*, %struct.SEXPREC** %3, align 8
+  %5 = getelementptr %R_bcstack_t, %R_bcstack_t* %args, i32 1, i32 2
+  %6 = load %struct.SEXPREC*, %struct.SEXPREC** %5, align 8
+  %7 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %8 = bitcast %R_bcstack_t* %7 to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %8, i8 0, i64 112, i1 false)
+  %9 = getelementptr %R_bcstack_t, %R_bcstack_t* %7, i32 7
+  store %R_bcstack_t* %9, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  br label %BB0
+
+BB0:                                              ; preds = %0
+  %10 = load i32, i32* @copool_24, align 4
+  %11 = load %struct.SEXPREC*, %struct.SEXPREC** getelementptr (%struct.SEXPREC*, %struct.SEXPREC** inttoptr (i64* @spe_constantPool to %struct.SEXPREC**), i32 1), align 8
+  %12 = bitcast %struct.SEXPREC* %11 to %struct.VECTOR_SEXPREC*
+  %13 = getelementptr %struct.VECTOR_SEXPREC, %struct.VECTOR_SEXPREC* %12, i32 1
+  %14 = bitcast %struct.VECTOR_SEXPREC* %13 to %struct.SEXPREC**
+  %15 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %14, i32 %10
+  %16 = load %struct.SEXPREC*, %struct.SEXPREC** %15, align 8
+  %17 = call %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC* @dcs_104, %struct.SEXPREC* @sym_dimnames, %struct.SEXPREC* @dcs_104)
+  %18 = call %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC* @dcs_105, %struct.SEXPREC* @sym_byrow, %struct.SEXPREC* %17)
+  %19 = call %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC* %16, %struct.SEXPREC* @sym_ncol, %struct.SEXPREC* %18)
+  %20 = call %struct.SEXPREC* @createBindingCellImpl(%struct.SEXPREC* %6, %struct.SEXPREC* @sym_nrow, %struct.SEXPREC* %19)
+  %21 = call %struct.SEXPREC* @createBindingCellImpl(%struct.SEXPREC* %4, %struct.SEXPREC* @sym_data, %struct.SEXPREC* %20)
+  %PIRe0.21 = call %struct.SEXPREC* @createEnvironment(%struct.SEXPREC* @dcs_102, %struct.SEXPREC* %21, i32 1)
+  store %struct.SEXPREC* %PIRe0.21, %struct.SEXPREC** %PIRe0.2, align 8
+  %22 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 5
+  store %struct.SEXPREC* null, %struct.SEXPREC** %22, align 8
+  %23 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 4
+  store %struct.SEXPREC* null, %struct.SEXPREC** %23, align 8
+  %24 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 2
+  store %struct.SEXPREC* null, %struct.SEXPREC** %24, align 8
+  %25 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 1
+  store %struct.SEXPREC* null, %struct.SEXPREC** %25, align 8
+  %26 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 3
+  store %struct.SEXPREC* null, %struct.SEXPREC** %26, align 8
+  %27 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 0
+  store %struct.SEXPREC* null, %struct.SEXPREC** %27, align 8
+  %sxpinfo = getelementptr %struct.SEXPREC, %struct.SEXPREC* %4, i32 0, i32 0, i32 0
+  %28 = load i64, i64* %sxpinfo, align 4
+  %29 = and i64 %28, 31
+  %30 = trunc i64 %29 to i32
+  %31 = icmp eq i32 %30, 5
+  br i1 %31, label %32, label %38
+
+32:                                               ; preds = %BB0
+  %33 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %4, i32 0, i32 4, i32 0
+  %34 = load %struct.SEXPREC*, %struct.SEXPREC** %33, align 8
+  %35 = icmp eq %struct.SEXPREC* %34, @dcs_106
+  br i1 %35, label %36, label %39, !prof !0
+
+36:                                               ; preds = %32
+  %37 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %4)
+  br label %40
+
+38:                                               ; preds = %BB0
+  br label %40
+
+39:                                               ; preds = %32
+  br label %40
+
+40:                                               ; preds = %39, %38, %36
+  %"PIR%0.32" = phi %struct.SEXPREC* [ %37, %36 ], [ %4, %38 ], [ %34, %39 ]
+  store %struct.SEXPREC* %"PIR%0.32", %struct.SEXPREC** %"PIR%0.3", align 8
+  %41 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.3", align 8
+  %sxpinfo3 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %41, i32 0, i32 0, i32 0
+  %42 = load i64, i64* %sxpinfo3, align 4
+  %43 = and i64 %42, 31
+  %44 = trunc i64 %43 to i32
+  %45 = icmp eq i32 %44, 13
+  %46 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %41, i32 0, i32 1
+  %47 = load %struct.SEXPREC*, %struct.SEXPREC** %46, align 8
+  %48 = icmp eq %struct.SEXPREC* %47, @dcs_104
+  %49 = and i1 %45, %48
+  %50 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %41, i32 0, i32 1
+  %51 = load %struct.SEXPREC*, %struct.SEXPREC** %50, align 8
+  %52 = icmp eq %struct.SEXPREC* %51, @dcs_104
+  %sxpinfo4 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %41, i32 0, i32 0, i32 0
+  %53 = load i64, i64* %sxpinfo4, align 4
+  %54 = and i64 %53, 64
+  %55 = icmp ne i64 0, %54
+  %56 = xor i1 %55, true
+  %57 = and i1 %56, %52
+  br i1 %57, label %66, label %58
+
+58:                                               ; preds = %40
+  %59 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %51, i32 0, i32 4, i32 2
+  %60 = load %struct.SEXPREC*, %struct.SEXPREC** %59, align 8
+  %61 = icmp eq %struct.SEXPREC* %60, @dcs_111
+  %62 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %51, i32 0, i32 4, i32 1
+  %63 = load %struct.SEXPREC*, %struct.SEXPREC** %62, align 8
+  %64 = icmp eq %struct.SEXPREC* %63, @dcs_104
+  %65 = and i1 %61, %64
+  br label %66
+
+66:                                               ; preds = %40, %58
+  %67 = phi i1 [ true, %40 ], [ %65, %58 ]
+  %68 = and i1 %49, %67
+  %"PIR%0.4" = zext i1 %68 to i32
+  %69 = icmp ne i32 %"PIR%0.4", 0
+  br i1 %69, label %BB6, label %BB7, !prof !1
+
+BB6:                                              ; preds = %66
+  %70 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 0
+  %71 = load %struct.SEXPREC*, %struct.SEXPREC** %70, align 8
+  %72 = ptrtoint %struct.SEXPREC* %71 to i64
+  %73 = icmp ule i64 %72, 2
+  br i1 %73, label %95, label %87, !prof !0
+
+BB7:                                              ; preds = %66
+  %"PIR%7.15" = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.3", align 8
+  store %struct.SEXPREC* %"PIR%7.15", %struct.SEXPREC** %"PIR%7.1", align 8
+  store %DeoptReason* @copool_25, %DeoptReason** %"PIR%5.2", align 8
+  br label %BB5
+
+BB5:                                              ; preds = %147, %BB7
+  %"PIR%5.3" = load %DeoptReason*, %DeoptReason** %"PIR%5.2", align 8
+  %74 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %75 = getelementptr %R_bcstack_t, %R_bcstack_t* %74, i32 3
+  store %R_bcstack_t* %75, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %76 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.3", align 8
+  %77 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %78 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %79 = getelementptr %R_bcstack_t, %R_bcstack_t* %78, i64 -3
+  %80 = bitcast %R_bcstack_t* %79 to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %80, i8 0, i64 48, i1 false)
+  %81 = getelementptr %R_bcstack_t, %R_bcstack_t* %78, i64 -3, i32 2
+  store %struct.SEXPREC* @gcb_395, %struct.SEXPREC** %81, align 8
+  %82 = getelementptr %R_bcstack_t, %R_bcstack_t* %78, i64 -2, i32 2
+  store %struct.SEXPREC* %76, %struct.SEXPREC** %82, align 8
+  %83 = getelementptr %R_bcstack_t, %R_bcstack_t* %78, i64 -1, i32 2
+  store %struct.SEXPREC* %77, %struct.SEXPREC** %83, align 8
+  %84 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%5.1", align 8
+  call void @deopt(i8* %code, %struct.SEXPREC* %closure, i8* @epe_11761_0_3307126948367, %R_bcstack_t* %args, %DeoptReason* %"PIR%5.3", %struct.SEXPREC* %84)
+  %85 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %86 = getelementptr %R_bcstack_t, %R_bcstack_t* %85, i32 -3
+  store %R_bcstack_t* %86, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  unreachable
+
+87:                                               ; preds = %BB6
+  %88 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %71, i32 0, i32 4, i32 0
+  %89 = load %struct.SEXPREC*, %struct.SEXPREC** %88, align 8
+  %90 = icmp eq %struct.SEXPREC* %89, @dcs_106
+  br i1 %90, label %95, label %91, !prof !0
+
+91:                                               ; preds = %87
+  %sxpinfo6 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %89, i32 0, i32 0, i32 0
+  %92 = load i64, i64* %sxpinfo6, align 4
+  %93 = and i64 %92, 281470681743360
+  %94 = icmp eq i64 %93, 0
+  br i1 %94, label %notNamed, label %101
+
+95:                                               ; preds = %87, %BB6
+  %96 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %97 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_is.atomic, %struct.SEXPREC* %96, %struct.SEXPREC** %70)
+  br label %98
+
+98:                                               ; preds = %95, %101
+  %is.atomic = phi %struct.SEXPREC* [ %89, %101 ], [ %97, %95 ]
+  %99 = icmp eq %struct.SEXPREC* %is.atomic, @dcs_107
+  br i1 %99, label %104, label %102, !prof !2
+
+notNamed:                                         ; preds = %91
+  %100 = or i64 %92, 4294967296
+  store i64 %100, i64* %sxpinfo6, align 4
+  br label %101
+
+101:                                              ; preds = %notNamed, %91
+  br label %98
+
+102:                                              ; preds = %104, %98
+  %103 = icmp eq %struct.SEXPREC* %is.atomic, @dcs_106
+  br i1 %103, label %111, label %105, !prof !2
+
+104:                                              ; preds = %98
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @0, i32 0, i32 0))
+  br label %102
+
+105:                                              ; preds = %111, %102
+  store %struct.SEXPREC* %is.atomic, %struct.SEXPREC** %"PIR%6.0", align 8
+  %106 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%6.0", align 8
+  %sxpinfo7 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %106, i32 0, i32 0, i32 0
+  %107 = load i64, i64* %sxpinfo7, align 4
+  %108 = and i64 %107, 31
+  %109 = trunc i64 %108 to i32
+  %110 = icmp eq i32 %109, 5
+  br i1 %110, label %isProm, label %114, !prof !0
+
+111:                                              ; preds = %102
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @1, i32 0, i32 0))
+  br label %105
+
+isProm:                                           ; preds = %105
+  %112 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %106, i32 0, i32 4, i32 0
+  %113 = load %struct.SEXPREC*, %struct.SEXPREC** %112, align 8
+  br label %115
+
+114:                                              ; preds = %105
+  br label %115
+
+115:                                              ; preds = %114, %isProm
+  %116 = phi %struct.SEXPREC* [ %113, %isProm ], [ %106, %114 ]
+  %117 = icmp eq %struct.SEXPREC* @gcb_400, %116
+  %118 = icmp ne %struct.SEXPREC* %116, @dcs_106
+  %119 = and i1 %117, %118
+  br i1 %119, label %134, label %120
+
+120:                                              ; preds = %115
+  %121 = load i64, i64* getelementptr inbounds (%struct.SEXPREC, %struct.SEXPREC* @gcb_400, i32 0, i32 0, i32 0), align 4
+  %122 = and i64 %121, 31
+  %123 = trunc i64 %122 to i32
+  %124 = icmp eq i32 %123, 3
+  %sxpinfo8 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %116, i32 0, i32 0, i32 0
+  %125 = load i64, i64* %sxpinfo8, align 4
+  %126 = and i64 %125, 31
+  %127 = trunc i64 %126 to i32
+  %128 = icmp eq i32 %127, 3
+  %129 = and i1 %124, %128
+  br i1 %129, label %130, label %132
+
+130:                                              ; preds = %120
+  %131 = call i1 @cksEq(%struct.SEXPREC* @gcb_400, %struct.SEXPREC* %116)
+  br label %132
+
+132:                                              ; preds = %120, %130
+  %133 = phi i1 [ %131, %130 ], [ false, %120 ]
+  br label %134
+
+134:                                              ; preds = %115, %132
+  %135 = phi i1 [ true, %115 ], [ %133, %132 ]
+  %"PIR%6.1" = zext i1 %135 to i32
+  %136 = icmp ne i32 %"PIR%6.1", 0
+  br i1 %136, label %BB8, label %BB9, !prof !1
+
+BB8:                                              ; preds = %134
+  %137 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 1
+  %138 = load %struct.SEXPREC*, %struct.SEXPREC** %137, align 8
+  %139 = ptrtoint %struct.SEXPREC* %138 to i64
+  %140 = icmp ule i64 %139, 2
+  br i1 %140, label %156, label %148, !prof !0
+
+BB9:                                              ; preds = %134
+  %141 = icmp ne i32 %"PIR%6.1", 0
+  %142 = select i1 %141, %struct.SEXPREC* @dcs_103, %struct.SEXPREC* @dcs_105
+  %sxpinfo9 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %142, i32 0, i32 0, i32 0
+  %143 = load i64, i64* %sxpinfo9, align 4
+  %144 = and i64 %143, 281470681743360
+  %145 = icmp eq i64 %144, 0
+  br i1 %145, label %notNamed10, label %147
+
+notNamed10:                                       ; preds = %BB9
+  %146 = or i64 %143, 4294967296
+  store i64 %146, i64* %sxpinfo9, align 4
+  br label %147
+
+147:                                              ; preds = %notNamed10, %BB9
+  store %struct.SEXPREC* %142, %struct.SEXPREC** %"PIR%5.0", align 8
+  store %DeoptReason* @copool_26, %DeoptReason** %"PIR%5.2", align 8
+  br label %BB5
+
+148:                                              ; preds = %BB8
+  %149 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %138, i32 0, i32 4, i32 0
+  %150 = load %struct.SEXPREC*, %struct.SEXPREC** %149, align 8
+  %151 = icmp eq %struct.SEXPREC* %150, @dcs_106
+  br i1 %151, label %156, label %152, !prof !0
+
+152:                                              ; preds = %148
+  %sxpinfo11 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %150, i32 0, i32 0, i32 0
+  %153 = load i64, i64* %sxpinfo11, align 4
+  %154 = and i64 %153, 281470681743360
+  %155 = icmp eq i64 %154, 0
+  br i1 %155, label %notNamed12, label %162
+
+156:                                              ; preds = %148, %BB8
+  %157 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %158 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_data, %struct.SEXPREC* %157, %struct.SEXPREC** %137)
+  br label %159
+
+159:                                              ; preds = %156, %162
+  %data = phi %struct.SEXPREC* [ %150, %162 ], [ %158, %156 ]
+  %160 = icmp eq %struct.SEXPREC* %data, @dcs_107
+  br i1 %160, label %165, label %163, !prof !2
+
+notNamed12:                                       ; preds = %152
+  %161 = or i64 %153, 4294967296
+  store i64 %161, i64* %sxpinfo11, align 4
+  br label %162
+
+162:                                              ; preds = %notNamed12, %152
+  br label %159
+
+163:                                              ; preds = %165, %159
+  %164 = icmp eq %struct.SEXPREC* %data, @dcs_106
+  br i1 %164, label %172, label %166, !prof !2
+
+165:                                              ; preds = %159
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @2, i32 0, i32 0))
+  br label %163
+
+166:                                              ; preds = %172, %163
+  store %struct.SEXPREC* %data, %struct.SEXPREC** %"PIR%8.0", align 8
+  %167 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.0", align 8
+  %sxpinfo13 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %167, i32 0, i32 0, i32 0
+  %168 = load i64, i64* %sxpinfo13, align 4
+  %169 = and i64 %168, 31
+  %170 = trunc i64 %169 to i32
+  %171 = icmp eq i32 %170, 5
+  br i1 %171, label %173, label %179
+
+172:                                              ; preds = %163
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @3, i32 0, i32 0))
+  br label %166
+
+173:                                              ; preds = %166
+  %174 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %167, i32 0, i32 4, i32 0
+  %175 = load %struct.SEXPREC*, %struct.SEXPREC** %174, align 8
+  %176 = icmp eq %struct.SEXPREC* %175, @dcs_106
+  br i1 %176, label %177, label %180, !prof !0
+
+177:                                              ; preds = %173
+  %178 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %167)
+  br label %181
+
+179:                                              ; preds = %166
+  br label %181
+
+180:                                              ; preds = %173
+  br label %181
+
+181:                                              ; preds = %180, %179, %177
+  %"PIR%8.114" = phi %struct.SEXPREC* [ %178, %177 ], [ %167, %179 ], [ %175, %180 ]
+  store %struct.SEXPREC* %"PIR%8.114", %struct.SEXPREC** %"PIR%8.1", align 8
+  %182 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.1", align 8
+  %sxpinfo15 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %182, i32 0, i32 0, i32 0
+  %183 = load i64, i64* %sxpinfo15, align 4
+  %184 = and i64 %183, 31
+  %185 = trunc i64 %184 to i32
+  %186 = icmp eq i32 %185, 13
+  %187 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %182, i32 0, i32 1
+  %188 = load %struct.SEXPREC*, %struct.SEXPREC** %187, align 8
+  %189 = icmp eq %struct.SEXPREC* %188, @dcs_104
+  %190 = and i1 %186, %189
+  %191 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %182, i32 0, i32 1
+  %192 = load %struct.SEXPREC*, %struct.SEXPREC** %191, align 8
+  %193 = icmp eq %struct.SEXPREC* %192, @dcs_104
+  %sxpinfo16 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %182, i32 0, i32 0, i32 0
+  %194 = load i64, i64* %sxpinfo16, align 4
+  %195 = and i64 %194, 64
+  %196 = icmp ne i64 0, %195
+  %197 = xor i1 %196, true
+  %198 = and i1 %197, %193
+  br i1 %198, label %207, label %199
+
+199:                                              ; preds = %181
+  %200 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %192, i32 0, i32 4, i32 2
+  %201 = load %struct.SEXPREC*, %struct.SEXPREC** %200, align 8
+  %202 = icmp eq %struct.SEXPREC* %201, @dcs_111
+  %203 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %192, i32 0, i32 4, i32 1
+  %204 = load %struct.SEXPREC*, %struct.SEXPREC** %203, align 8
+  %205 = icmp eq %struct.SEXPREC* %204, @dcs_104
+  %206 = and i1 %202, %205
+  br label %207
+
+207:                                              ; preds = %181, %199
+  %208 = phi i1 [ true, %181 ], [ %206, %199 ]
+  %209 = and i1 %190, %208
+  %"PIR%8.2" = zext i1 %209 to i32
+  %210 = icmp ne i32 %"PIR%8.2", 0
+  br i1 %210, label %BB10, label %BB11, !prof !1
+
+BB10:                                             ; preds = %207
+  %211 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 1
+  %212 = load %struct.SEXPREC*, %struct.SEXPREC** %211, align 8
+  %213 = ptrtoint %struct.SEXPREC* %212 to i64
+  %214 = icmp ule i64 %213, 2
+  br i1 %214, label %237, label %229, !prof !0
+
+BB11:                                             ; preds = %207
+  %215 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %216 = getelementptr %R_bcstack_t, %R_bcstack_t* %215, i32 4
+  store %R_bcstack_t* %216, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %217 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.1", align 8
+  %218 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %219 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %220 = getelementptr %R_bcstack_t, %R_bcstack_t* %219, i64 -4
+  %221 = bitcast %R_bcstack_t* %220 to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %221, i8 0, i64 64, i1 false)
+  %222 = getelementptr %R_bcstack_t, %R_bcstack_t* %219, i64 -4, i32 2
+  store %struct.SEXPREC* @dcs_105, %struct.SEXPREC** %222, align 8
+  %223 = getelementptr %R_bcstack_t, %R_bcstack_t* %219, i64 -3, i32 2
+  store %struct.SEXPREC* @gcb_400, %struct.SEXPREC** %223, align 8
+  %224 = getelementptr %R_bcstack_t, %R_bcstack_t* %219, i64 -2, i32 2
+  store %struct.SEXPREC* %217, %struct.SEXPREC** %224, align 8
+  %225 = getelementptr %R_bcstack_t, %R_bcstack_t* %219, i64 -1, i32 2
+  store %struct.SEXPREC* %218, %struct.SEXPREC** %225, align 8
+  %226 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.1", align 8
+  call void @deopt(i8* %code, %struct.SEXPREC* %closure, i8* @epe_11761_1_3307126948367, %R_bcstack_t* %args, %DeoptReason* @copool_28, %struct.SEXPREC* %226)
+  %227 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %228 = getelementptr %R_bcstack_t, %R_bcstack_t* %227, i32 -4
+  store %R_bcstack_t* %228, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  unreachable
+
+229:                                              ; preds = %BB10
+  %230 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %212, i32 0, i32 4, i32 0
+  %231 = load %struct.SEXPREC*, %struct.SEXPREC** %230, align 8
+  %232 = icmp eq %struct.SEXPREC* %231, @dcs_106
+  br i1 %232, label %237, label %233, !prof !0
+
+233:                                              ; preds = %229
+  %sxpinfo17 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %231, i32 0, i32 0, i32 0
+  %234 = load i64, i64* %sxpinfo17, align 4
+  %235 = and i64 %234, 281470681743360
+  %236 = icmp eq i64 %235, 0
+  br i1 %236, label %notNamed18, label %243
+
+237:                                              ; preds = %229, %BB10
+  %238 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %239 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_data, %struct.SEXPREC* %238, %struct.SEXPREC** %211)
+  br label %240
+
+240:                                              ; preds = %237, %243
+  %data19 = phi %struct.SEXPREC* [ %231, %243 ], [ %239, %237 ]
+  %241 = icmp eq %struct.SEXPREC* %data19, @dcs_107
+  br i1 %241, label %246, label %244, !prof !2
+
+notNamed18:                                       ; preds = %233
+  %242 = or i64 %234, 4294967296
+  store i64 %242, i64* %sxpinfo17, align 4
+  br label %243
+
+243:                                              ; preds = %notNamed18, %233
+  br label %240
+
+244:                                              ; preds = %246, %240
+  %245 = icmp eq %struct.SEXPREC* %data19, @dcs_106
+  br i1 %245, label %253, label %247, !prof !2
+
+246:                                              ; preds = %240
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @4, i32 0, i32 0))
+  br label %244
+
+247:                                              ; preds = %253, %244
+  store %struct.SEXPREC* %data19, %struct.SEXPREC** %"PIR%10.0", align 8
+  %248 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.0", align 8
+  %sxpinfo20 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %248, i32 0, i32 0, i32 0
+  %249 = load i64, i64* %sxpinfo20, align 4
+  %250 = and i64 %249, 31
+  %251 = trunc i64 %250 to i32
+  %252 = icmp eq i32 %251, 5
+  br i1 %252, label %254, label %260
+
+253:                                              ; preds = %244
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @5, i32 0, i32 0))
+  br label %247
+
+254:                                              ; preds = %247
+  %255 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %248, i32 0, i32 4, i32 0
+  %256 = load %struct.SEXPREC*, %struct.SEXPREC** %255, align 8
+  %257 = icmp eq %struct.SEXPREC* %256, @dcs_106
+  br i1 %257, label %258, label %261, !prof !0
+
+258:                                              ; preds = %254
+  %259 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %248)
+  br label %262
+
+260:                                              ; preds = %247
+  br label %262
+
+261:                                              ; preds = %254
+  br label %262
+
+262:                                              ; preds = %261, %260, %258
+  %"PIR%10.121" = phi %struct.SEXPREC* [ %259, %258 ], [ %248, %260 ], [ %256, %261 ]
+  store %struct.SEXPREC* %"PIR%10.121", %struct.SEXPREC** %"PIR%10.1", align 8
+  %263 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 2
+  %264 = load %struct.SEXPREC*, %struct.SEXPREC** %263, align 8
+  %265 = ptrtoint %struct.SEXPREC* %264 to i64
+  %266 = icmp ule i64 %265, 2
+  br i1 %266, label %275, label %267, !prof !0
+
+267:                                              ; preds = %262
+  %268 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %264, i32 0, i32 4, i32 0
+  %269 = load %struct.SEXPREC*, %struct.SEXPREC** %268, align 8
+  %270 = icmp eq %struct.SEXPREC* %269, @dcs_106
+  br i1 %270, label %275, label %271, !prof !0
+
+271:                                              ; preds = %267
+  %sxpinfo22 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %269, i32 0, i32 0, i32 0
+  %272 = load i64, i64* %sxpinfo22, align 4
+  %273 = and i64 %272, 281470681743360
+  %274 = icmp eq i64 %273, 0
+  br i1 %274, label %notNamed23, label %281
+
+275:                                              ; preds = %267, %262
+  %276 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %277 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_nrow, %struct.SEXPREC* %276, %struct.SEXPREC** %263)
+  br label %278
+
+278:                                              ; preds = %275, %281
+  %nrow = phi %struct.SEXPREC* [ %269, %281 ], [ %277, %275 ]
+  %279 = icmp eq %struct.SEXPREC* %nrow, @dcs_107
+  br i1 %279, label %284, label %282, !prof !2
+
+notNamed23:                                       ; preds = %271
+  %280 = or i64 %272, 4294967296
+  store i64 %280, i64* %sxpinfo22, align 4
+  br label %281
+
+281:                                              ; preds = %notNamed23, %271
+  br label %278
+
+282:                                              ; preds = %284, %278
+  %283 = icmp eq %struct.SEXPREC* %nrow, @dcs_106
+  br i1 %283, label %291, label %285, !prof !2
+
+284:                                              ; preds = %278
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @6, i32 0, i32 0))
+  br label %282
+
+285:                                              ; preds = %291, %282
+  store %struct.SEXPREC* %nrow, %struct.SEXPREC** %"PIR%10.2", align 8
+  %286 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.2", align 8
+  %sxpinfo24 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %286, i32 0, i32 0, i32 0
+  %287 = load i64, i64* %sxpinfo24, align 4
+  %288 = and i64 %287, 31
+  %289 = trunc i64 %288 to i32
+  %290 = icmp eq i32 %289, 5
+  br i1 %290, label %292, label %298
+
+291:                                              ; preds = %282
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @7, i32 0, i32 0))
+  br label %285
+
+292:                                              ; preds = %285
+  %293 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %286, i32 0, i32 4, i32 0
+  %294 = load %struct.SEXPREC*, %struct.SEXPREC** %293, align 8
+  %295 = icmp eq %struct.SEXPREC* %294, @dcs_106
+  br i1 %295, label %296, label %299, !prof !0
+
+296:                                              ; preds = %292
+  %297 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %286)
+  br label %300
+
+298:                                              ; preds = %285
+  br label %300
+
+299:                                              ; preds = %292
+  br label %300
+
+300:                                              ; preds = %299, %298, %296
+  %"PIR%10.325" = phi %struct.SEXPREC* [ %297, %296 ], [ %286, %298 ], [ %294, %299 ]
+  store %struct.SEXPREC* %"PIR%10.325", %struct.SEXPREC** %"PIR%10.3", align 8
+  %301 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 3
+  %302 = load %struct.SEXPREC*, %struct.SEXPREC** %301, align 8
+  %303 = ptrtoint %struct.SEXPREC* %302 to i64
+  %304 = icmp ule i64 %303, 2
+  br i1 %304, label %313, label %305, !prof !0
+
+305:                                              ; preds = %300
+  %306 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %302, i32 0, i32 4, i32 0
+  %307 = load %struct.SEXPREC*, %struct.SEXPREC** %306, align 8
+  %308 = icmp eq %struct.SEXPREC* %307, @dcs_106
+  br i1 %308, label %313, label %309, !prof !0
+
+309:                                              ; preds = %305
+  %sxpinfo26 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %307, i32 0, i32 0, i32 0
+  %310 = load i64, i64* %sxpinfo26, align 4
+  %311 = and i64 %310, 281470681743360
+  %312 = icmp eq i64 %311, 0
+  br i1 %312, label %notNamed27, label %319
+
+313:                                              ; preds = %305, %300
+  %314 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %315 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_ncol, %struct.SEXPREC* %314, %struct.SEXPREC** %301)
+  br label %316
+
+316:                                              ; preds = %313, %319
+  %ncol = phi %struct.SEXPREC* [ %307, %319 ], [ %315, %313 ]
+  %317 = icmp eq %struct.SEXPREC* %ncol, @dcs_107
+  br i1 %317, label %322, label %320, !prof !2
+
+notNamed27:                                       ; preds = %309
+  %318 = or i64 %310, 4294967296
+  store i64 %318, i64* %sxpinfo26, align 4
+  br label %319
+
+319:                                              ; preds = %notNamed27, %309
+  br label %316
+
+320:                                              ; preds = %322, %316
+  %321 = icmp eq %struct.SEXPREC* %ncol, @dcs_106
+  br i1 %321, label %329, label %323, !prof !2
+
+322:                                              ; preds = %316
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @8, i32 0, i32 0))
+  br label %320
+
+323:                                              ; preds = %329, %320
+  store %struct.SEXPREC* %ncol, %struct.SEXPREC** %"PIR%10.4", align 8
+  %324 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.4", align 8
+  %sxpinfo28 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %324, i32 0, i32 0, i32 0
+  %325 = load i64, i64* %sxpinfo28, align 4
+  %326 = and i64 %325, 31
+  %327 = trunc i64 %326 to i32
+  %328 = icmp eq i32 %327, 5
+  br i1 %328, label %330, label %336
+
+329:                                              ; preds = %320
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @9, i32 0, i32 0))
+  br label %323
+
+330:                                              ; preds = %323
+  %331 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %324, i32 0, i32 4, i32 0
+  %332 = load %struct.SEXPREC*, %struct.SEXPREC** %331, align 8
+  %333 = icmp eq %struct.SEXPREC* %332, @dcs_106
+  br i1 %333, label %334, label %337, !prof !0
+
+334:                                              ; preds = %330
+  %335 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %324)
+  br label %338
+
+336:                                              ; preds = %323
+  br label %338
+
+337:                                              ; preds = %330
+  br label %338
+
+338:                                              ; preds = %337, %336, %334
+  %"PIR%10.529" = phi %struct.SEXPREC* [ %335, %334 ], [ %324, %336 ], [ %332, %337 ]
+  store %struct.SEXPREC* %"PIR%10.529", %struct.SEXPREC** %"PIR%10.5", align 8
+  %339 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 4
+  %340 = load %struct.SEXPREC*, %struct.SEXPREC** %339, align 8
+  %341 = ptrtoint %struct.SEXPREC* %340 to i64
+  %342 = icmp ule i64 %341, 2
+  br i1 %342, label %351, label %343, !prof !0
+
+343:                                              ; preds = %338
+  %344 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %340, i32 0, i32 4, i32 0
+  %345 = load %struct.SEXPREC*, %struct.SEXPREC** %344, align 8
+  %346 = icmp eq %struct.SEXPREC* %345, @dcs_106
+  br i1 %346, label %351, label %347, !prof !0
+
+347:                                              ; preds = %343
+  %sxpinfo30 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %345, i32 0, i32 0, i32 0
+  %348 = load i64, i64* %sxpinfo30, align 4
+  %349 = and i64 %348, 281470681743360
+  %350 = icmp eq i64 %349, 0
+  br i1 %350, label %notNamed31, label %357
+
+351:                                              ; preds = %343, %338
+  %352 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %353 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_byrow, %struct.SEXPREC* %352, %struct.SEXPREC** %339)
+  br label %354
+
+354:                                              ; preds = %351, %357
+  %byrow = phi %struct.SEXPREC* [ %345, %357 ], [ %353, %351 ]
+  %355 = icmp eq %struct.SEXPREC* %byrow, @dcs_107
+  br i1 %355, label %360, label %358, !prof !2
+
+notNamed31:                                       ; preds = %347
+  %356 = or i64 %348, 4294967296
+  store i64 %356, i64* %sxpinfo30, align 4
+  br label %357
+
+357:                                              ; preds = %notNamed31, %347
+  br label %354
+
+358:                                              ; preds = %360, %354
+  %359 = icmp eq %struct.SEXPREC* %byrow, @dcs_106
+  br i1 %359, label %367, label %361, !prof !2
+
+360:                                              ; preds = %354
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @10, i32 0, i32 0))
+  br label %358
+
+361:                                              ; preds = %367, %358
+  store %struct.SEXPREC* %byrow, %struct.SEXPREC** %"PIR%10.6", align 8
+  %362 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.6", align 8
+  %sxpinfo32 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %362, i32 0, i32 0, i32 0
+  %363 = load i64, i64* %sxpinfo32, align 4
+  %364 = and i64 %363, 31
+  %365 = trunc i64 %364 to i32
+  %366 = icmp eq i32 %365, 5
+  br i1 %366, label %368, label %374
+
+367:                                              ; preds = %358
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @11, i32 0, i32 0))
+  br label %361
+
+368:                                              ; preds = %361
+  %369 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %362, i32 0, i32 4, i32 0
+  %370 = load %struct.SEXPREC*, %struct.SEXPREC** %369, align 8
+  %371 = icmp eq %struct.SEXPREC* %370, @dcs_106
+  br i1 %371, label %372, label %375, !prof !0
+
+372:                                              ; preds = %368
+  %373 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %362)
+  br label %376
+
+374:                                              ; preds = %361
+  br label %376
+
+375:                                              ; preds = %368
+  br label %376
+
+376:                                              ; preds = %375, %374, %372
+  %"PIR%10.733" = phi %struct.SEXPREC* [ %373, %372 ], [ %362, %374 ], [ %370, %375 ]
+  store %struct.SEXPREC* %"PIR%10.733", %struct.SEXPREC** %"PIR%10.7", align 8
+  %377 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 5
+  %378 = load %struct.SEXPREC*, %struct.SEXPREC** %377, align 8
+  %379 = ptrtoint %struct.SEXPREC* %378 to i64
+  %380 = icmp ule i64 %379, 2
+  br i1 %380, label %389, label %381, !prof !0
+
+381:                                              ; preds = %376
+  %382 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %378, i32 0, i32 4, i32 0
+  %383 = load %struct.SEXPREC*, %struct.SEXPREC** %382, align 8
+  %384 = icmp eq %struct.SEXPREC* %383, @dcs_106
+  br i1 %384, label %389, label %385, !prof !0
+
+385:                                              ; preds = %381
+  %sxpinfo34 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %383, i32 0, i32 0, i32 0
+  %386 = load i64, i64* %sxpinfo34, align 4
+  %387 = and i64 %386, 281470681743360
+  %388 = icmp eq i64 %387, 0
+  br i1 %388, label %notNamed35, label %395
+
+389:                                              ; preds = %381, %376
+  %390 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %391 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_dimnames, %struct.SEXPREC* %390, %struct.SEXPREC** %377)
+  br label %392
+
+392:                                              ; preds = %389, %395
+  %dimnames = phi %struct.SEXPREC* [ %383, %395 ], [ %391, %389 ]
+  %393 = icmp eq %struct.SEXPREC* %dimnames, @dcs_107
+  br i1 %393, label %398, label %396, !prof !2
+
+notNamed35:                                       ; preds = %385
+  %394 = or i64 %386, 4294967296
+  store i64 %394, i64* %sxpinfo34, align 4
+  br label %395
+
+395:                                              ; preds = %notNamed35, %385
+  br label %392
+
+396:                                              ; preds = %398, %392
+  %397 = icmp eq %struct.SEXPREC* %dimnames, @dcs_106
+  br i1 %397, label %405, label %399, !prof !2
+
+398:                                              ; preds = %392
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @12, i32 0, i32 0))
+  br label %396
+
+399:                                              ; preds = %405, %396
+  store %struct.SEXPREC* %dimnames, %struct.SEXPREC** %"PIR%10.8", align 8
+  %400 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.8", align 8
+  %sxpinfo36 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %400, i32 0, i32 0, i32 0
+  %401 = load i64, i64* %sxpinfo36, align 4
+  %402 = and i64 %401, 31
+  %403 = trunc i64 %402 to i32
+  %404 = icmp eq i32 %403, 5
+  br i1 %404, label %406, label %412
+
+405:                                              ; preds = %396
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @13, i32 0, i32 0))
+  br label %399
+
+406:                                              ; preds = %399
+  %407 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %400, i32 0, i32 4, i32 0
+  %408 = load %struct.SEXPREC*, %struct.SEXPREC** %407, align 8
+  %409 = icmp eq %struct.SEXPREC* %408, @dcs_106
+  br i1 %409, label %410, label %413, !prof !0
+
+410:                                              ; preds = %406
+  %411 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %400)
+  br label %414
+
+412:                                              ; preds = %399
+  br label %414
+
+413:                                              ; preds = %406
+  br label %414
+
+414:                                              ; preds = %413, %412, %410
+  %"PIR%10.937" = phi %struct.SEXPREC* [ %411, %410 ], [ %400, %412 ], [ %408, %413 ]
+  store %struct.SEXPREC* %"PIR%10.937", %struct.SEXPREC** %"PIR%10.9", align 8
+  %415 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %"PIR%10.10" = call i32 @isMissing(%struct.SEXPREC* @sym_nrow, %struct.SEXPREC* %415)
+  %416 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.2, align 8
+  %"PIR%10.11" = call i32 @isMissing(%struct.SEXPREC* @sym_ncol, %struct.SEXPREC* %416)
+  %417 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.1", align 8
+  %418 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.3", align 8
+  %419 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.5", align 8
+  %420 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.7", align 8
+  %421 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.9", align 8
+  %422 = icmp eq i32 %"PIR%10.10", 0
+  %423 = icmp eq i32 %"PIR%10.10", 1
+  %424 = icmp eq i32 %"PIR%10.10", -2147483648
+  %425 = or i1 %423, %424
+  %426 = or i1 %422, %425
+  br i1 %426, label %assertOk, label %assertFail, !prof !1
+
+assertFail:                                       ; preds = %414
+  call void @assertFail(i8* @"msg_expected unboxed logical to be 0,1, or NA")
+  unreachable
+
+assertOk:                                         ; preds = %414
+  %427 = icmp eq i32 %"PIR%10.10", 0
+  %428 = icmp eq i32 %"PIR%10.10", -2147483648
+  %429 = select i1 %428, %struct.SEXPREC* @dcs_108, %struct.SEXPREC* @dcs_103
+  %430 = select i1 %427, %struct.SEXPREC* @dcs_105, %struct.SEXPREC* %429
+  %431 = icmp eq i32 %"PIR%10.11", 0
+  %432 = icmp eq i32 %"PIR%10.11", 1
+  %433 = icmp eq i32 %"PIR%10.11", -2147483648
+  %434 = or i1 %432, %433
+  %435 = or i1 %431, %434
+  br i1 %435, label %assertOk39, label %assertFail38, !prof !1
+
+assertFail38:                                     ; preds = %assertOk
+  call void @assertFail(i8* @"msg_expected unboxed logical to be 0,1, or NA")
+  unreachable
+
+assertOk39:                                       ; preds = %assertOk
+  %436 = icmp eq i32 %"PIR%10.11", 0
+  %437 = icmp eq i32 %"PIR%10.11", -2147483648
+  %438 = select i1 %437, %struct.SEXPREC* @dcs_108, %struct.SEXPREC* @dcs_103
+  %439 = select i1 %436, %struct.SEXPREC* @dcs_105, %struct.SEXPREC* %438
+  %440 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %439, %struct.SEXPREC* @dcs_104)
+  %441 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %430, %struct.SEXPREC* %440)
+  %442 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %421, %struct.SEXPREC* %441)
+  %443 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %420, %struct.SEXPREC* %442)
+  %444 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %419, %struct.SEXPREC* %443)
+  %445 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %418, %struct.SEXPREC* %444)
+  %446 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %417, %struct.SEXPREC* %445)
+  %447 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 6, i32 2
+  store volatile %struct.SEXPREC* %446, %struct.SEXPREC** %447, align 8
+  %448 = load i32, i32* @copool_27, align 4
+  %449 = load %struct.SEXPREC*, %struct.SEXPREC** getelementptr (%struct.SEXPREC*, %struct.SEXPREC** inttoptr (i64* @spe_constantPool to %struct.SEXPREC**), i32 1), align 8
+  %450 = bitcast %struct.SEXPREC* %449 to %struct.VECTOR_SEXPREC*
+  %451 = getelementptr %struct.VECTOR_SEXPREC, %struct.VECTOR_SEXPREC* %450, i32 1
+  %452 = bitcast %struct.VECTOR_SEXPREC* %451 to %struct.SEXPREC**
+  %453 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %452, i32 %448
+  %454 = load %struct.SEXPREC*, %struct.SEXPREC** %453, align 8
+  store i32 1, i32* @spe_Visible, align 4
+  %"PIR%10.1240" = call %struct.SEXPREC* @cod_117(%struct.SEXPREC* %454, %struct.SEXPREC* @gcb_117, %struct.SEXPREC* %446, %struct.SEXPREC* @dcs_101)
+  store i32 1, i32* @spe_Visible, align 4
+  store %struct.SEXPREC* %"PIR%10.1240", %struct.SEXPREC** %"PIR%10.12", align 8
+  %455 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.12", align 8
+  %456 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %457 = getelementptr %R_bcstack_t, %R_bcstack_t* %456, i32 -7
+  store %R_bcstack_t* %457, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  ret %struct.SEXPREC* %455
+}
+
+declare %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*)
+
+declare %struct.SEXPREC* @createBindingCellImpl(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*)
+
+declare %struct.SEXPREC* @createEnvironment(%struct.SEXPREC*, %struct.SEXPREC*, i32)
+
+declare %struct.SEXPREC* @forcePromise(%struct.SEXPREC*)
+
+declare %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC**)
+
+declare void @error(i8*)
+
+declare i1 @cksEq(%struct.SEXPREC*, %struct.SEXPREC*)
+
+declare i32 @isMissing(%struct.SEXPREC*, %struct.SEXPREC*)
+
+declare %struct.SEXPREC* @cod_117(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*)
+
+declare void @assertFail(i8*)
+
+declare %struct.SEXPREC* @consNr(%struct.SEXPREC*, %struct.SEXPREC*)
+
+; Function Attrs: argmemonly nofree nosync nounwind willreturn writeonly
+declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1 immarg) #0
+
+declare void @deopt(i8*, %struct.SEXPREC*, i8*, %R_bcstack_t*, %DeoptReason*, %struct.SEXPREC*)
+
+attributes #0 = { argmemonly nofree nosync nounwind willreturn writeonly }
+
+!0 = !{!"branch_weights", i32 1, i32 1000}
+!1 = !{!"branch_weights", i32 100000000, i32 1}
+!2 = !{!"branch_weights", i32 1, i32 100000000}
+DEBUG_MODULE_NAME_UPDATES: Case 2, only one code object inside the promise Map.
+(Name) Function: rsh5_0x556a0a863800 -> f1_0_2DF1_3020020820F
+Serializer Callback called
+Signature Writer called
+Signature Writer callback 
+Entry 6: 1
+Entry 7: 1
+Entry 8: 5
+Entry 9: 18446744073709551615
+Entry 10: 21
+Entry 11: f1_0_2DF1_3020020820F
+Entry 12: 2
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ matrix[0x556a0a863800]                                                       │
+│ Context: !ExpMi,CorrOrd,!TMany,Argmatch;Eager1,NonRefl1,!Obj1,SimpleReal1 miss: 3│
+│ Properties:  ForceOrd: 0                                                     │
+├────── Final PIR Version
+matrix[0x556a0a863800]
+BB0
+  real$~-         %0.0  = LdArg                    1
+  val^            %0.1  = LdArg                    0
+  env             e0.2  = MkEnv              l     data=%0.1, nrow=%0.0, ncol(miss)=1, byrow(miss)=false, dimnames(miss)=nil, parent=BaseNamespace, context 1
+  val?            %0.3  = Force!<lazy>       !v    %0.1, e0.2   <int->
+  lgl$#-          %0.4  = IsType                   %0.3 isA int-
+  void                    Branch                   %0.4 -> BB6 (if true) | BB7 (if false)
+BB6   <- [0]
+  val?^           %6.0  = LdVar              eR    is.atomic, e0.2
+  lgl$#-          %6.1  = Identical                .Primitive("is.atomic"), %6.0   <true>
+  void                    Branch                   %6.1 -> BB8 (if true) | BB9 (if false)
+BB7   <- [0]
+  void                    Nop                !     
+  val?            %7.1  = %0.3
+  dr              %7.2  = Typecheck@0x556a089f4afe
+  goto BB5
+BB8   <- [6]
+  val?^           %8.0  = LdVar              eR    data, e0.2
+  val?            %8.1  = Force!<wrapped>    !v    %8.0, e0.2   <int->
+  lgl$#-          %8.2  = IsType                   %8.1 isA int-
+  void                    Branch                   %8.2 -> BB10 (if true) | BB11 (if false)
+BB9   <- [6]
+  void                    Nop                !     
+  lgl$#-          %9.1  = %6.1
+  dr              %9.2  = DeadBranchReached@0x556a089f4b2c
+  goto BB5
+BB5   <- [7, 9]
+  val?^           %5.0  = Phi                      %7.1:BB7, %9.1:BB9
+  val?^           %5.1  = %5.0
+  dr              %5.2  = Phi                      %7.2:BB7, %9.2:BB9
+  dr              %5.3  = %5.2
+  fs              %5.4  = FrameState         lRL   0x556a089f49e0+81: [.Primitive("is.object"), %0.3], env=e0.2
+  void                    Deopt              !v    %5.4, %5.3, %5.1
+BB10   <- [8]
+  val?^           %10.0 = LdVar              eR    data, e0.2
+  val?            %10.1 = Force!<wrapped>    !v    %10.0, e0.2   <int->
+  val?^           %10.2 = LdVar              eR    nrow, e0.2
+  val?            %10.3 = Force!<lazy>       !v    %10.2, e0.2   <real$->
+  val?^           %10.4 = LdVar              eR    ncol, e0.2
+  val?            %10.5 = Force!<lazy>       !v    %10.4, e0.2   <real$->
+  val?^           %10.6 = LdVar              eR    byrow, e0.2
+  val?            %10.7 = Force!<lazy>       !v    %10.6, e0.2   <lgl$->
+  val?^           %10.8 = LdVar              eR    dimnames, e0.2
+  val?            %10.9 = Force!<lazy>       !v    %10.8, e0.2   <nil->
+  lgl$-           %10.10 = Missing            eR    nrow, e0.2
+  lgl$-           %10.11 = Missing            eR    ncol, e0.2
+  val+            %10.12 = CallSafeBuiltin    vwed  matrix(%10.1, %10.3, %10.5, %10.7, %10.9, %10.10, %10.11) 
+  void                    Return                   %10.12
+BB11   <- [8]
+  fs              %11.0 = FrameState         lRL   0x556a089f49e0+196: [false, .Primitive("is.atomic"), %8.1], env=e0.2
+  void                    Deopt              !v    %11.0, Typecheck@0x556a089f4b71, %8.1
+
+│ matrix[0x556a0a863800]                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+serialized context: 3307126948367
+Serializing Context: !ExpMi,CorrOrd,!TMany,Argmatch miss: 4 (4398046511119)
+
+╞════════════════════════════╡  Compiling matrix  ╞════════════════════════════╡
+BACKEND_INITIAL_COMPILATION_SUCCESS_MSG
+Serialization callback exists
+BACKEND_INITIAL_LLVM
+
+%R_bcstack_t = type { i32, i32, %struct.SEXPREC* }
+%struct.SEXPREC = type { %struct.sxpinfo_struct, %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*, %union.SEXP_SEXP_SEXP }
+%struct.sxpinfo_struct = type { i64 }
+%union.SEXP_SEXP_SEXP = type { %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC* }
+%DeoptReason = type <{ i32, i32, i8* }>
+%struct.VECTOR_SEXPREC = type { %struct.sxpinfo_struct, %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*, %struct.vecsxp_struct }
+%struct.vecsxp_struct = type { i64, i64 }
+
+@spe_BCNodeStackTop = available_externally externally_initialized global %R_bcstack_t*
+@spe_constantPool = available_externally externally_initialized global i64
+@dcs_102 = available_externally externally_initialized global %struct.SEXPREC
+@copool_29 = private constant [5 x i32] [i32 8, i32 83, i32 84, i32 85, i32 86]
+@copool_30 = private constant i32 2
+@copool_31 = private constant i32 3
+@dcs_105 = available_externally externally_initialized global %struct.SEXPREC
+@dcs_104 = available_externally externally_initialized global %struct.SEXPREC
+@sym_dimnames = available_externally externally_initialized global %struct.SEXPREC
+@sym_byrow = available_externally externally_initialized global %struct.SEXPREC
+@sym_ncol = available_externally externally_initialized global %struct.SEXPREC
+@sym_nrow = available_externally externally_initialized global %struct.SEXPREC
+@sym_data = available_externally externally_initialized global %struct.SEXPREC
+@dcs_106 = available_externally externally_initialized global %struct.SEXPREC
+@dcs_111 = available_externally externally_initialized global %struct.SEXPREC
+@hast_11761 = available_externally externally_initialized global i8
+@copool_32 = private constant %DeoptReason <{ i32 1, i32 286, i8* @hast_11761 }>
+@sym_is.atomic = available_externally externally_initialized global %struct.SEXPREC
+@dcs_107 = available_externally externally_initialized global %struct.SEXPREC
+@0 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@1 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@gcb_400 = available_externally externally_initialized global %struct.SEXPREC
+@copool_33 = private constant %DeoptReason <{ i32 6, i32 332, i8* @hast_11761 }>
+@dcs_103 = available_externally externally_initialized global %struct.SEXPREC
+@2 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@3 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@4 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@5 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@6 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@7 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@8 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@9 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@10 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@11 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@12 = private unnamed_addr constant [37 x i8] c"argument is missing, with no default\00", align 1
+@13 = private unnamed_addr constant [17 x i8] c"object not found\00", align 1
+@dcs_101 = available_externally externally_initialized global %struct.SEXPREC
+@"msg_expected unboxed logical to be 0,1, or NA" = available_externally externally_initialized global i8
+@dcs_108 = available_externally externally_initialized global %struct.SEXPREC
+@copool_34 = private constant i32 19
+@spe_Visible = available_externally externally_initialized global i32
+@gcb_117 = available_externally externally_initialized global %struct.SEXPREC
+@gcb_395 = available_externally externally_initialized global %struct.SEXPREC
+@epe_11761_0_4398046511119 = available_externally externally_initialized global i8
+@epe_11761_1_4398046511119 = available_externally externally_initialized global i8
+@copool_35 = private constant %DeoptReason <{ i32 1, i32 401, i8* @hast_11761 }>
+
+define %struct.SEXPREC* @rsh6_0x556a0a9c9f70(i8* %code, %R_bcstack_t* %args, %struct.SEXPREC* %env, %struct.SEXPREC* %closure) {
+  %1 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %2 = alloca %struct.SEXPREC*, i64 6, align 8
+  %"PIR%5.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%5.2" = alloca %DeoptReason*, i64 1, align 8
+  %PIRe0.1 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 1, i32 2
+  %"PIR%0.2" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
+  %"PIR%6.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%5.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%8.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%8.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%10.0" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%10.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%10.2" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
+  %"PIR%10.3" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 2, i32 2
+  %"PIR%10.4" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 3, i32 2
+  %"PIR%10.5" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 3, i32 2
+  %"PIR%10.6" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 4, i32 2
+  %"PIR%10.7" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 4, i32 2
+  %"PIR%10.8" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 5, i32 2
+  %"PIR%10.9" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 5, i32 2
+  %"PIR%10.12" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %"PIR%7.1" = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 0, i32 2
+  %3 = getelementptr %R_bcstack_t, %R_bcstack_t* %args, i32 0, i32 2
+  %4 = load %struct.SEXPREC*, %struct.SEXPREC** %3, align 8
+  %5 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %6 = bitcast %R_bcstack_t* %5 to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %6, i8 0, i64 112, i1 false)
+  %7 = getelementptr %R_bcstack_t, %R_bcstack_t* %5, i32 7
+  store %R_bcstack_t* %7, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  br label %BB0
+
+BB0:                                              ; preds = %0
+  %8 = load i32, i32* @copool_30, align 4
+  %9 = load %struct.SEXPREC*, %struct.SEXPREC** getelementptr (%struct.SEXPREC*, %struct.SEXPREC** inttoptr (i64* @spe_constantPool to %struct.SEXPREC**), i32 1), align 8
+  %10 = bitcast %struct.SEXPREC* %9 to %struct.VECTOR_SEXPREC*
+  %11 = getelementptr %struct.VECTOR_SEXPREC, %struct.VECTOR_SEXPREC* %10, i32 1
+  %12 = bitcast %struct.VECTOR_SEXPREC* %11 to %struct.SEXPREC**
+  %13 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %12, i32 %8
+  %14 = load %struct.SEXPREC*, %struct.SEXPREC** %13, align 8
+  %15 = load i32, i32* @copool_31, align 4
+  %16 = load %struct.SEXPREC*, %struct.SEXPREC** getelementptr (%struct.SEXPREC*, %struct.SEXPREC** inttoptr (i64* @spe_constantPool to %struct.SEXPREC**), i32 1), align 8
+  %17 = bitcast %struct.SEXPREC* %16 to %struct.VECTOR_SEXPREC*
+  %18 = getelementptr %struct.VECTOR_SEXPREC, %struct.VECTOR_SEXPREC* %17, i32 1
+  %19 = bitcast %struct.VECTOR_SEXPREC* %18 to %struct.SEXPREC**
+  %20 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %19, i32 %15
+  %21 = load %struct.SEXPREC*, %struct.SEXPREC** %20, align 8
+  %22 = call %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC* @dcs_104, %struct.SEXPREC* @sym_dimnames, %struct.SEXPREC* @dcs_104)
+  %23 = call %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC* @dcs_105, %struct.SEXPREC* @sym_byrow, %struct.SEXPREC* %22)
+  %24 = call %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC* %21, %struct.SEXPREC* @sym_ncol, %struct.SEXPREC* %23)
+  %25 = call %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC* %14, %struct.SEXPREC* @sym_nrow, %struct.SEXPREC* %24)
+  %26 = call %struct.SEXPREC* @createBindingCellImpl(%struct.SEXPREC* %4, %struct.SEXPREC* @sym_data, %struct.SEXPREC* %25)
+  %PIRe0.11 = call %struct.SEXPREC* @createEnvironment(%struct.SEXPREC* @dcs_102, %struct.SEXPREC* %26, i32 1)
+  store %struct.SEXPREC* %PIRe0.11, %struct.SEXPREC** %PIRe0.1, align 8
+  %27 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 5
+  store %struct.SEXPREC* null, %struct.SEXPREC** %27, align 8
+  %28 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 4
+  store %struct.SEXPREC* null, %struct.SEXPREC** %28, align 8
+  %29 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 2
+  store %struct.SEXPREC* null, %struct.SEXPREC** %29, align 8
+  %30 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 1
+  store %struct.SEXPREC* null, %struct.SEXPREC** %30, align 8
+  %31 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 3
+  store %struct.SEXPREC* null, %struct.SEXPREC** %31, align 8
+  %32 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 0
+  store %struct.SEXPREC* null, %struct.SEXPREC** %32, align 8
+  %sxpinfo = getelementptr %struct.SEXPREC, %struct.SEXPREC* %4, i32 0, i32 0, i32 0
+  %33 = load i64, i64* %sxpinfo, align 4
+  %34 = and i64 %33, 31
+  %35 = trunc i64 %34 to i32
+  %36 = icmp eq i32 %35, 5
+  br i1 %36, label %37, label %43
+
+37:                                               ; preds = %BB0
+  %38 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %4, i32 0, i32 4, i32 0
+  %39 = load %struct.SEXPREC*, %struct.SEXPREC** %38, align 8
+  %40 = icmp eq %struct.SEXPREC* %39, @dcs_106
+  br i1 %40, label %41, label %44, !prof !0
+
+41:                                               ; preds = %37
+  %42 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %4)
+  br label %45
+
+43:                                               ; preds = %BB0
+  br label %45
+
+44:                                               ; preds = %37
+  br label %45
+
+45:                                               ; preds = %44, %43, %41
+  %"PIR%0.22" = phi %struct.SEXPREC* [ %42, %41 ], [ %4, %43 ], [ %39, %44 ]
+  store %struct.SEXPREC* %"PIR%0.22", %struct.SEXPREC** %"PIR%0.2", align 8
+  %46 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.2", align 8
+  %sxpinfo3 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %46, i32 0, i32 0, i32 0
+  %47 = load i64, i64* %sxpinfo3, align 4
+  %48 = and i64 %47, 31
+  %49 = trunc i64 %48 to i32
+  %50 = icmp eq i32 %49, 13
+  %51 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %46, i32 0, i32 1
+  %52 = load %struct.SEXPREC*, %struct.SEXPREC** %51, align 8
+  %53 = icmp eq %struct.SEXPREC* %52, @dcs_104
+  %54 = and i1 %50, %53
+  %55 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %46, i32 0, i32 1
+  %56 = load %struct.SEXPREC*, %struct.SEXPREC** %55, align 8
+  %57 = icmp eq %struct.SEXPREC* %56, @dcs_104
+  %sxpinfo4 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %46, i32 0, i32 0, i32 0
+  %58 = load i64, i64* %sxpinfo4, align 4
+  %59 = and i64 %58, 64
+  %60 = icmp ne i64 0, %59
+  %61 = xor i1 %60, true
+  %62 = and i1 %61, %57
+  br i1 %62, label %71, label %63
+
+63:                                               ; preds = %45
+  %64 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %56, i32 0, i32 4, i32 2
+  %65 = load %struct.SEXPREC*, %struct.SEXPREC** %64, align 8
+  %66 = icmp eq %struct.SEXPREC* %65, @dcs_111
+  %67 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %56, i32 0, i32 4, i32 1
+  %68 = load %struct.SEXPREC*, %struct.SEXPREC** %67, align 8
+  %69 = icmp eq %struct.SEXPREC* %68, @dcs_104
+  %70 = and i1 %66, %69
+  br label %71
+
+71:                                               ; preds = %45, %63
+  %72 = phi i1 [ true, %45 ], [ %70, %63 ]
+  %73 = and i1 %54, %72
+  %"PIR%0.3" = zext i1 %73 to i32
+  %74 = icmp ne i32 %"PIR%0.3", 0
+  br i1 %74, label %BB6, label %BB7, !prof !1
+
+BB6:                                              ; preds = %71
+  %75 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 0
+  %76 = load %struct.SEXPREC*, %struct.SEXPREC** %75, align 8
+  %77 = ptrtoint %struct.SEXPREC* %76 to i64
+  %78 = icmp ule i64 %77, 2
+  br i1 %78, label %100, label %92, !prof !0
+
+BB7:                                              ; preds = %71
+  %"PIR%7.15" = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.2", align 8
+  store %struct.SEXPREC* %"PIR%7.15", %struct.SEXPREC** %"PIR%7.1", align 8
+  store %DeoptReason* @copool_32, %DeoptReason** %"PIR%5.2", align 8
+  br label %BB5
+
+BB5:                                              ; preds = %152, %BB7
+  %"PIR%5.3" = load %DeoptReason*, %DeoptReason** %"PIR%5.2", align 8
+  %79 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %80 = getelementptr %R_bcstack_t, %R_bcstack_t* %79, i32 3
+  store %R_bcstack_t* %80, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %81 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%0.2", align 8
+  %82 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %83 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %84 = getelementptr %R_bcstack_t, %R_bcstack_t* %83, i64 -3
+  %85 = bitcast %R_bcstack_t* %84 to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %85, i8 0, i64 48, i1 false)
+  %86 = getelementptr %R_bcstack_t, %R_bcstack_t* %83, i64 -3, i32 2
+  store %struct.SEXPREC* @gcb_395, %struct.SEXPREC** %86, align 8
+  %87 = getelementptr %R_bcstack_t, %R_bcstack_t* %83, i64 -2, i32 2
+  store %struct.SEXPREC* %81, %struct.SEXPREC** %87, align 8
+  %88 = getelementptr %R_bcstack_t, %R_bcstack_t* %83, i64 -1, i32 2
+  store %struct.SEXPREC* %82, %struct.SEXPREC** %88, align 8
+  %89 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%5.1", align 8
+  call void @deopt(i8* %code, %struct.SEXPREC* %closure, i8* @epe_11761_0_4398046511119, %R_bcstack_t* %args, %DeoptReason* %"PIR%5.3", %struct.SEXPREC* %89)
+  %90 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %91 = getelementptr %R_bcstack_t, %R_bcstack_t* %90, i32 -3
+  store %R_bcstack_t* %91, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  unreachable
+
+92:                                               ; preds = %BB6
+  %93 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %76, i32 0, i32 4, i32 0
+  %94 = load %struct.SEXPREC*, %struct.SEXPREC** %93, align 8
+  %95 = icmp eq %struct.SEXPREC* %94, @dcs_106
+  br i1 %95, label %100, label %96, !prof !0
+
+96:                                               ; preds = %92
+  %sxpinfo6 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %94, i32 0, i32 0, i32 0
+  %97 = load i64, i64* %sxpinfo6, align 4
+  %98 = and i64 %97, 281470681743360
+  %99 = icmp eq i64 %98, 0
+  br i1 %99, label %notNamed, label %106
+
+100:                                              ; preds = %92, %BB6
+  %101 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %102 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_is.atomic, %struct.SEXPREC* %101, %struct.SEXPREC** %75)
+  br label %103
+
+103:                                              ; preds = %100, %106
+  %is.atomic = phi %struct.SEXPREC* [ %94, %106 ], [ %102, %100 ]
+  %104 = icmp eq %struct.SEXPREC* %is.atomic, @dcs_107
+  br i1 %104, label %109, label %107, !prof !2
+
+notNamed:                                         ; preds = %96
+  %105 = or i64 %97, 4294967296
+  store i64 %105, i64* %sxpinfo6, align 4
+  br label %106
+
+106:                                              ; preds = %notNamed, %96
+  br label %103
+
+107:                                              ; preds = %109, %103
+  %108 = icmp eq %struct.SEXPREC* %is.atomic, @dcs_106
+  br i1 %108, label %116, label %110, !prof !2
+
+109:                                              ; preds = %103
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @0, i32 0, i32 0))
+  br label %107
+
+110:                                              ; preds = %116, %107
+  store %struct.SEXPREC* %is.atomic, %struct.SEXPREC** %"PIR%6.0", align 8
+  %111 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%6.0", align 8
+  %sxpinfo7 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %111, i32 0, i32 0, i32 0
+  %112 = load i64, i64* %sxpinfo7, align 4
+  %113 = and i64 %112, 31
+  %114 = trunc i64 %113 to i32
+  %115 = icmp eq i32 %114, 5
+  br i1 %115, label %isProm, label %119, !prof !0
+
+116:                                              ; preds = %107
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @1, i32 0, i32 0))
+  br label %110
+
+isProm:                                           ; preds = %110
+  %117 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %111, i32 0, i32 4, i32 0
+  %118 = load %struct.SEXPREC*, %struct.SEXPREC** %117, align 8
+  br label %120
+
+119:                                              ; preds = %110
+  br label %120
+
+120:                                              ; preds = %119, %isProm
+  %121 = phi %struct.SEXPREC* [ %118, %isProm ], [ %111, %119 ]
+  %122 = icmp eq %struct.SEXPREC* @gcb_400, %121
+  %123 = icmp ne %struct.SEXPREC* %121, @dcs_106
+  %124 = and i1 %122, %123
+  br i1 %124, label %139, label %125
+
+125:                                              ; preds = %120
+  %126 = load i64, i64* getelementptr inbounds (%struct.SEXPREC, %struct.SEXPREC* @gcb_400, i32 0, i32 0, i32 0), align 4
+  %127 = and i64 %126, 31
+  %128 = trunc i64 %127 to i32
+  %129 = icmp eq i32 %128, 3
+  %sxpinfo8 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %121, i32 0, i32 0, i32 0
+  %130 = load i64, i64* %sxpinfo8, align 4
+  %131 = and i64 %130, 31
+  %132 = trunc i64 %131 to i32
+  %133 = icmp eq i32 %132, 3
+  %134 = and i1 %129, %133
+  br i1 %134, label %135, label %137
+
+135:                                              ; preds = %125
+  %136 = call i1 @cksEq(%struct.SEXPREC* @gcb_400, %struct.SEXPREC* %121)
+  br label %137
+
+137:                                              ; preds = %125, %135
+  %138 = phi i1 [ %136, %135 ], [ false, %125 ]
+  br label %139
+
+139:                                              ; preds = %120, %137
+  %140 = phi i1 [ true, %120 ], [ %138, %137 ]
+  %"PIR%6.1" = zext i1 %140 to i32
+  %141 = icmp ne i32 %"PIR%6.1", 0
+  br i1 %141, label %BB8, label %BB9, !prof !1
+
+BB8:                                              ; preds = %139
+  %142 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 1
+  %143 = load %struct.SEXPREC*, %struct.SEXPREC** %142, align 8
+  %144 = ptrtoint %struct.SEXPREC* %143 to i64
+  %145 = icmp ule i64 %144, 2
+  br i1 %145, label %161, label %153, !prof !0
+
+BB9:                                              ; preds = %139
+  %146 = icmp ne i32 %"PIR%6.1", 0
+  %147 = select i1 %146, %struct.SEXPREC* @dcs_103, %struct.SEXPREC* @dcs_105
+  %sxpinfo9 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %147, i32 0, i32 0, i32 0
+  %148 = load i64, i64* %sxpinfo9, align 4
+  %149 = and i64 %148, 281470681743360
+  %150 = icmp eq i64 %149, 0
+  br i1 %150, label %notNamed10, label %152
+
+notNamed10:                                       ; preds = %BB9
+  %151 = or i64 %148, 4294967296
+  store i64 %151, i64* %sxpinfo9, align 4
+  br label %152
+
+152:                                              ; preds = %notNamed10, %BB9
+  store %struct.SEXPREC* %147, %struct.SEXPREC** %"PIR%5.0", align 8
+  store %DeoptReason* @copool_33, %DeoptReason** %"PIR%5.2", align 8
+  br label %BB5
+
+153:                                              ; preds = %BB8
+  %154 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %143, i32 0, i32 4, i32 0
+  %155 = load %struct.SEXPREC*, %struct.SEXPREC** %154, align 8
+  %156 = icmp eq %struct.SEXPREC* %155, @dcs_106
+  br i1 %156, label %161, label %157, !prof !0
+
+157:                                              ; preds = %153
+  %sxpinfo11 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %155, i32 0, i32 0, i32 0
+  %158 = load i64, i64* %sxpinfo11, align 4
+  %159 = and i64 %158, 281470681743360
+  %160 = icmp eq i64 %159, 0
+  br i1 %160, label %notNamed12, label %167
+
+161:                                              ; preds = %153, %BB8
+  %162 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %163 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_data, %struct.SEXPREC* %162, %struct.SEXPREC** %142)
+  br label %164
+
+164:                                              ; preds = %161, %167
+  %data = phi %struct.SEXPREC* [ %155, %167 ], [ %163, %161 ]
+  %165 = icmp eq %struct.SEXPREC* %data, @dcs_107
+  br i1 %165, label %170, label %168, !prof !2
+
+notNamed12:                                       ; preds = %157
+  %166 = or i64 %158, 4294967296
+  store i64 %166, i64* %sxpinfo11, align 4
+  br label %167
+
+167:                                              ; preds = %notNamed12, %157
+  br label %164
+
+168:                                              ; preds = %170, %164
+  %169 = icmp eq %struct.SEXPREC* %data, @dcs_106
+  br i1 %169, label %177, label %171, !prof !2
+
+170:                                              ; preds = %164
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @2, i32 0, i32 0))
+  br label %168
+
+171:                                              ; preds = %177, %168
+  store %struct.SEXPREC* %data, %struct.SEXPREC** %"PIR%8.0", align 8
+  %172 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.0", align 8
+  %sxpinfo13 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %172, i32 0, i32 0, i32 0
+  %173 = load i64, i64* %sxpinfo13, align 4
+  %174 = and i64 %173, 31
+  %175 = trunc i64 %174 to i32
+  %176 = icmp eq i32 %175, 5
+  br i1 %176, label %178, label %184
+
+177:                                              ; preds = %168
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @3, i32 0, i32 0))
+  br label %171
+
+178:                                              ; preds = %171
+  %179 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %172, i32 0, i32 4, i32 0
+  %180 = load %struct.SEXPREC*, %struct.SEXPREC** %179, align 8
+  %181 = icmp eq %struct.SEXPREC* %180, @dcs_106
+  br i1 %181, label %182, label %185, !prof !0
+
+182:                                              ; preds = %178
+  %183 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %172)
+  br label %186
+
+184:                                              ; preds = %171
+  br label %186
+
+185:                                              ; preds = %178
+  br label %186
+
+186:                                              ; preds = %185, %184, %182
+  %"PIR%8.114" = phi %struct.SEXPREC* [ %183, %182 ], [ %172, %184 ], [ %180, %185 ]
+  store %struct.SEXPREC* %"PIR%8.114", %struct.SEXPREC** %"PIR%8.1", align 8
+  %187 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.1", align 8
+  %sxpinfo15 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %187, i32 0, i32 0, i32 0
+  %188 = load i64, i64* %sxpinfo15, align 4
+  %189 = and i64 %188, 31
+  %190 = trunc i64 %189 to i32
+  %191 = icmp eq i32 %190, 13
+  %192 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %187, i32 0, i32 1
+  %193 = load %struct.SEXPREC*, %struct.SEXPREC** %192, align 8
+  %194 = icmp eq %struct.SEXPREC* %193, @dcs_104
+  %195 = and i1 %191, %194
+  %196 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %187, i32 0, i32 1
+  %197 = load %struct.SEXPREC*, %struct.SEXPREC** %196, align 8
+  %198 = icmp eq %struct.SEXPREC* %197, @dcs_104
+  %sxpinfo16 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %187, i32 0, i32 0, i32 0
+  %199 = load i64, i64* %sxpinfo16, align 4
+  %200 = and i64 %199, 64
+  %201 = icmp ne i64 0, %200
+  %202 = xor i1 %201, true
+  %203 = and i1 %202, %198
+  br i1 %203, label %212, label %204
+
+204:                                              ; preds = %186
+  %205 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %197, i32 0, i32 4, i32 2
+  %206 = load %struct.SEXPREC*, %struct.SEXPREC** %205, align 8
+  %207 = icmp eq %struct.SEXPREC* %206, @dcs_111
+  %208 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %197, i32 0, i32 4, i32 1
+  %209 = load %struct.SEXPREC*, %struct.SEXPREC** %208, align 8
+  %210 = icmp eq %struct.SEXPREC* %209, @dcs_104
+  %211 = and i1 %207, %210
+  br label %212
+
+212:                                              ; preds = %186, %204
+  %213 = phi i1 [ true, %186 ], [ %211, %204 ]
+  %214 = and i1 %195, %213
+  %"PIR%8.2" = zext i1 %214 to i32
+  %215 = icmp ne i32 %"PIR%8.2", 0
+  br i1 %215, label %BB10, label %BB11, !prof !1
+
+BB10:                                             ; preds = %212
+  %216 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 1
+  %217 = load %struct.SEXPREC*, %struct.SEXPREC** %216, align 8
+  %218 = ptrtoint %struct.SEXPREC* %217 to i64
+  %219 = icmp ule i64 %218, 2
+  br i1 %219, label %242, label %234, !prof !0
+
+BB11:                                             ; preds = %212
+  %220 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %221 = getelementptr %R_bcstack_t, %R_bcstack_t* %220, i32 4
+  store %R_bcstack_t* %221, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %222 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.1", align 8
+  %223 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %224 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %225 = getelementptr %R_bcstack_t, %R_bcstack_t* %224, i64 -4
+  %226 = bitcast %R_bcstack_t* %225 to i8*
+  call void @llvm.memset.p0i8.i64(i8* align 8 %226, i8 0, i64 64, i1 false)
+  %227 = getelementptr %R_bcstack_t, %R_bcstack_t* %224, i64 -4, i32 2
+  store %struct.SEXPREC* @dcs_105, %struct.SEXPREC** %227, align 8
+  %228 = getelementptr %R_bcstack_t, %R_bcstack_t* %224, i64 -3, i32 2
+  store %struct.SEXPREC* @gcb_400, %struct.SEXPREC** %228, align 8
+  %229 = getelementptr %R_bcstack_t, %R_bcstack_t* %224, i64 -2, i32 2
+  store %struct.SEXPREC* %222, %struct.SEXPREC** %229, align 8
+  %230 = getelementptr %R_bcstack_t, %R_bcstack_t* %224, i64 -1, i32 2
+  store %struct.SEXPREC* %223, %struct.SEXPREC** %230, align 8
+  %231 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%8.1", align 8
+  call void @deopt(i8* %code, %struct.SEXPREC* %closure, i8* @epe_11761_1_4398046511119, %R_bcstack_t* %args, %DeoptReason* @copool_35, %struct.SEXPREC* %231)
+  %232 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %233 = getelementptr %R_bcstack_t, %R_bcstack_t* %232, i32 -4
+  store %R_bcstack_t* %233, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  unreachable
+
+234:                                              ; preds = %BB10
+  %235 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %217, i32 0, i32 4, i32 0
+  %236 = load %struct.SEXPREC*, %struct.SEXPREC** %235, align 8
+  %237 = icmp eq %struct.SEXPREC* %236, @dcs_106
+  br i1 %237, label %242, label %238, !prof !0
+
+238:                                              ; preds = %234
+  %sxpinfo17 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %236, i32 0, i32 0, i32 0
+  %239 = load i64, i64* %sxpinfo17, align 4
+  %240 = and i64 %239, 281470681743360
+  %241 = icmp eq i64 %240, 0
+  br i1 %241, label %notNamed18, label %248
+
+242:                                              ; preds = %234, %BB10
+  %243 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %244 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_data, %struct.SEXPREC* %243, %struct.SEXPREC** %216)
+  br label %245
+
+245:                                              ; preds = %242, %248
+  %data19 = phi %struct.SEXPREC* [ %236, %248 ], [ %244, %242 ]
+  %246 = icmp eq %struct.SEXPREC* %data19, @dcs_107
+  br i1 %246, label %251, label %249, !prof !2
+
+notNamed18:                                       ; preds = %238
+  %247 = or i64 %239, 4294967296
+  store i64 %247, i64* %sxpinfo17, align 4
+  br label %248
+
+248:                                              ; preds = %notNamed18, %238
+  br label %245
+
+249:                                              ; preds = %251, %245
+  %250 = icmp eq %struct.SEXPREC* %data19, @dcs_106
+  br i1 %250, label %258, label %252, !prof !2
+
+251:                                              ; preds = %245
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @4, i32 0, i32 0))
+  br label %249
+
+252:                                              ; preds = %258, %249
+  store %struct.SEXPREC* %data19, %struct.SEXPREC** %"PIR%10.0", align 8
+  %253 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.0", align 8
+  %sxpinfo20 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %253, i32 0, i32 0, i32 0
+  %254 = load i64, i64* %sxpinfo20, align 4
+  %255 = and i64 %254, 31
+  %256 = trunc i64 %255 to i32
+  %257 = icmp eq i32 %256, 5
+  br i1 %257, label %259, label %265
+
+258:                                              ; preds = %249
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @5, i32 0, i32 0))
+  br label %252
+
+259:                                              ; preds = %252
+  %260 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %253, i32 0, i32 4, i32 0
+  %261 = load %struct.SEXPREC*, %struct.SEXPREC** %260, align 8
+  %262 = icmp eq %struct.SEXPREC* %261, @dcs_106
+  br i1 %262, label %263, label %266, !prof !0
+
+263:                                              ; preds = %259
+  %264 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %253)
+  br label %267
+
+265:                                              ; preds = %252
+  br label %267
+
+266:                                              ; preds = %259
+  br label %267
+
+267:                                              ; preds = %266, %265, %263
+  %"PIR%10.121" = phi %struct.SEXPREC* [ %264, %263 ], [ %253, %265 ], [ %261, %266 ]
+  store %struct.SEXPREC* %"PIR%10.121", %struct.SEXPREC** %"PIR%10.1", align 8
+  %268 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 2
+  %269 = load %struct.SEXPREC*, %struct.SEXPREC** %268, align 8
+  %270 = ptrtoint %struct.SEXPREC* %269 to i64
+  %271 = icmp ule i64 %270, 2
+  br i1 %271, label %280, label %272, !prof !0
+
+272:                                              ; preds = %267
+  %273 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %269, i32 0, i32 4, i32 0
+  %274 = load %struct.SEXPREC*, %struct.SEXPREC** %273, align 8
+  %275 = icmp eq %struct.SEXPREC* %274, @dcs_106
+  br i1 %275, label %280, label %276, !prof !0
+
+276:                                              ; preds = %272
+  %sxpinfo22 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %274, i32 0, i32 0, i32 0
+  %277 = load i64, i64* %sxpinfo22, align 4
+  %278 = and i64 %277, 281470681743360
+  %279 = icmp eq i64 %278, 0
+  br i1 %279, label %notNamed23, label %286
+
+280:                                              ; preds = %272, %267
+  %281 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %282 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_nrow, %struct.SEXPREC* %281, %struct.SEXPREC** %268)
+  br label %283
+
+283:                                              ; preds = %280, %286
+  %nrow = phi %struct.SEXPREC* [ %274, %286 ], [ %282, %280 ]
+  %284 = icmp eq %struct.SEXPREC* %nrow, @dcs_107
+  br i1 %284, label %289, label %287, !prof !2
+
+notNamed23:                                       ; preds = %276
+  %285 = or i64 %277, 4294967296
+  store i64 %285, i64* %sxpinfo22, align 4
+  br label %286
+
+286:                                              ; preds = %notNamed23, %276
+  br label %283
+
+287:                                              ; preds = %289, %283
+  %288 = icmp eq %struct.SEXPREC* %nrow, @dcs_106
+  br i1 %288, label %296, label %290, !prof !2
+
+289:                                              ; preds = %283
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @6, i32 0, i32 0))
+  br label %287
+
+290:                                              ; preds = %296, %287
+  store %struct.SEXPREC* %nrow, %struct.SEXPREC** %"PIR%10.2", align 8
+  %291 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.2", align 8
+  %sxpinfo24 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %291, i32 0, i32 0, i32 0
+  %292 = load i64, i64* %sxpinfo24, align 4
+  %293 = and i64 %292, 31
+  %294 = trunc i64 %293 to i32
+  %295 = icmp eq i32 %294, 5
+  br i1 %295, label %297, label %303
+
+296:                                              ; preds = %287
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @7, i32 0, i32 0))
+  br label %290
+
+297:                                              ; preds = %290
+  %298 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %291, i32 0, i32 4, i32 0
+  %299 = load %struct.SEXPREC*, %struct.SEXPREC** %298, align 8
+  %300 = icmp eq %struct.SEXPREC* %299, @dcs_106
+  br i1 %300, label %301, label %304, !prof !0
+
+301:                                              ; preds = %297
+  %302 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %291)
+  br label %305
+
+303:                                              ; preds = %290
+  br label %305
+
+304:                                              ; preds = %297
+  br label %305
+
+305:                                              ; preds = %304, %303, %301
+  %"PIR%10.325" = phi %struct.SEXPREC* [ %302, %301 ], [ %291, %303 ], [ %299, %304 ]
+  store %struct.SEXPREC* %"PIR%10.325", %struct.SEXPREC** %"PIR%10.3", align 8
+  %306 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 3
+  %307 = load %struct.SEXPREC*, %struct.SEXPREC** %306, align 8
+  %308 = ptrtoint %struct.SEXPREC* %307 to i64
+  %309 = icmp ule i64 %308, 2
+  br i1 %309, label %318, label %310, !prof !0
+
+310:                                              ; preds = %305
+  %311 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %307, i32 0, i32 4, i32 0
+  %312 = load %struct.SEXPREC*, %struct.SEXPREC** %311, align 8
+  %313 = icmp eq %struct.SEXPREC* %312, @dcs_106
+  br i1 %313, label %318, label %314, !prof !0
+
+314:                                              ; preds = %310
+  %sxpinfo26 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %312, i32 0, i32 0, i32 0
+  %315 = load i64, i64* %sxpinfo26, align 4
+  %316 = and i64 %315, 281470681743360
+  %317 = icmp eq i64 %316, 0
+  br i1 %317, label %notNamed27, label %324
+
+318:                                              ; preds = %310, %305
+  %319 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %320 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_ncol, %struct.SEXPREC* %319, %struct.SEXPREC** %306)
+  br label %321
+
+321:                                              ; preds = %318, %324
+  %ncol = phi %struct.SEXPREC* [ %312, %324 ], [ %320, %318 ]
+  %322 = icmp eq %struct.SEXPREC* %ncol, @dcs_107
+  br i1 %322, label %327, label %325, !prof !2
+
+notNamed27:                                       ; preds = %314
+  %323 = or i64 %315, 4294967296
+  store i64 %323, i64* %sxpinfo26, align 4
+  br label %324
+
+324:                                              ; preds = %notNamed27, %314
+  br label %321
+
+325:                                              ; preds = %327, %321
+  %326 = icmp eq %struct.SEXPREC* %ncol, @dcs_106
+  br i1 %326, label %334, label %328, !prof !2
+
+327:                                              ; preds = %321
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @8, i32 0, i32 0))
+  br label %325
+
+328:                                              ; preds = %334, %325
+  store %struct.SEXPREC* %ncol, %struct.SEXPREC** %"PIR%10.4", align 8
+  %329 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.4", align 8
+  %sxpinfo28 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %329, i32 0, i32 0, i32 0
+  %330 = load i64, i64* %sxpinfo28, align 4
+  %331 = and i64 %330, 31
+  %332 = trunc i64 %331 to i32
+  %333 = icmp eq i32 %332, 5
+  br i1 %333, label %335, label %341
+
+334:                                              ; preds = %325
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @9, i32 0, i32 0))
+  br label %328
+
+335:                                              ; preds = %328
+  %336 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %329, i32 0, i32 4, i32 0
+  %337 = load %struct.SEXPREC*, %struct.SEXPREC** %336, align 8
+  %338 = icmp eq %struct.SEXPREC* %337, @dcs_106
+  br i1 %338, label %339, label %342, !prof !0
+
+339:                                              ; preds = %335
+  %340 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %329)
+  br label %343
+
+341:                                              ; preds = %328
+  br label %343
+
+342:                                              ; preds = %335
+  br label %343
+
+343:                                              ; preds = %342, %341, %339
+  %"PIR%10.529" = phi %struct.SEXPREC* [ %340, %339 ], [ %329, %341 ], [ %337, %342 ]
+  store %struct.SEXPREC* %"PIR%10.529", %struct.SEXPREC** %"PIR%10.5", align 8
+  %344 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 4
+  %345 = load %struct.SEXPREC*, %struct.SEXPREC** %344, align 8
+  %346 = ptrtoint %struct.SEXPREC* %345 to i64
+  %347 = icmp ule i64 %346, 2
+  br i1 %347, label %356, label %348, !prof !0
+
+348:                                              ; preds = %343
+  %349 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %345, i32 0, i32 4, i32 0
+  %350 = load %struct.SEXPREC*, %struct.SEXPREC** %349, align 8
+  %351 = icmp eq %struct.SEXPREC* %350, @dcs_106
+  br i1 %351, label %356, label %352, !prof !0
+
+352:                                              ; preds = %348
+  %sxpinfo30 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %350, i32 0, i32 0, i32 0
+  %353 = load i64, i64* %sxpinfo30, align 4
+  %354 = and i64 %353, 281470681743360
+  %355 = icmp eq i64 %354, 0
+  br i1 %355, label %notNamed31, label %362
+
+356:                                              ; preds = %348, %343
+  %357 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %358 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_byrow, %struct.SEXPREC* %357, %struct.SEXPREC** %344)
+  br label %359
+
+359:                                              ; preds = %356, %362
+  %byrow = phi %struct.SEXPREC* [ %350, %362 ], [ %358, %356 ]
+  %360 = icmp eq %struct.SEXPREC* %byrow, @dcs_107
+  br i1 %360, label %365, label %363, !prof !2
+
+notNamed31:                                       ; preds = %352
+  %361 = or i64 %353, 4294967296
+  store i64 %361, i64* %sxpinfo30, align 4
+  br label %362
+
+362:                                              ; preds = %notNamed31, %352
+  br label %359
+
+363:                                              ; preds = %365, %359
+  %364 = icmp eq %struct.SEXPREC* %byrow, @dcs_106
+  br i1 %364, label %372, label %366, !prof !2
+
+365:                                              ; preds = %359
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @10, i32 0, i32 0))
+  br label %363
+
+366:                                              ; preds = %372, %363
+  store %struct.SEXPREC* %byrow, %struct.SEXPREC** %"PIR%10.6", align 8
+  %367 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.6", align 8
+  %sxpinfo32 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %367, i32 0, i32 0, i32 0
+  %368 = load i64, i64* %sxpinfo32, align 4
+  %369 = and i64 %368, 31
+  %370 = trunc i64 %369 to i32
+  %371 = icmp eq i32 %370, 5
+  br i1 %371, label %373, label %379
+
+372:                                              ; preds = %363
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @11, i32 0, i32 0))
+  br label %366
+
+373:                                              ; preds = %366
+  %374 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %367, i32 0, i32 4, i32 0
+  %375 = load %struct.SEXPREC*, %struct.SEXPREC** %374, align 8
+  %376 = icmp eq %struct.SEXPREC* %375, @dcs_106
+  br i1 %376, label %377, label %380, !prof !0
+
+377:                                              ; preds = %373
+  %378 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %367)
+  br label %381
+
+379:                                              ; preds = %366
+  br label %381
+
+380:                                              ; preds = %373
+  br label %381
+
+381:                                              ; preds = %380, %379, %377
+  %"PIR%10.733" = phi %struct.SEXPREC* [ %378, %377 ], [ %367, %379 ], [ %375, %380 ]
+  store %struct.SEXPREC* %"PIR%10.733", %struct.SEXPREC** %"PIR%10.7", align 8
+  %382 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %2, i64 5
+  %383 = load %struct.SEXPREC*, %struct.SEXPREC** %382, align 8
+  %384 = ptrtoint %struct.SEXPREC* %383 to i64
+  %385 = icmp ule i64 %384, 2
+  br i1 %385, label %394, label %386, !prof !0
+
+386:                                              ; preds = %381
+  %387 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %383, i32 0, i32 4, i32 0
+  %388 = load %struct.SEXPREC*, %struct.SEXPREC** %387, align 8
+  %389 = icmp eq %struct.SEXPREC* %388, @dcs_106
+  br i1 %389, label %394, label %390, !prof !0
+
+390:                                              ; preds = %386
+  %sxpinfo34 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %388, i32 0, i32 0, i32 0
+  %391 = load i64, i64* %sxpinfo34, align 4
+  %392 = and i64 %391, 281470681743360
+  %393 = icmp eq i64 %392, 0
+  br i1 %393, label %notNamed35, label %400
+
+394:                                              ; preds = %386, %381
+  %395 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %396 = call %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC* @sym_dimnames, %struct.SEXPREC* %395, %struct.SEXPREC** %382)
+  br label %397
+
+397:                                              ; preds = %394, %400
+  %dimnames = phi %struct.SEXPREC* [ %388, %400 ], [ %396, %394 ]
+  %398 = icmp eq %struct.SEXPREC* %dimnames, @dcs_107
+  br i1 %398, label %403, label %401, !prof !2
+
+notNamed35:                                       ; preds = %390
+  %399 = or i64 %391, 4294967296
+  store i64 %399, i64* %sxpinfo34, align 4
+  br label %400
+
+400:                                              ; preds = %notNamed35, %390
+  br label %397
+
+401:                                              ; preds = %403, %397
+  %402 = icmp eq %struct.SEXPREC* %dimnames, @dcs_106
+  br i1 %402, label %410, label %404, !prof !2
+
+403:                                              ; preds = %397
+  call void @error(i8* getelementptr inbounds ([37 x i8], [37 x i8]* @12, i32 0, i32 0))
+  br label %401
+
+404:                                              ; preds = %410, %401
+  store %struct.SEXPREC* %dimnames, %struct.SEXPREC** %"PIR%10.8", align 8
+  %405 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.8", align 8
+  %sxpinfo36 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %405, i32 0, i32 0, i32 0
+  %406 = load i64, i64* %sxpinfo36, align 4
+  %407 = and i64 %406, 31
+  %408 = trunc i64 %407 to i32
+  %409 = icmp eq i32 %408, 5
+  br i1 %409, label %411, label %417
+
+410:                                              ; preds = %401
+  call void @error(i8* getelementptr inbounds ([17 x i8], [17 x i8]* @13, i32 0, i32 0))
+  br label %404
+
+411:                                              ; preds = %404
+  %412 = getelementptr %struct.SEXPREC, %struct.SEXPREC* %405, i32 0, i32 4, i32 0
+  %413 = load %struct.SEXPREC*, %struct.SEXPREC** %412, align 8
+  %414 = icmp eq %struct.SEXPREC* %413, @dcs_106
+  br i1 %414, label %415, label %418, !prof !0
+
+415:                                              ; preds = %411
+  %416 = call %struct.SEXPREC* @forcePromise(%struct.SEXPREC* %405)
+  br label %419
+
+417:                                              ; preds = %404
+  br label %419
+
+418:                                              ; preds = %411
+  br label %419
+
+419:                                              ; preds = %418, %417, %415
+  %"PIR%10.937" = phi %struct.SEXPREC* [ %416, %415 ], [ %405, %417 ], [ %413, %418 ]
+  store %struct.SEXPREC* %"PIR%10.937", %struct.SEXPREC** %"PIR%10.9", align 8
+  %420 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %"PIR%10.10" = call i32 @isMissing(%struct.SEXPREC* @sym_nrow, %struct.SEXPREC* %420)
+  %421 = load %struct.SEXPREC*, %struct.SEXPREC** %PIRe0.1, align 8
+  %"PIR%10.11" = call i32 @isMissing(%struct.SEXPREC* @sym_ncol, %struct.SEXPREC* %421)
+  %422 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.1", align 8
+  %423 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.3", align 8
+  %424 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.5", align 8
+  %425 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.7", align 8
+  %426 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.9", align 8
+  %427 = icmp eq i32 %"PIR%10.10", 0
+  %428 = icmp eq i32 %"PIR%10.10", 1
+  %429 = icmp eq i32 %"PIR%10.10", -2147483648
+  %430 = or i1 %428, %429
+  %431 = or i1 %427, %430
+  br i1 %431, label %assertOk, label %assertFail, !prof !1
+
+assertFail:                                       ; preds = %419
+  call void @assertFail(i8* @"msg_expected unboxed logical to be 0,1, or NA")
+  unreachable
+
+assertOk:                                         ; preds = %419
+  %432 = icmp eq i32 %"PIR%10.10", 0
+  %433 = icmp eq i32 %"PIR%10.10", -2147483648
+  %434 = select i1 %433, %struct.SEXPREC* @dcs_108, %struct.SEXPREC* @dcs_103
+  %435 = select i1 %432, %struct.SEXPREC* @dcs_105, %struct.SEXPREC* %434
+  %436 = icmp eq i32 %"PIR%10.11", 0
+  %437 = icmp eq i32 %"PIR%10.11", 1
+  %438 = icmp eq i32 %"PIR%10.11", -2147483648
+  %439 = or i1 %437, %438
+  %440 = or i1 %436, %439
+  br i1 %440, label %assertOk39, label %assertFail38, !prof !1
+
+assertFail38:                                     ; preds = %assertOk
+  call void @assertFail(i8* @"msg_expected unboxed logical to be 0,1, or NA")
+  unreachable
+
+assertOk39:                                       ; preds = %assertOk
+  %441 = icmp eq i32 %"PIR%10.11", 0
+  %442 = icmp eq i32 %"PIR%10.11", -2147483648
+  %443 = select i1 %442, %struct.SEXPREC* @dcs_108, %struct.SEXPREC* @dcs_103
+  %444 = select i1 %441, %struct.SEXPREC* @dcs_105, %struct.SEXPREC* %443
+  %445 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %444, %struct.SEXPREC* @dcs_104)
+  %446 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %435, %struct.SEXPREC* %445)
+  %447 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %426, %struct.SEXPREC* %446)
+  %448 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %425, %struct.SEXPREC* %447)
+  %449 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %424, %struct.SEXPREC* %448)
+  %450 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %423, %struct.SEXPREC* %449)
+  %451 = call %struct.SEXPREC* @consNr(%struct.SEXPREC* %422, %struct.SEXPREC* %450)
+  %452 = getelementptr %R_bcstack_t, %R_bcstack_t* %1, i64 6, i32 2
+  store volatile %struct.SEXPREC* %451, %struct.SEXPREC** %452, align 8
+  %453 = load i32, i32* @copool_34, align 4
+  %454 = load %struct.SEXPREC*, %struct.SEXPREC** getelementptr (%struct.SEXPREC*, %struct.SEXPREC** inttoptr (i64* @spe_constantPool to %struct.SEXPREC**), i32 1), align 8
+  %455 = bitcast %struct.SEXPREC* %454 to %struct.VECTOR_SEXPREC*
+  %456 = getelementptr %struct.VECTOR_SEXPREC, %struct.VECTOR_SEXPREC* %455, i32 1
+  %457 = bitcast %struct.VECTOR_SEXPREC* %456 to %struct.SEXPREC**
+  %458 = getelementptr %struct.SEXPREC*, %struct.SEXPREC** %457, i32 %453
+  %459 = load %struct.SEXPREC*, %struct.SEXPREC** %458, align 8
+  store i32 1, i32* @spe_Visible, align 4
+  %"PIR%10.1240" = call %struct.SEXPREC* @cod_117(%struct.SEXPREC* %459, %struct.SEXPREC* @gcb_117, %struct.SEXPREC* %451, %struct.SEXPREC* @dcs_101)
+  store i32 1, i32* @spe_Visible, align 4
+  store %struct.SEXPREC* %"PIR%10.1240", %struct.SEXPREC** %"PIR%10.12", align 8
+  %460 = load %struct.SEXPREC*, %struct.SEXPREC** %"PIR%10.12", align 8
+  %461 = load %R_bcstack_t*, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  %462 = getelementptr %R_bcstack_t, %R_bcstack_t* %461, i32 -7
+  store %R_bcstack_t* %462, %R_bcstack_t** @spe_BCNodeStackTop, align 8
+  ret %struct.SEXPREC* %460
+}
+
+declare %struct.SEXPREC* @createMissingBindingCell(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*)
+
+declare %struct.SEXPREC* @createBindingCellImpl(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*)
+
+declare %struct.SEXPREC* @createEnvironment(%struct.SEXPREC*, %struct.SEXPREC*, i32)
+
+declare %struct.SEXPREC* @forcePromise(%struct.SEXPREC*)
+
+declare %struct.SEXPREC* @ldvarCacheMiss(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC**)
+
+declare void @error(i8*)
+
+declare i1 @cksEq(%struct.SEXPREC*, %struct.SEXPREC*)
+
+declare i32 @isMissing(%struct.SEXPREC*, %struct.SEXPREC*)
+
+declare %struct.SEXPREC* @cod_117(%struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*, %struct.SEXPREC*)
+
+declare void @assertFail(i8*)
+
+declare %struct.SEXPREC* @consNr(%struct.SEXPREC*, %struct.SEXPREC*)
+
+; Function Attrs: argmemonly nofree nosync nounwind willreturn writeonly
+declare void @llvm.memset.p0i8.i64(i8* nocapture writeonly, i8, i64, i1 immarg) #0
+
+declare void @deopt(i8*, %struct.SEXPREC*, i8*, %R_bcstack_t*, %DeoptReason*, %struct.SEXPREC*)
+
+attributes #0 = { argmemonly nofree nosync nounwind willreturn writeonly }
+
+!0 = !{!"branch_weights", i32 1, i32 1000}
+!1 = !{!"branch_weights", i32 100000000, i32 1}
+!2 = !{!"branch_weights", i32 1, i32 100000000}
+DEBUG_MODULE_NAME_UPDATES: Case 2, only one code object inside the promise Map.
+(Name) Function: rsh6_0x556a0a9c9f70 -> f2_0_2DF1_4000000000F
+Serializer Callback called
+Signature Writer called
+Signature Writer callback 
+Entry 6: 1
+Entry 7: 1
+Entry 8: 5
+Entry 9: 18446744073709551615
+Entry 10: 21
+Entry 11: f2_0_2DF1_4000000000F
+Entry 12: 2
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ matrix[0x556a0a9c9f70]                                                       │
+│ Context: !ExpMi,CorrOrd,!TMany,Argmatch miss: 4                              │
+│ Properties:  Eager, ForceOrd: 0                                              │
+├────── Final PIR Version
+matrix[0x556a0a9c9f70]
+BB0
+  val^            %0.0  = LdArg                    0
+  env             e0.1  = MkEnv              l     data=%0.0, nrow(miss)=1, ncol(miss)=1, byrow(miss)=false, dimnames(miss)=nil, parent=BaseNamespace, context 1
+  val?            %0.2  = Force!<lazy>       !v    %0.0, e0.1   <int->
+  lgl$#-          %0.3  = IsType                   %0.2 isA int-
+  void                    Branch                   %0.3 -> BB6 (if true) | BB7 (if false)
+BB6   <- [0]
+  val?^           %6.0  = LdVar              eR    is.atomic, e0.1
+  lgl$#-          %6.1  = Identical                .Primitive("is.atomic"), %6.0   <true>
+  void                    Branch                   %6.1 -> BB8 (if true) | BB9 (if false)
+BB7   <- [0]
+  void                    Nop                !     
+  val?            %7.1  = %0.2
+  dr              %7.2  = Typecheck@0x556a089f4afe
+  goto BB5
+BB8   <- [6]
+  val?^           %8.0  = LdVar              eR    data, e0.1
+  val?            %8.1  = Force!<wrapped>    !v    %8.0, e0.1   <int->
+  lgl$#-          %8.2  = IsType                   %8.1 isA int-
+  void                    Branch                   %8.2 -> BB10 (if true) | BB11 (if false)
+BB9   <- [6]
+  void                    Nop                !     
+  lgl$#-          %9.1  = %6.1
+  dr              %9.2  = DeadBranchReached@0x556a089f4b2c
+  goto BB5
+BB5   <- [7, 9]
+  val?^           %5.0  = Phi                      %7.1:BB7, %9.1:BB9
+  val?^           %5.1  = %5.0
+  dr              %5.2  = Phi                      %7.2:BB7, %9.2:BB9
+  dr              %5.3  = %5.2
+  fs              %5.4  = FrameState         lRL   0x556a089f49e0+81: [.Primitive("is.object"), %0.2], env=e0.1
+  void                    Deopt              !v    %5.4, %5.3, %5.1
+BB10   <- [8]
+  val?^           %10.0 = LdVar              eR    data, e0.1
+  val?            %10.1 = Force!<wrapped>    !v    %10.0, e0.1   <int->
+  val?^           %10.2 = LdVar              eR    nrow, e0.1
+  val?            %10.3 = Force!<lazy>       !v    %10.2, e0.1   <real$->
+  val?^           %10.4 = LdVar              eR    ncol, e0.1
+  val?            %10.5 = Force!<lazy>       !v    %10.4, e0.1   <real$->
+  val?^           %10.6 = LdVar              eR    byrow, e0.1
+  val?            %10.7 = Force!<lazy>       !v    %10.6, e0.1   <lgl$->
+  val?^           %10.8 = LdVar              eR    dimnames, e0.1
+  val?            %10.9 = Force!<lazy>       !v    %10.8, e0.1   <nil->
+  lgl$-           %10.10 = Missing            eR    nrow, e0.1
+  lgl$-           %10.11 = Missing            eR    ncol, e0.1
+  val+            %10.12 = CallSafeBuiltin    vwed  matrix(%10.1, %10.3, %10.5, %10.7, %10.9, %10.10, %10.11) 
+  void                    Return                   %10.12
+BB11   <- [8]
+  fs              %11.0 = FrameState         lRL   0x556a089f49e0+196: [false, .Primitive("is.atomic"), %8.1], env=e0.1
+  void                    Deopt              !v    %11.0, Typecheck@0x556a089f4b71, %8.1
+
+│ matrix[0x556a0a9c9f70]                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+serialized context: 4398046511119
+[1] 3

@@ -19,6 +19,7 @@
 #include "runtime/ArglistOrder.h"
 #include "simple_instruction_list.h"
 #include "utils/FormalArgs.h"
+#include "api.h"
 
 #include <sstream>
 #include <unordered_map>

@@ -1,63 +1,56 @@
-# g <- function(b) {
-#   b;
-# }
-
-# a <- 10
-# f <- function() {
-#   g(a);
-# }
-
-# f.serialize(f, c(15))
+invisible(rir.compile(matrix))
+for (i in 1:10) {
+  matrix(1:9,3,3)
+  matrix(1:9,3,3)
+  matrix(1:9,3,3)
+  matrix(1:9)
+  matrix(1:9)
+  matrix(1:9)
+  matrix(1:9)
+  matrix(1:9)
+  matrix(1:9, 3)
+  matrix(1:9, 3)
+  matrix(1:9, 3)
+}
+f.serialize(matrix)
 
 # invisible(rir.compile(matrix))
+# invisible(rir.compile(rnorm))
+# invisible(matrix(rnorm(3600), nrow=6))
+# invisible(matrix(rnorm(3600), nrow=6))
+# invisible(matrix(rnorm(3600), nrow=6))
+# invisible(matrix(rnorm(3600), nrow=6))
 
-# matrix(10)
-# matrix(10)
-# matrix(10)
-# matrix(c(1,2,3,4))
-# matrix(c(1,2,3,4))
-# matrix(c(1,2,3,4))
-# matrix(c(1,2,3,4), nrow=2)
-# matrix(c(1,2,3,4), nrow=2)
-# matrix(c(1,2,3,4), nrow=2)
-
+# invisible(matrix(rnorm(3600)))
+# invisible(matrix(rnorm(3600)))
+# invisible(matrix(rnorm(3600)))
+# invisible(matrix(rnorm(3600)))
 # f.serialize(matrix)
-
-# matrix(10)
-
-
-# matrix(c(1,2,3,4), ncol=2)
-# matrix(c(1,2,3,4), ncol=2)
-# matrix(c(1,2,3,4), ncol=2)
-
-b <- 10
-
-f <- function(a) {
-  a + b;
-}
-
-invisible(rir.compile(f))
-f(10)
-f(10)
-f(10)
-f(10)
-b <- c(1,2,3)
-f(10)
-f(10)
-f(10)
-# f(10)
+# f.serialize(rnorm)
 
 
+# TODO: Promises within promises
 
-# f(c(10,11))
-# f(c(10,11))
-# f(c(10,11))
-# f(10)
-# f(10)
-# f(10)
-# f(10)
-# f(10,2)
-# f(10,2)
-# f(10,2)
-# f(10,2)
-f.serialize(f)
+# x <- list(a = 1:10, beta = exp(-3:3), logic = c(TRUE,FALSE,FALSE,TRUE))
+# invisible(rir.compile(lapply))
+
+# lapply(x, mean)
+# lapply(x, mean)
+# lapply(x, mean)
+# lapply(x, mean)
+
+# f.serialize(lapply)
+
+# invisible(rir.compile(substr))
+# x <- c("asfef", "qwerty", "yuiop[", "b", "stuff.blah.yech")
+# substr(x, 2, 5)
+# substr(x, 2, 5)
+# substr(x, 2, 5)
+# substr(x, 2, 5)
+
+# substr(x, 1:2, 2:3)
+# substr(x, 1:2, 2:3)
+# substr(x, 1:2, 2:3)
+
+
+# f.serialize(substr)

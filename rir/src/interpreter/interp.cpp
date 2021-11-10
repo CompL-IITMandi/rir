@@ -988,8 +988,6 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
         bool needsEnv = fun->signature().envCreation ==
                         FunctionSignature::Environment::CallerProvided;
 
-        std::cout << "Executing Context(" << fun->context().toI() << "): " << fun->context() << std::endl;
-
         if (fun->flags.contains(Function::DepromiseArgs)) {
             // Force arguments and depromise
             call.depromiseArgs();
@@ -1925,12 +1923,6 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
     auto native = c->nativeCode();
     assert((!initialPC || !native) && "Cannot jump into native code");
     if (native) {
-        // std::cout << "Global Context 1: " << (intptr_t)(&globalContext()->list) << std::endl;
-        // std::cout << "Global Context 2: " << (intptr_t)(&globalContext()->cp) << std::endl;
-        // std::cout << "Global Context 2.1: " << (intptr_t)(&globalContext()->cp.capacity) << std::endl;
-        // std::cout << "Global Context 2.2: " << (intptr_t)(&globalContext()->cp.list) << std::endl;
-        // std::cout << "Global Context 3: " << (intptr_t)(&globalContext()->src) << std::endl;
-        std::cout << "Executing native code" << std::endl;
         return native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
                       callCtxt ? callCtxt->callee : nullptr);
     }

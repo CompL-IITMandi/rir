@@ -45,6 +45,12 @@ std::string dbgFolder;
 
 } // namespace
 
+#if DEBUG_MODULE_NAME_UPDATES == 1
+std::unordered_map<Code*, std::pair<rir::Code*, std::string>> & PirJitLLVM::getJitFixup() {
+    return jitFixup;
+}
+#endif
+
 void PirJitLLVM::DebugInfo::addCode(Code* c) {
     assert(!codeLoc.count(c));
     codeLoc[c] = line++;
@@ -328,7 +334,6 @@ void PirJitLLVM::finalizeAndFixup() {
         if (e.takeError()) {
             continue;
         } else {
-            std::cout << "found: " << fix.second.second << std::endl;
             auto firstUnder = fix.second.second.find_first_of('_');
 
             auto fun = M.get()->getFunction(fix.second.second);
@@ -336,7 +341,6 @@ void PirJitLLVM::finalizeAndFixup() {
             std::stringstream ss;
             ss << "f" << ++count << fix.second.second.substr(firstUnder);
             fix.second.second = ss.str();
-            std::cout << "newName: " << fix.second.second << std::endl;
 
             fun->setName(fix.second.second);
         }
@@ -786,7 +790,6 @@ void PirJitLLVM::initializeLLVM() {
                 } else if (hast) {
                     auto id = std::stoi(n.substr(5));
                     if (rir::Code::hastMap.count(id) == 0) {
-                        std::cout << "hast symbol not found" << std::endl;
                     }
                     auto addr = ((rir::DispatchTable *)rir::Code::hastMap[id])->baseline()->body();
                     NewSymbols[Name] = JITEvaluatedSymbol(
@@ -798,18 +801,9 @@ void PirJitLLVM::initializeLLVM() {
                     auto secondDel = n.find('_', firstDel + 1);
                     auto thirdDel = n.find('_', secondDel + 1);
 
-                    std::cout << "symbol: " << n << std::endl;
-                    std::cout << "firstDel: " << firstDel << std::endl;
-                    std::cout << "secondDel: " << secondDel << std::endl;
-                    std::cout << "thirdDel: " << thirdDel << std::endl;
-
                     auto hast = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
                     auto extraPoolOffset = std::stoi(n.substr(secondDel + 1, thirdDel - secondDel - 1));
                     auto context = std::stoul(n.substr(thirdDel + 1));
-                    std::cout << "hast: " << hast << std::endl;
-                    std::cout << "extraPoolOffset: " << extraPoolOffset << std::endl;
-                    std::cout << "context: " << context << std::endl;
-
                     Context c(context);
 
                     rir::DispatchTable * dtable = ((rir::DispatchTable *)rir::Code::hastMap[hast]);
@@ -828,7 +822,6 @@ void PirJitLLVM::initializeLLVM() {
                     }
 
                     auto res = DATAPTR(code->getExtraPoolEntry(extraPoolOffset));
-                    std::cout << "resolved DeoptMetadata: " << ((uintptr_t)res) << std::endl;
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
