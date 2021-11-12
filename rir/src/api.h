@@ -25,7 +25,7 @@ SEXP pirCompile(SEXP closure, const rir::Context& assumptions,
                 const std::string& name, const rir::pir::DebugOptions& debug);
 SEXP pirCompileAndSerialize(SEXP closure, const rir::Context& assumptions,
                 const std::string& name, const rir::pir::DebugOptions& debug, std::function<void(llvm::Module*, rir::Code *)> sCallback,
-                std::function<void(rir::FunctionSignature &, std::string &)> signatureCallback);
+                std::function<void(rir::FunctionSignature &, std::string)> signatureCallback);
 
 extern SEXP rirOptDefaultOpts(SEXP closure, const rir::Context&, SEXP name);
 extern SEXP rirOptDefaultOptsDryrun(SEXP closure, const rir::Context&,

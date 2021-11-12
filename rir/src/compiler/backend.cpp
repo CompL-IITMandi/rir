@@ -23,7 +23,7 @@
 #include "patches.h"
 
 #include "llvm/Support/raw_os_ostream.h"
-
+#include <random>
 
 #include <algorithm>
 #include <chrono>
@@ -439,7 +439,6 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
 
         // Identify root node
         // The code object that does not exist in any promise set is the root node
-        std::string mainFunctionName;
         Code * mainFunCodeObj = NULL;
 
         for (auto & element : promMap) {
@@ -480,21 +479,36 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
             Rf_error("No root node found!");
         }
 
-        std::stringstream ss;
-        ss << std::hex << std::uppercase << done[mainFunCodeObj]->hast;
-        ss << "_";
-        ss << std::hex << std::uppercase << cls->context().toI();
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(100, 999); // our distribution is between 100 and 999
+        std::string startingUID;
+        while (true) {
+            std::stringstream ss;
+            ss << "f_";
+            ss << dis(gen) << "_"; // random 3 digit number
+            ss << std::hex << std::uppercase << done[mainFunCodeObj]->hast; // random 3 digit number
+            ss << "_";
+            ss << std::hex << std::uppercase << cls->context().toI();
+            auto e = jit.JIT->lookup(ss.str());
+            if (e.takeError()) {
+                startingUID = ss.str();
+                break;
+            }
+
+        }
+
 
         // Updates the names in a scheme that allows it to be read by the deserializer
-        updateModuleNames(ss.str(), mainFunCodeObj, &jit, mainFunCodeObj, promMap, done);
-
+        updateModuleNames(startingUID, mainFunCodeObj, &jit, mainFunCodeObj, promMap, done);
 
         // Callback to patch the symbols and serialize the to bc
         jit.moduleMakeup(sCallback, done[mainFunCodeObj]);
 
         // The JIT handle and function signature to recreate the function upon deserializing
-        signatureCallback(signature, mainFunctionName);
+        signatureCallback(signature, startingUID);
     }
+
 
     #if BACKEND_PRINT_FINAL_LLVM == 1
     std::cout << "BACKEND_INITIAL_LLVM" << std::endl;
@@ -524,7 +538,7 @@ Backend::LastDestructor::LastDestructor() {
     }
 }
 
-void Backend::addSerializer(std::function<void(llvm::Module*, rir::Code *)> call, std::function<void(FunctionSignature &, std::string &)> signCall) {
+void Backend::addSerializer(std::function<void(llvm::Module*, rir::Code *)> call, std::function<void(FunctionSignature &, std::string)> signCall) {
     sCallback = call;
     signatureCallback = signCall;
 }

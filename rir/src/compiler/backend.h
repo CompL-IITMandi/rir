@@ -25,7 +25,7 @@ class Backend {
 
     rir::Function* getOrCompile(ClosureVersion* cls);
 
-    void addSerializer(std::function<void(llvm::Module*, rir::Code *)>, std::function<void(FunctionSignature &, std::string &)>);
+    void addSerializer(std::function<void(llvm::Module*, rir::Code *)>, std::function<void(FunctionSignature &, std::string)>);
 
   private:
     struct LastDestructor {
@@ -35,7 +35,7 @@ class Backend {
     LastDestructor firstMember_;
     Preserve preserve;
     std::function<void(llvm::Module*, rir::Code *)> sCallback;
-    std::function<void(FunctionSignature &, std::string &)> signatureCallback;
+    std::function<void(FunctionSignature &, std::string)> signatureCallback;
     Module* module;
     PirJitLLVM jit;
     std::unordered_map<ClosureVersion*, Function*> done;

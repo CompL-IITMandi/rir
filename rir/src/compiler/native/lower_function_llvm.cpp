@@ -90,13 +90,21 @@ class NativeAllocator : public SSAAllocator {
 
 llvm::Value* LowerFunctionLLVM::globalConst(llvm::Constant* init,
                                             llvm::Type* ty) {
-    static int num = 0;
     if (!ty)
         ty = init->getType();
+    
+    #if PATCH_GLOBAL_CONSTANT_NAMES == 1
+
+    static int num = 0;
     std::stringstream name;
     name << "copool_" << num++;
     return new llvm::GlobalVariable(getModule(), ty, true,
                                     llvm::GlobalValue::PrivateLinkage, init, name.str());
+    
+    #else
+    return new llvm::GlobalVariable(getModule(), ty, true,
+                                    llvm::GlobalValue::PrivateLinkage, init);
+    #endif
 }
 
 llvm::FunctionCallee
@@ -154,7 +162,11 @@ void LowerFunctionLLVM::addDebugMsg(llvm::Value *v, int tag, int location) {
 }
 
 void LowerFunctionLLVM::setVisible(int i) {
+    #if PATCH_SET_VISIBLE == 1
     builder.CreateStore(c(i), convertToExternalSymbol("spe_Visible", t::Int));
+    #else
+    builder.CreateStore(c(i), convertToPointer(&R_Visible, t::Int));
+    #endif
 }
 
 llvm::Value* LowerFunctionLLVM::force(Instruction* i, llvm::Value* arg) {
@@ -214,11 +226,18 @@ void LowerFunctionLLVM::insn_assert(llvm::Value* v, const char* msg,
     builder.SetInsertPoint(nok);
     if (p)
         call(NativeBuiltins::get(NativeBuiltins::Id::printValue), {p});
+
+    #if PATCH_MSG == 1
     std::stringstream ss;
     ss << "msg_";
     ss << msg;
     call(NativeBuiltins::get(NativeBuiltins::Id::assertFail),
          {convertToExternalSymbol(ss.str(), t::i8)});
+    #else
+    call(NativeBuiltins::get(NativeBuiltins::Id::assertFail),
+         {convertToPointer((void*)msg, t::i8, true)});
+    #endif
+
 
     builder.CreateUnreachable();
     builder.SetInsertPoint(ok);
@@ -282,7 +301,7 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
         }
     }
 
-    // dcs -> Direct constant symbols
+    #if PATCH_100_102 == 1
     if (co == R_GlobalEnv) {
         return convertToExternalSymbol("dcs_100");
     }
@@ -292,6 +311,15 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     if (co == R_BaseNamespace) {
         return convertToExternalSymbol("dcs_102");
     }
+    #else
+    static std::unordered_set<SEXP> eternal = {R_GlobalEnv, R_BaseEnv,
+                                               R_BaseNamespace};
+    if (eternal.count(co)) {
+        return convertToPointer(co);
+    }
+    #endif
+
+    #if PATCH_103_109 == 1
     if (co == R_TrueValue) {
         return convertToExternalSymbol("dcs_103");
     }
@@ -313,7 +341,16 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     if (co == R_EmptyEnv) {
         return convertToExternalSymbol("dcs_109");
     }
+    #else
+    static std::unordered_set<SEXP> eternalConst = {
+        R_TrueValue,  R_NilValue,       R_FalseValue, R_UnboundValue,
+        R_MissingArg, R_LogicalNAValue, R_EmptyEnv};
+    if (eternalConst.count(co)) {
+        return convertToPointer(co, true);
+    }
+    #endif
 
+    #if PATCH_110_111 == 1
     if (co == R_RestartToken) {
         return convertToExternalSymbol("dcs_110");
     }
@@ -321,31 +358,40 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     if (co == R_DimSymbol) {
         return convertToExternalSymbol("dcs_111");
     }
+    #endif
 
-    // sym -> Returns the symbols address by lookup in the symbol pool
+    #if PATCH_SYMSXP == 1
     if (TYPEOF(co) == SYMSXP) {
         std::stringstream ss;
         ss << "sym_";
         ss << CHAR(PRINTNAME(co));
         return convertToExternalSymbol(ss.str());
     }
+    #else
+    if (TYPEOF(co) == SYMSXP)
+        return convertToPointer(co);
+    #endif
 
-    // bis -> Builtin symbol by number
+    #if PATCH_BUILTINSXP == 1
     if (TYPEOF(co) == BUILTINSXP) {
         std::stringstream ss;
         ss << "gcb_";
         ss << getBuiltinNr(co);
         return convertToExternalSymbol(ss.str());
     }
+    #else
+    if (TYPEOF(co) == BUILTINSXP) {
+        return convertToPointer(co, true);
+    }
+    #endif
 
     // TODO
     if (TYPEOF(co) == SPECIALSXP) {
-        std::cout << "specialSXP" << std::endl;
         return convertToPointer(co, true);
     }
 
+    #if PATCH_CP_ENTRIES == 1
     auto cpIndex = Pool::insert(co);
-
     auto iVal = globalConst(c(cpIndex), t::i32);
     auto iLoad = builder.CreateLoad(iVal);
 
@@ -353,6 +399,18 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     pos = builder.CreateBitCast(dataPtr(pos, false),
                                 PointerType::get(t::SEXP, 0));
     pos = builder.CreateGEP(pos, iLoad);
+    #else
+    auto i = Pool::insert(co);
+    llvm::Value* pos = builder.CreateLoad(constantpool);
+    pos = builder.CreateBitCast(dataPtr(pos, false),
+                                PointerType::get(t::SEXP, 0));
+    pos = builder.CreateGEP(pos, c(i));
+    #endif
+
+
+
+
+
     return builder.CreateLoad(pos);
 }
 
@@ -425,8 +483,12 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
         });
     }
 
-    // auto f = convertToFunction((void*)builtinFun, t::builtinFunction);
+    #if PATCH_BUILTINCALL == 1
     auto f = convertToFunctionSymbol(builtin, t::builtinFunction);
+    #else
+    auto f = convertToFunction((void*)builtinFun, t::builtinFunction);
+    #endif
+
 
     std::stack<llvm::Value*> loadedArgs;
     auto n = numTemps;
@@ -520,20 +582,29 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
     } else if (val->asRValue()) {
         res = constant(val->asRValue(), needed);
     } else if (val == OpaqueTrue::instance()) {
+        #if PATCH_OPAQUE_TRUE == 1
         // Something that is always true, but llvm does not know about
         res = builder.CreateLoad(convertToExternalSymbol("spe_opaqueTrue", t::Int));
+        #else
+        static int one = 1;
+        // Something that is always true, but llvm does not know about
+        res = builder.CreateLoad(convertToPointer(&one, t::Int, true));
+        #endif
     } else if (auto ld = Const::Cast(val)) {
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
         auto dr = (DeoptReasonWrapper*)val;
 
+        #if TRY_PATCH_DEOPTREASON == 1
         Constant * srcAddr;
-
         if (dr->reason.srcCode()->hast != -1) {
             std::stringstream ss;
             ss << "hast_" << dr->reason.srcCode()->hast;
             srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
         } else {
+            #if DEBUG_ERR_MSG == 1
+            std::cerr << "Failed to patch DeoptReason" << std::endl;
+            #endif
             srcAddr = (Constant*)builder.CreateIntToPtr(
                 llvm::ConstantInt::get(
                     PirJitLLVM::getContext(),
@@ -542,6 +613,16 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
                                 false)),
                 t::voidPtr);
         }
+        #else
+        auto srcAddr = (Constant*)builder.CreateIntToPtr(
+        llvm::ConstantInt::get(
+            PirJitLLVM::getContext(),
+            llvm::APInt(64,
+                        reinterpret_cast<uint64_t>(dr->reason.srcCode()),
+                        false)),
+        t::voidPtr);
+        #endif
+
 
         auto drs = llvm::ConstantStruct::get(
             t::DeoptReason, {c(dr->reason.reason, 32),
@@ -1932,13 +2013,11 @@ bool LowerFunctionLLVM::compileDotcall(
         if (auto exp = ExpandDots::Cast(v)) {
             args.push_back(exp);
             auto cpIndex = Pool::insert(symbol::expandDotsTrigger);
-            // cpCall(cpIndex);
             newNames.push_back(cpIndex);
             seenDots = true;
         } else {
             assert(!DotsList::Cast(v));
             auto cpIndex = Pool::insert(names(pos));
-            // cpCall(cpIndex);
             newNames.push_back(cpIndex);
             args.push_back(v);
         }
@@ -2197,8 +2276,12 @@ void LowerFunctionLLVM::compile() {
         }
     }
 
-    // nodestackPtrAddr = convertToPointer(&R_BCNodeStackTop, t::stackCellPtr);
+    #if PATCH_NODE_STACK_TOP == 1
     nodestackPtrAddr = convertToExternalSymbol("spe_BCNodeStackTop", t::stackCellPtr);
+    #else
+    nodestackPtrAddr = convertToPointer(&R_BCNodeStackTop, t::stackCellPtr);
+    #endif
+
     basepointer = nodestackPtr();
 
     size_t additionalStackSlots = 0;
@@ -2259,9 +2342,13 @@ void LowerFunctionLLVM::compile() {
             }
         };
 
-
+        #if PATCH_CONSTANT_POOL_PTR == 1
         auto speSym = convertToExternalSymbol("spe_constantPool", t::i64);
         constantpool = builder.CreateIntToPtr(speSym, t::SEXP_ptr);
+        #else
+        constantpool = builder.CreateIntToPtr(c(globalContext()), t::SEXP_ptr);
+        #endif
+
         constantpool = builder.CreateGEP(constantpool, c(1));
 
         Visitor::run(code->entry, [&](BB* bb) {
@@ -3440,7 +3527,6 @@ void LowerFunctionLLVM::compile() {
                 std::vector<BC::PoolIdx> names;
                 for (size_t i = 0; i < b->names.size(); ++i) {
                     auto cpIndex = Pool::insert((b->names[i]));
-                    // cpCall(cpIndex);
                     names.push_back(cpIndex);
                 }
                 auto namesConst = c(names);
@@ -3597,7 +3683,10 @@ void LowerFunctionLLVM::compile() {
                 // TODO, this is copied from pir2rir... rather ugly
                 DeoptMetadata* m = nullptr;
                 auto deopt = Deopt::Cast(i);
+
+                #if TRY_PATCH_DEOPTMETADATA == 1
                 std::stringstream ssN;
+                #endif
 
                 std::vector<Value*> args;
                 {
@@ -3623,29 +3712,52 @@ void LowerFunctionLLVM::compile() {
                             args.push_back(fs->arg(pos).val());
                         args.push_back(fs->env());
 
+                        #if TRY_PATCH_DEOPTMETADATA == 1
                         uintptr_t offset = (uintptr_t)fs->pc - ((uintptr_t)fs->code);
 
-                        m->frames[frameNr] = {offset, fs->code->hast, fs->stackSize,
+                        m->frames[frameNr--] = {offset, fs->code->hast, fs->stackSize,
                                                 fs->inPromise};
-                        frameNr = frameNr - 1;
+                        #else
+                        m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
+                                                fs->inPromise};
+                        #endif
                     }
 
+                    #if TRY_PATCH_DEOPTMETADATA == 1
                     if (target->hast == -1) {
-                        std::cout << "Failed to create a pointer to extra pool deopt entry" << std::endl;
+                        #if DEBUG_ERR_MSG == 1
+                        std::cerr << "Failed to create a pointer to extra pool deopt entry" << std::endl;
+                        #endif
+                        Rf_error("Failed to patch DeoptMetadata")
+                    } else {
+                        auto extraPoolIndex = target->addExtraPoolEntry(store);
+                        ssN << "epe_" << target->hast << "_" << extraPoolIndex << "_" << cls->context().toI();
                     }
+                    #else
+                    target->addExtraPoolEntry(store);
+                    #endif
 
-                    auto extraPoolIndex = target->addExtraPoolEntry(store);
-                    ssN << "epe_" << target->hast << "_" << extraPoolIndex << "_" << cls->context().toI();
+
                 }
 
+                #if TRY_PATCH_DEOPTMETADATA == 1
                 withCallFrame(args, [&]() {
                     return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
                                 {paramCode(), paramClosure(),
-                                // convertToPointer(m, t::i8, true), paramArgs(),
                                  convertToExternalSymbol(ssN.str(), t::i8), paramArgs(),
                                  load(deopt->deoptReason()),
                                  loadSxp(deopt->deoptTrigger())});
                 });
+                #else
+                withCallFrame(args, [&]() {
+                    return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
+                                {paramCode(), paramClosure(),
+                                 convertToPointer(m, t::i8, true), paramArgs(),
+                                 load(deopt->deoptReason()),
+                                 loadSxp(deopt->deoptTrigger())});
+                });
+                #endif
+
                 builder.CreateUnreachable();
                 break;
             }
@@ -3660,7 +3772,6 @@ void LowerFunctionLLVM::compile() {
                     if (mkenv->missing[i])
                         n = CONS_NR(n, R_NilValue);
                     auto cpIndex = Pool::insert(n);
-                    // cpCall(cpIndex);
                     names.push_back(cpIndex);
                 }
                 auto namesConst = c(names);
@@ -5992,12 +6103,18 @@ void LowerFunctionLLVM::compile() {
                         } else {
                             msg = defaultMsg;
                         }
+                        #if PATCH_MSG == 1
                         std::stringstream ss;
                         ss << "msg_";
                         ss << msg;
                         call(NativeBuiltins::get(NativeBuiltins::Id::checkType),
                              {loadSxp(i), c((unsigned long)i->type.serialize()),
                               convertToExternalSymbol(ss.str(), t::i8)});
+                        #else
+                        call(NativeBuiltins::get(NativeBuiltins::Id::checkType),
+                             {load(i), c((unsigned long)i->type.serialize()),
+                              convertToPointer(msg, t::i8, true)});
+                        #endif
                     }
                 }
 #ifdef ENABLE_SLOWASSERT

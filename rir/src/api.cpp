@@ -397,7 +397,7 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
         std::cout << "Entry 4(number of contexts): " << s << std::endl;
         #endif
 
-        #if PRINT_DESERIALIZER_PROGRESS == 1
+        #if PRINT_SERIALIZER_PROGRESS == 1
         std::cout << "Serializing bitcode: " << name << "(" << hast << ")" << ", found " << contextList.size() << " version(s)" << std::endl;
         #endif
         int i = 0;
@@ -407,10 +407,9 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
             Context c(contextList.at(i));
             unsigned long con = c.toI();
 
-            #if PRINT_DESERIALIZER_PROGRESS == 1
+            #if PRINT_SERIALIZER_PROGRESS == 1
             std::cout << "(" << con << ") : " << c << std::endl;
             #endif
-
 
             // This represents the number of extra pool entries that will be needed to be inserted
             // into the extra pool upon deserialization
@@ -425,7 +424,7 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
             // Entry 5 (unsigned long): context
             metaDataFile.write(reinterpret_cast<char *>(&con), sizeof(unsigned long));
 
-            auto signatureWriter = [&](FunctionSignature & fs, std::string & mainName) {
+            auto signatureWriter = [&](FunctionSignature & fs, std::string mainName) {
 
                 // Entry 6 (int): envCreation
                 int envCreation = (int)fs.envCreation;
@@ -606,7 +605,6 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
                 }
             };
             pirCompileAndSerialize(compiledFun, c, name, pir::DebugOptions::DefaultDebugOptions, serializeCallback, signatureWriter);
-
         }
         metaDataFile.close();
         return Rf_ScalarInteger(contextList.size());
@@ -820,7 +818,7 @@ REXPORT SEXP pirSetDebugFlags(SEXP debugFlags) {
 }
 
 SEXP pirCompileAndSerialize(SEXP what, const Context& assumptions, const std::string& name,
-                const pir::DebugOptions& debug, std::function<void(llvm::Module*, rir::Code *)> sCallback, std::function<void(FunctionSignature &, std::string &)> signatureCallback) {
+                const pir::DebugOptions& debug, std::function<void(llvm::Module*, rir::Code *)> sCallback, std::function<void(FunctionSignature &, std::string)> signatureCallback) {
     if (!isValidClosureSEXP(what)) {
         Rf_error("not a compiled closure");
     }
