@@ -1,5 +1,4 @@
 execute <- function () {
-    print("Hello")
     seed <- NaN
 
     resetSeed <- function() seed <<- 74755
@@ -19,16 +18,14 @@ execute <- function () {
                              (nextRandom() %% 300) - 150, (nextRandom() %% 300) - 150)
     }
 
-    ball <- function(ball) {
-        results <- bounce(ball)
-        if (results[[2]]) bounces <<- bounces + 1
-        return (results[[1]])
-    }
+    # ball <- function(ball) {
+    #     results <- bounce(ball)
+    #     if (results[[2]]) bounces <<- bounces + 1
+    #     return (results[[1]])
+    # }
 
-    # ball(balls)
-
-    for (i in 1:50) balls <- lapply(balls, ball)
-    # return (bounces)
+    # for (i in 1:50) balls <- lapply(balls, ball)
+    return (bounces)
 }
 
 bounce <- function(ball) {
@@ -61,8 +58,5 @@ bounce <- function(ball) {
     }
     return (list(ball, bounced))
 }
-
-invisible(rir.compile(execute))
-invisible(rir.compile(bounce))
 
 execute()

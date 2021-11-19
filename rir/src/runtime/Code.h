@@ -80,6 +80,9 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
     NativeCode lazyCompile();
 
   public:
+    std::string getLazyCodeHandle() {
+        return lazyCodeHandle_;
+    }
     void lazyCodeHandle(const std::string& h) {
         assert(h != "");
         auto l = h.length() + 1;

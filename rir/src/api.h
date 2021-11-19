@@ -14,6 +14,14 @@
 
 extern int R_ENABLE_JIT;
 
+class BaseLibs {
+  public:
+  static const std::vector<std::string> libBaseName;
+
+  static const std::vector<std::size_t> libBaseHast;
+
+};
+
 REXPORT SEXP rirInvocationCount(SEXP what);
 REXPORT SEXP pirCompileWrapper(SEXP closure, SEXP name, SEXP debugFlags,
                                SEXP debugStyle);
@@ -35,8 +43,12 @@ void hash_ast(SEXP ast, int & hast);
 void printAST(int space, SEXP ast);
 void printAST(int space, int val);
 
+REXPORT SEXP printHAST(SEXP clos);
+
 REXPORT SEXP rirSerialize(SEXP data, SEXP file);
 REXPORT SEXP rirDeserialize(SEXP file);
+
+REXPORT SEXP initializeBaseLib();
 
 REXPORT SEXP rirSetUserContext(SEXP f, SEXP udc);
 REXPORT SEXP rirCreateSimpleIntContext();

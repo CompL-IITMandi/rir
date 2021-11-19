@@ -629,6 +629,10 @@ void PirJitLLVM::initializeLLVM() {
 
                 auto epe = n.substr(0, 4) == "epe_"; // extra pool entry
 
+                auto base = n.substr(0, 5) == "base_"; // baseLibraryEntry
+
+                auto spef = n.substr(0, 5) == "spef_"; // specialsxp function
+
                 if (ept || efn) {
                     auto addrStr = n.substr(4);
                     auto addr = std::strtoul(addrStr.c_str(), nullptr, 16);
@@ -715,6 +719,8 @@ void PirJitLLVM::initializeLLVM() {
                         addr = reinterpret_cast<uintptr_t>(&opaqueTrue);
                     } else if (constantName.compare("constantPool") == 0) {
                         addr = reinterpret_cast<uintptr_t>(globalContext());
+                    } else if (constantName.compare("returnedValue") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&R_ReturnedValue);
                     }
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
@@ -725,7 +731,7 @@ void PirJitLLVM::initializeLLVM() {
 
                     char * p = (char *) malloc( sizeof(char) * msgSize );
 
-                    for (int i = 0; i < msgSize; i++) {
+                    for (size_t i = 0; i < msgSize; i++) {
                         p[i] = n.substr(4).c_str()[i];
                     }
 
@@ -804,12 +810,14 @@ void PirJitLLVM::initializeLLVM() {
 
                     rir::Code * code;
 
-                    for (size_t i = 1; i < dtable->size(); ++i) {
-                        auto e = dtable->get(i);
-                        if (e->context() == c) {
-                            code = e->body();
-                        }
-                    }
+                    code = dtable->dispatch(c)->body();
+
+                    // for (size_t i = 1; i < dtable->size(); ++i) {
+                    //     auto e = dtable->get(i);
+                    //     if (e->context() == c) {
+                    //         code = e->body();
+                    //     }
+                    // }
 
                     if (!code) {
                         std::cout << "failed to find the version in dispatch table" << std::endl;
@@ -821,6 +829,34 @@ void PirJitLLVM::initializeLLVM() {
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(res)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (base) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto baseIndex = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    auto funName = BaseLibs::libBaseName.at(baseIndex);
+                    auto sym = Rf_install(funName.c_str());
+                    auto fun = Rf_findFun(sym, R_GlobalEnv);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(fun)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+
+                } else if (spef) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto index = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    auto sym = Rf_install(R_FunTab[index].name);
+                    auto fun = Rf_findFun(sym,R_GlobalEnv);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(fun)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
                 } else {
                     std::cout << "unknown symbol " << n << "\n";
                 }

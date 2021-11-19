@@ -44,6 +44,15 @@ static bool oldPreserve = false;
 static unsigned oldSerializeChaos = false;
 static bool oldDeoptChaos = false;
 
+const std::vector<std::string> BaseLibs::libBaseName = {
+    "match.fun"
+};
+
+const std::vector<std::size_t> BaseLibs::libBaseHast = {
+    26989 // 0
+};
+
+
 bool parseDebugStyle(const char* str, pir::DebugStyle& s) {
 #define V(style)                                                               \
     if (strcmp(str, #style) == 0) {                                            \
@@ -107,6 +116,10 @@ void printType(int & space, const char * attr, int val) {
     std::cout << "└■ " << attr << " {" << val;
 }
 
+void printSPECIALSXP(int space, SEXP specialsxp) {
+    printHeader(space, "SPECIALSXP");
+}
+
 void printLangSXP(int space, SEXP langsxp) {
     printHeader(space, "LANGSXP");
 
@@ -135,13 +148,14 @@ void printSYMSXP(int space, SEXP symsxp) {
     printAST(space, pname);
 
     printType(space, "VALUE", value);
-    // if (symsxp != value) {
-    //     printAST(space, value);
-    // } else {
-    //     std::cout << "}" << std::endl;
-    // }
+    if (symsxp != value) {
+        // printAST(space, value);
+        std::cout << "}" << std::endl;
+    } else {
+        std::cout << "}" << std::endl;
+    }
 
-    std::cout << "}" << std::endl;
+    // std::cout << "}" << std::endl;
 
     printType(space, "INTERNAL", internal);
     printAST(space, internal);
@@ -287,6 +301,7 @@ void printAST(int space, SEXP ast) {
         case PROMSXP: printPROMSXP(++space, ast); break;
         case ENVSXP: printENVSXP(++space, ast); break;
         case RAWSXP: printRAWSXP(++space, ast); break;
+        case SPECIALSXP: printSPECIALSXP(++space, ast); break;
         case EXTERNALSXP: printExternalCodeEntry(++space, ast); break;
         default: std::cout << "}" << std::endl; break;
     }
@@ -305,16 +320,23 @@ void hash_ast(SEXP ast, int & hast) {
     }
 }
 
+REXPORT SEXP printHAST(SEXP clos) {
+    if (DispatchTable::check(BODY(clos))) {
+        auto vtable = DispatchTable::unpack(BODY(clos));
+        std::cout << "hast: " << vtable->baseline()->body()->hast << std::endl;
+        return R_TrueValue;
+    }
+
+    return R_FalseValue;
+}
+
 REXPORT SEXP rirCompile(SEXP what, SEXP env) {
     if (TYPEOF(what) == CLOSXP) {
         SEXP body = BODY(what);
         if (TYPEOF(body) == EXTERNALSXP)
             return what;
 
-        SEXP b = BODY(what);
-        if (TYPEOF(body) == BCODESXP) {
-            b = VECTOR_ELT(CDR(body), 0);
-        }
+        // std::cout << "rirCompile: " << what << std::endl;
 
         // Change the input closure inplace
         Compiler::compileClosure(what);
@@ -349,7 +371,7 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
         std::vector<unsigned long> contextList;
 
         if (TYPEOF(versions) == NILSXP) {
-            for (int i = 1; i < vtable->size(); i++) {
+            for (size_t i = 1; i < vtable->size(); i++) {
                 contextList.push_back(vtable->get(i)->context().toI());
             }
         } else if (TYPEOF(versions) == REALSXP) {
@@ -400,8 +422,7 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
         #if PRINT_SERIALIZER_PROGRESS == 1
         std::cout << "Serializing bitcode: " << name << "(" << hast << ")" << ", found " << contextList.size() << " version(s)" << std::endl;
         #endif
-        int i = 0;
-        for (i = 0; i < contextList.size(); i++) {
+        for (size_t i = 0; i < contextList.size(); i++) {
 
             // Looping over all the contexts
             Context c(contextList.at(i));
@@ -496,7 +517,7 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
 
                                 auto arrSize = v->getNumElements();
 
-                                for (auto i = 0; i < arrSize; i++) {
+                                for (unsigned int i = 0; i < arrSize; i++) {
                                     auto val = v->getElementAsAPInt(i).getSExtValue();
                                     cpEntries.push_back(val);
 
@@ -519,14 +540,23 @@ REXPORT SEXP vSerialize(SEXP fun, SEXP funName, SEXP versions) {
                                 llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
 
                                 global.setInitializer(replacementValue);
-                            } else  if (auto * v = llvm::dyn_cast<llvm::ConstantStruct>(con)) {
-                                // the symbol used in this should be added to HAST_REQUIRED list
-                            } else {
-                                llvm::raw_os_ostream ooo(std::cout);
-                                ooo << *module;
-                                std::cout << "Unknown constant pool entry type: " << global.getName().str() << std::endl;
-                                Rf_error("Unknown constant pool entry");
                             }
+                            // else  if (auto * v = llvm::dyn_cast<llvm::ConstantAggregateZero>(con)) {
+                            //     // Zero Initialized array
+                            //     #if API_PRINT_MISC_MSG == 1
+                            //     std::cout << "Constant Aggregate zero: " <<  global.getName().str() << std::endl;
+                            //     #endif
+                            // } else  if (auto * v = llvm::dyn_cast<llvm::ConstantStruct>(con)) {
+                            //     // the symbol used in this should be added to HAST_REQUIRED list
+                            //     #if API_PRINT_MISC_MSG == 1
+                            //     std::cout << "Constant Struct(Deopt Reason): " <<  global.getName().str() << std::endl;
+                            //     #endif
+                            // } else {
+                            //     llvm::raw_os_ostream ooo(std::cout);
+                            //     ooo << *module;
+                            //     std::cout << "Unknown constant pool entry type: " << global.getName().str() << std::endl;
+                            //     Rf_error("Unknown constant pool entry");
+                            // }
                         }
 
                         if (epe) {
@@ -1182,6 +1212,24 @@ REXPORT SEXP rirCreateSimpleIntContext() {
     INTEGER(res)[0] = n1;
     INTEGER(res)[1] = n2;
     return res;
+}
+
+REXPORT SEXP initializeBaseLib() {
+    // for (auto & ele : libBase) {
+    //     auto funSymSEXP = Rf_install(ele);
+    //     auto functionSEXP = Rf_findFun(funSymSEXP, R_GlobalEnv);
+    //     if (TYPEOF(functionSEXP) == CLOSXP) {
+    //         Compiler::compileClosure(functionSEXP);
+    //         // printAST(0,functionSEXP);
+    //         std::cout << "closure found, compiling rir" << std::endl;
+    //         if (DispatchTable::check(BODY(functionSEXP))) {
+    //             DispatchTable * vtable = DispatchTable::unpack(BODY(functionSEXP));
+    //             std::cout << "compiled: " << ele << ", hast: " << vtable->baseline()->body()->hast << std::endl;
+    //         }
+    //     }
+    //     std::cout << "baselib: " << ele << ", sym: " << funSymSEXP << ", function: " << functionSEXP << " (" << TYPEOF(functionSEXP) << ")" << std::endl;
+    // }
+    return R_NilValue;
 }
 
 bool startup() {

@@ -53,6 +53,14 @@ f.serialize <- function(fun, versions=NULL) {
     .Call("vSerialize", fun, as.name(as.character(substitute(fun))), versions)
 }
 
+f.initializeBaseLib <- function() {
+    .Call("initializeBaseLib")
+}
+
+f.printHAST <- function(what) {
+    .Call("printHAST", what)
+}
+
 # optimizes given rir compiled closure
 pir.compile <- function(what, debugFlags, debugStyle, P_EARLY=FALSE, P_FINAL=FALSE, P_OPT=FALSE, WARN=FALSE) {
     debugFlags <-

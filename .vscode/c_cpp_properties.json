@@ -4,7 +4,7 @@
             "name": "Ř @ prl5",
             "includePath": [
                 "${workspaceFolder}/rir/src/**",
-                "${workspaceFolder}/external/custom-r/src/**",
+                "${workspaceFolder}/external/custom-r/src/include/**",
                 "${workspaceFolder}/external/llvm-12/include/**"
             ],
             "defines": [

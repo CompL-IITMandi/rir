@@ -8,6 +8,8 @@
 #define API_PRINT_MODULE_BEFORE_POOL_PATCHES 0
 // Prints the module after updating the constant pool entries
 #define API_PRINT_MODULE_AFTER_POOL_PATCHES 0
+// Prints the entries that need no patching
+#define API_PRINT_MISC_MSG 0
 
 // Prints a debug message if initial compilation is successful
 #define BACKEND_INITIAL_COMPILATION_SUCCESS_MSG 0
@@ -21,7 +23,7 @@
 // Rename globalConstants - Adds a prefix to the CP lookup indices, so we can look them up during serialization
 //
 // Prefix: "copool_"
-// 1. constants 
+// 1. constants
 // 2. DeoptReason
 // 3. namesStore - for passing CP indicies to createStubEnvironment,  dotsCall, namedCall
 //
@@ -36,7 +38,8 @@
 #define PATCH_NODE_STACK_TOP 1
 // Symbol: "spe_constantPool"
 #define PATCH_CONSTANT_POOL_PTR 1
-
+// Symbol: "spe_returnedValue"
+#define PATCH_RETURNED_VALUE 1
 
 // Instruction assert fail message, checktype message
 // Prefix: "msg_"
@@ -70,7 +73,8 @@
 // Patch BUILTINSXP
 #define PATCH_BUILTINSXP 1
 
-// TODO : patch SPECIALSXP 
+// TODO : patch SPECIALSXP, only functions handled currently
+#define PATCH_SPECIALSXP 1
 
 // Patch Constant Pool Entries, needs PATCH_GLOBAL_CONSTANT_NAMES to work
 #define PATCH_CP_ENTRIES 1
@@ -87,7 +91,11 @@
 // Try patching DeoptMetadata
 #define TRY_PATCH_DEOPTMETADATA 1
 
+// Try patching DeoptMetadata
+#define TRY_PATCH_STATIC_CALL3 1
 
+// Print the compiled context for each hast
+#define DEBUG_PRINT_COMPILED_CONTEXT 0
 
 // Show error info if something goes wrong
 #define DEBUG_ERR_MSG 1

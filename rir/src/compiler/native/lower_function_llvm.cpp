@@ -21,7 +21,9 @@
 
 #include "llvm/IR/Intrinsics.h"
 #include <llvm/IR/Constants.h>
+#include "api.h"
 
+#include <iterator>
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
@@ -29,6 +31,8 @@
 #include <llvm/IR/GlobalObject.h>
 #include <llvm/IR/GlobalValue.h>
 #include <llvm/IR/GlobalVariable.h>
+#include "llvm/Support/raw_os_ostream.h"
+
 #include <map>
 #include <memory>
 #include <string>
@@ -92,7 +96,7 @@ llvm::Value* LowerFunctionLLVM::globalConst(llvm::Constant* init,
                                             llvm::Type* ty) {
     if (!ty)
         ty = init->getType();
-    
+
     #if PATCH_GLOBAL_CONSTANT_NAMES == 1
 
     static int num = 0;
@@ -100,7 +104,7 @@ llvm::Value* LowerFunctionLLVM::globalConst(llvm::Constant* init,
     name << "copool_" << num++;
     return new llvm::GlobalVariable(getModule(), ty, true,
                                     llvm::GlobalValue::PrivateLinkage, init, name.str());
-    
+
     #else
     return new llvm::GlobalVariable(getModule(), ty, true,
                                     llvm::GlobalValue::PrivateLinkage, init);
@@ -385,9 +389,23 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     }
     #endif
 
-    // TODO
     if (TYPEOF(co) == SPECIALSXP) {
+        #if PATCH_SPECIALSXP == 1
+        if (R_FunTab[co->u.primsxp.offset].gram.kind == PP_FUNCALL) {
+            std::stringstream ss;
+            ss << "spef_";
+            ss << co->u.primsxp.offset;
+            return convertToExternalSymbol(ss.str());
+        } else {
+            #if DEBUG_ERR_MSG == 1
+            std::cerr << "PATCH_SPECIALSXP: non-function type, offset: " << co->u.primsxp.offset << ", kind: " << R_FunTab[co->u.primsxp.offset].gram.kind << std::endl;
+            #endif
+            return convertToPointer(co, true);
+        }
+
+        #else
         return convertToPointer(co, true);
+        #endif
     }
 
     #if PATCH_CP_ENTRIES == 1
@@ -558,28 +576,37 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
     auto vali = Instruction::Cast(val);
 
     if (auto ct = CastType::Cast(val)) {
+        // std::cout << "CastType" << std::endl;
         if (Const::Cast(ct->arg(0).val())) {
             return load(ct->arg(0).val(), type, needed);
         }
     }
 
     if (auto a = LdArg::Cast(val)) {
+        // std::cout << "LdArg" << std::endl;
         res = argument(a->pos);
     } else if (vali && variables_.count(vali)) {
+        // std::cout << "variables_" << std::endl;
         res = getVariable(vali);
     } else if (val == Env::elided()) {
+        // std::cout << "Env::elided" << std::endl;
         res = constant(R_NilValue, needed);
     } else if (auto e = Env::Cast(val)) {
+        // std::cout << "Env::Cast" << std::endl;
         if (e == Env::notClosed()) {
+            // std::cout << "Env::notClosed" << std::endl;
             res = closxpEnv(paramClosure());
         } else if (e == Env::nil()) {
+            // std::cout << "Env::nil" << std::endl;
             res = constant(R_NilValue, needed);
         } else if (Env::isStaticEnv(e)) {
+            // std::cout << "Env::isStaticEnv" << std::endl;
             res = constant(e->rho, t::SEXP);
         } else {
             assert(false);
         }
     } else if (val->asRValue()) {
+        // std::cout << "asRValue" << std::endl;
         res = constant(val->asRValue(), needed);
     } else if (val == OpaqueTrue::instance()) {
         #if PATCH_OPAQUE_TRUE == 1
@@ -591,13 +618,14 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         res = builder.CreateLoad(convertToPointer(&one, t::Int, true));
         #endif
     } else if (auto ld = Const::Cast(val)) {
+        // std::cout << "Const::Cast" << std::endl;
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
         auto dr = (DeoptReasonWrapper*)val;
 
         #if TRY_PATCH_DEOPTREASON == 1
         Constant * srcAddr;
-        if (dr->reason.srcCode()->hast != -1) {
+        if (dr->reason.srcCode()->hast != (size_t)-1) {
             std::stringstream ss;
             ss << "hast_" << dr->reason.srcCode()->hast;
             srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
@@ -622,6 +650,20 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
                         false)),
         t::voidPtr);
         #endif
+
+        // DispatchTable * vtable = (DispatchTable *) rir::Code::hastMap[dr->reason.srcCode()->hast];
+
+        // std::cout << "body: " << vtable->baseline()->body() << std::endl;
+
+        // std::cout << "src: " << dr->reason.srcCode() << std::endl;
+
+        // std::cout << "pc-src: " << (dr->reason.pc() - ((uint64_t)dr->reason.srcCode())) << std::endl;
+        // std::cout << "offset: " << dr->reason.origin.offset() << std::endl;
+
+        // std::cout << "pc: " << dr->reason.pc() << std::endl;
+
+        // dr->reason.srcCode()->print(std::cout);
+
 
 
         auto drs = llvm::ConstantStruct::get(
@@ -868,9 +910,15 @@ void LowerFunctionLLVM::compilePushContext(Instruction* i) {
 
     // Handle incoming longjumps
     {
+        #if PATCH_RETURNED_VALUE == 1
+        auto speSym = convertToExternalSymbol("spe_returnedValue", t::i64);
+        #else
+        auto speSym = c((void*)&R_ReturnedValue);
+        #endif
+
         builder.SetInsertPoint(didLongjmp);
         llvm::Value* returned = builder.CreateLoad(
-            builder.CreateIntToPtr(c((void*)&R_ReturnedValue), t::SEXP_ptr));
+            builder.CreateIntToPtr(speSym, t::SEXP_ptr));
         auto restart =
             builder.CreateICmpEQ(returned, constant(R_RestartToken, t::SEXP));
 
@@ -1598,6 +1646,8 @@ void LowerFunctionLLVM::checkUnbound(llvm::Value* v) {
     auto ok = BasicBlock::Create(PirJitLLVM::getContext(), "", fun);
     auto nok = BasicBlock::Create(PirJitLLVM::getContext(), "", fun);
     auto t = builder.CreateICmpEQ(v, constant(R_UnboundValue, t::SEXP));
+    static int i = 0;
+    addDebugMsg(v, 0, i++);
     builder.CreateCondBr(t, nok, ok, branchAlwaysFalse);
 
     builder.SetInsertPoint(nok);
@@ -3490,7 +3540,6 @@ void LowerFunctionLLVM::compile() {
 
             case Tag::Call: {
                 auto b = Call::Cast(i);
-
                 if (compileDotcall(b, [&]() { return loadSxp(b->cls()); },
                                    [&](size_t i) { return R_NilValue; })) {
                     break;
@@ -3504,10 +3553,13 @@ void LowerFunctionLLVM::compile() {
                 if (b->isReordered())
                     callId = pushArgReordering(b->getArgOrderOrig());
 
+                auto iVal = globalConst(c(b->srcIdx), t::i32);
+                auto iLoad = builder.CreateLoad(iVal);
+
                 setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                            return call(
                                NativeBuiltins::get(NativeBuiltins::Id::call),
-                               {c(callId), paramCode(), c(b->srcIdx),
+                               {c(callId), paramCode(), iLoad,
                                 loadSxp(b->cls()), loadSxp(b->env()),
                                 c(b->nCallArgs()), c(asmpt.toI())});
                        }));
@@ -3555,10 +3607,11 @@ void LowerFunctionLLVM::compile() {
             }
 
             case Tag::StaticCall: {
+                std::cout << "StaticCall" << std::endl;
                 auto calli = StaticCall::Cast(i);
                 calli->eachArg([](Value* v) { assert(!ExpandDots::Cast(v)); });
                 auto target = calli->tryDispatch();
-                auto bestTarget = calli->tryOptimisticDispatch();
+                // auto bestTarget = calli->tryOptimisticDispatch();
                 std::vector<Value*> args;
                 calli->eachCallArg([&](Value* v) { args.push_back(v); });
                 Context asmpt = calli->inferAvailableAssumptions();
@@ -3568,6 +3621,7 @@ void LowerFunctionLLVM::compile() {
                     callId = pushArgReordering(calli->getArgOrderOrig());
 
                 if (!target->owner()->hasOriginClosure()) {
+                    std::cout << "StaticCall: !hasOriginClosure" << std::endl;
                     setVal(
                         i, withCallFrame(args, [&]() -> llvm::Value* {
                             return call(
@@ -3580,44 +3634,120 @@ void LowerFunctionLLVM::compile() {
                     break;
                 }
 
-                if (target == bestTarget) {
-                    auto callee = target->owner()->rirClosure();
-                    auto dt = DispatchTable::check(BODY(callee));
-                    rir::Function* nativeTarget = nullptr;
-                    for (size_t i = 0; i < dt->size(); i++) {
-                        auto entry = dt->get(i);
-                        if (entry->context() == target->context() &&
-                            entry->signature().numArguments >= args.size()) {
-                            nativeTarget = entry;
-                        }
+                // if (target == bestTarget) {
+                //     auto callee = target->owner()->rirClosure();
+                //     auto dt = DispatchTable::check(BODY(callee));
+                //     rir::Function* nativeTarget = nullptr;
+                //     for (size_t i = 0; i < dt->size(); i++) {
+                //         auto entry = dt->get(i);
+                //         if (entry->context() == target->context() &&
+                //             entry->signature().numArguments >= args.size()) {
+                //             nativeTarget = entry;
+                //         }
+                //     }
+                //     if (nativeTarget) {
+                //         std::cout << "target == bestTarget" << std::endl;
+                //         assert(
+                //             asmpt.includes(Assumption::StaticallyArgmatched));
+                //         auto idx = Pool::makeSpace();
+                //         NativeBuiltins::targetCaches.push_back(idx);
+                //         Pool::patch(idx, nativeTarget->container());
+                //         assert(asmpt.smaller(nativeTarget->context()));
+                //         auto res = withCallFrame(args, [&]() {
+                //             return call(
+                //                 NativeBuiltins::get(
+                //                     NativeBuiltins::Id::nativeCallTrampoline),
+                //                 {
+                //                     c(callId),
+                //                     paramCode(),
+                //                     constant(callee, t::SEXP),
+                //                     c(idx),
+                //                     c(calli->srcIdx),
+                //                     loadSxp(calli->env()),
+                //                     c(args.size()),
+                //                     c(asmpt.toI()),
+                //                 });
+                //         });
+                //         setVal(i, res);
+                //         break;
+                //     }
+                // }
+
+                std::cout << "StaticCall: hasOriginClosure" << std::endl;
+
+                #if TRY_PATCH_STATIC_CALL3 == 1
+                bool trigger = false;
+                std::stringstream ss;
+
+                if (DispatchTable::check(BODY(calli->cls()->rirClosure()))) {
+                    // current hast of function that needs to be dispatched
+                    DispatchTable * vtable = DispatchTable::unpack(BODY(calli->cls()->rirClosure()));
+                    size_t currentHast = vtable->baseline()->body()->hast;
+
+                    // Check for hast in the base library
+                    auto iter = std::find(BaseLibs::libBaseHast.begin(), BaseLibs::libBaseHast.end(), currentHast);
+
+                    if (iter != BaseLibs::libBaseHast.end()) {
+                        auto solIndex = iter - BaseLibs::libBaseHast.begin();
+                        ss << "base_";
+                        ss << solIndex;
+                        ss << "_";
+                        trigger = true;
                     }
-                    if (nativeTarget) {
-                        assert(
-                            asmpt.includes(Assumption::StaticallyArgmatched));
-                        auto idx = Pool::makeSpace();
-                        NativeBuiltins::targetCaches.push_back(idx);
-                        Pool::patch(idx, nativeTarget->container());
-                        assert(asmpt.smaller(nativeTarget->context()));
-                        auto res = withCallFrame(args, [&]() {
+
+                    #if DEBUG_ERR_MSG == 1
+                    if (!trigger) {
+                        std::cerr << "Static call patch (hasOriginClosure) failed, hast: " << currentHast << std::endl;
+                    }
+                    #endif
+
+                } else {
+
+                    #if DEBUG_ERR_MSG == 1
+                    std::cerr << "Static call patch (hasOriginClosure), failed to unpack dispatch table" << std::endl;
+                    #endif
+
+                }
+
+
+
+                if (trigger) {
+                    ss << asmpt.toI();
+                    assert(asmpt.includes(Assumption::StaticallyArgmatched));
+                    setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                             return call(
-                                NativeBuiltins::get(
-                                    NativeBuiltins::Id::nativeCallTrampoline),
+                                NativeBuiltins::get(NativeBuiltins::Id::call),
                                 {
                                     c(callId),
                                     paramCode(),
-                                    constant(callee, t::SEXP),
-                                    c(idx),
                                     c(calli->srcIdx),
+                                    builder.CreateIntToPtr(convertToExternalSymbol(ss.str(), t::i8), t::SEXP),
                                     loadSxp(calli->env()),
-                                    c(args.size()),
+                                    c(calli->nCallArgs()),
                                     c(asmpt.toI()),
                                 });
-                        });
-                        setVal(i, res);
-                        break;
-                    }
+                        }));
+                } else {
+                    assert(asmpt.includes(Assumption::StaticallyArgmatched));
+                    setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
+                        return call(
+                            NativeBuiltins::get(NativeBuiltins::Id::call),
+                            {
+                                c(callId),
+                                paramCode(),
+                                c(calli->srcIdx),
+                                builder.CreateIntToPtr(
+                                    c(calli->cls()->rirClosure()), t::SEXP),
+                                loadSxp(calli->env()),
+                                c(calli->nCallArgs()),
+                                c(asmpt.toI()),
+                            });
+                    }));
+
                 }
 
+
+                #else
                 assert(asmpt.includes(Assumption::StaticallyArgmatched));
                 setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                            return call(
@@ -3633,6 +3763,9 @@ void LowerFunctionLLVM::compile() {
                                    c(asmpt.toI()),
                                });
                        }));
+                #endif
+
+
                 break;
             }
 
@@ -3724,11 +3857,11 @@ void LowerFunctionLLVM::compile() {
                     }
 
                     #if TRY_PATCH_DEOPTMETADATA == 1
-                    if (target->hast == -1) {
+                    if (target->hast == (size_t)-1) {
                         #if DEBUG_ERR_MSG == 1
                         std::cerr << "Failed to create a pointer to extra pool deopt entry" << std::endl;
                         #endif
-                        Rf_error("Failed to patch DeoptMetadata")
+                        Rf_error("Failed to patch DeoptMetadata");
                     } else {
                         auto extraPoolIndex = target->addExtraPoolEntry(store);
                         ssN << "epe_" << target->hast << "_" << extraPoolIndex << "_" << cls->context().toI();

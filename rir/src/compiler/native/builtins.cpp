@@ -13,6 +13,7 @@
 #include "utils/Pool.h"
 
 #include "R/Protect.h"
+#include "api.h"
 
 #include "compiler/osr.h"
 #include "compiler/pir/pir_impl.h"
@@ -136,8 +137,20 @@ SEXP ldvarImpl(SEXP n, SEXP env) {
         env = e->getParent();
         e = LazyEnvironment::check(env);
     }
+    // std::cout << "Symbol Lookup: " << std::endl;
+    // printAST(0, n);
+
+    // std::cout << "Lookup Env: " << std::endl;
+    // printAST(0, env);
+
+    // std::cout << "Symbol Lookup: " << std::endl;
+    // printAST(0, n);
+
     auto res = Rf_findVar(n, env);
     ENSURE_NAMED(res);
+
+    // std::cout << "Result: " << std::endl;
+    // printAST(0, res);
     return res;
 }
 
@@ -826,7 +839,7 @@ static SEXP deoptSentinelContainer = []() {
 
 void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                DeoptReason* deoptReason, SEXP deoptTrigger) {
-    
+
     for (int i = 0; i < m->numFrames; i++) {
         if (m->frames[i].code == 0) {
             m->frames[i].code = ((DispatchTable *)rir::Code::hastMap[m->frames[i].hast])->baseline()->body();
@@ -2089,29 +2102,29 @@ SEXP makeVectorImpl(int mode, size_t len) {
 
 void llDebugMsgImpl(void * ptr, int tag, int location) {
 
-    std::cout << "At location: " << location;
+    // std::cout << "At location: " << location;
 
-    switch (tag) {
-    case 0:
-        std::cout << " ( SEXP: " << (SEXP)ptr << " )" << std::endl;
-        break;
-    case 1:
-        std::cout << " ( R_bcstack_t: " << (R_bcstack_t *)ptr << " )" << std::endl;
-        if (((R_bcstack_t *)ptr)->tag == 0) {
-            SEXP val = ((R_bcstack_t *)ptr)->u.sxpval;
-            std::cout << "SEXP VALUE: " << val << " )" << std::endl;
-        } else {
-            std::cout << "UNBOXED SCALAR VALUE )" << std::endl;
-            std::cout << "    ival: " << ((R_bcstack_t *)ptr)->u.dval << std::endl;
-            std::cout << "    dval: " << ((R_bcstack_t *)ptr)->u.ival << std::endl;
-        }
-        break;
-    case 2:
-        std::cout << "CASE 2: " << (intptr_t)ptr << std::endl;
-        break;
-    default:
-        break;
-    }
+    // switch (tag) {
+    // case 0:
+    //     std::cout << " ( SEXP: " << (SEXP)ptr << " )" << std::endl;
+    //     break;
+    // case 1:
+    //     std::cout << " ( R_bcstack_t: " << (R_bcstack_t *)ptr << " )" << std::endl;
+    //     if (((R_bcstack_t *)ptr)->tag == 0) {
+    //         SEXP val = ((R_bcstack_t *)ptr)->u.sxpval;
+    //         std::cout << "SEXP VALUE: " << val << " )" << std::endl;
+    //     } else {
+    //         std::cout << "UNBOXED SCALAR VALUE )" << std::endl;
+    //         std::cout << "    ival: " << ((R_bcstack_t *)ptr)->u.dval << std::endl;
+    //         std::cout << "    dval: " << ((R_bcstack_t *)ptr)->u.ival << std::endl;
+    //     }
+    //     break;
+    // case 2:
+    //     std::cout << "CASE 2: " << (intptr_t)ptr << std::endl;
+    //     break;
+    // default:
+    //     break;
+    // }
 
 }
 

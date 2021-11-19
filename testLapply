@@ -1,0 +1,271 @@
+Serializing bitcode: lapply(6959), found 1 version(s)
+(1099512692751) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0 miss: 1
+
+╞════════════════════════════╡  Compiling lapply  ╞════════════════════════════╡
+[1] 1
+== closure 0x5643b7bc1250 (dispatch table 0x5643b82dcca0, env 0x5643b7ab0b50) ==
+= version 0 (0x5643b9131ea8) =
+[sigature] needsEnv 
+[flags]    
+[stats]    invoked: 0, deopt: 0
+0:
+      0   ldfun_  match.fun
+      5   [ 0, <0> ]
+     22   mk_promise_  0
+     27   ; match.fun(FUN)
+          call_  1
+     44   [ <?> ]
+     49   stvar_cached_  FUN{0}
+     58   ldfun_  is.vector
+     63   [ 0, <0> ]
+     80   mk_promise_  1
+     85   ; is.vector(X)
+          call_  1
+    102   [ <?> ]
+    107   ; !is.vector(X)
+          not_  
+    108   ; !is.vector(X) || is.object(X)
+          aslogical_  
+    109   dup_  
+    110   brtrue_  3
+    115   push_  .Primitive("is.object")
+    120   dup_  
+    121   ldvar_noforce_  is.object
+    126   identical_noforce_  
+    127   [ _ ]
+    132   brtrue_  1
+    137   pop_  
+    138   ldfun_  is.object
+    143   [ 0, <0> ]
+    160   mk_promise_  2
+    165   ; is.object(X)
+          call_  1
+    182   br_  2
+1:
+    187   ldvar_cached_  X{1}
+    196   [ <?> ]
+    201   ; is.object(X)
+          call_  1
+2:
+    218   [ <?> ]
+    223   ; !is.vector(X) || is.object(X)
+          aslogical_  
+    224   lgl_or_  
+3:
+    225   asbool_  
+    226   brtrue_  4
+    231   br_  5
+4:
+    236   ldfun_  as.list
+    241   [ 0, <0> ]
+    258   mk_promise_  3
+    263   ; as.list(X)
+          call_  1
+    280   [ <?> ]
+    285   stvar_cached_  X{1}
+5:
+    294   ldvar_cached_  X{1}
+    303   [ <?> ]
+    308   dup_  
+    309   names_  
+    310   swap_  
+    311   length_  
+    312   dup_  
+    313   push_  "list"
+    318   swap_  
+    319   call_builtin_  2 : .Primitive("vector")
+    332   pick_  2
+    337   set_names_  
+    338   swap_  
+    339   push_  0
+6:
+    344   inc_  
+    345   dup2_  
+    346   ; .Internal(lapply(X, FUN))
+          lt_  
+    347   brtrue_  7
+    352   dup_  
+    353   stvar_  i
+    358   ldfun_  FUN
+    363   [ 0, <0> ]
+    380   mk_promise_  4
+    385   push_  `...`
+    390   call_dots_  2 [ _ .xpandDotsTrigger ]
+    415   [ <?> ]
+    420   pull_  1
+    425   pick_  4
+    430   swap_  
+    431   ; .Internal(lapply(X, FUN))
+          subassign2_1_  
+    432   put_  2
+    437   br_  6
+7:
+    442   pop_  
+    443   pop_  
+    444   visible_  
+    445   ret_  
+
+[Prom (index 0)]
+0:
+      0   ldvar_  FUN
+      5   [ <?> ]
+     10   ret_  
+
+[Prom (index 1)]
+0:
+      0   ldvar_  X
+      5   [ <?> ]
+     10   ret_  
+
+[Prom (index 2)]
+0:
+      0   ldvar_  X
+      5   [ <?> ]
+     10   ret_  
+
+[Prom (index 3)]
+0:
+      0   ldvar_  X
+      5   [ <?> ]
+     10   ret_  
+
+[Prom (index 4)]
+0:
+      0   ldvar_  X
+      5   [ <?> ]
+     10   dup_  
+     11   is_  NonObject
+     16   [ _ ]
+     21   brfalse_  1
+     26   br_  2
+1:
+     31   mk_promise_  0
+     36   br_  3
+2:
+     41   ldvar_  i
+     46   [ <?> ]
+3:
+     51   ; X[[i]]
+          extract2_1_  
+     52   [ <?> ]
+     57   visible_  
+     58   ret_  
+
+[Prom (index 4.0)]
+0:
+      0   ldvar_  i
+      5   [ <?> ]
+     10   ret_  
+= version 1 (0x5643b91320b8) =
+[sigature] optimized code | context: [!ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0 miss: 1]
+[flags]    
+[stats]    invoked: 0, deopt: 0
+Executing native code: f_133_1B2F_1000010400F, hast: 6959
+Executing native code: f_133_1B2F_1000010400F_0, hast: 6959
+At location: 0 ( SEXP: 0x5643b98f9578 )
+Executing native code: f_133_1B2F_1000010400F_1, hast: 6959
+At location: 1 ( SEXP: 0x5643b98f95e8 )
+At location: 7 ( SEXP: 0x5643b7a91b80 )
+At location: 9 ( SEXP: 0x5643b98f95e8 )
+At location: 8 ( SEXP: 0x5643b98f95e8 )
+Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
+At location: 3 ( SEXP: 0x5643b98f95e8 )
+At location: 4 ( SEXP: 0x5643b983d560 )
+Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
+At location: 3 ( SEXP: 0x5643b98f95e8 )
+At location: 4 ( SEXP: 0x5643b983d560 )
+
+╞══════════════════════════════╡  Compiling FUN  ╞═════════════════════════════╡
+body: 0x5643b9a08710
+src: 0x5643b9a08710
+pc-src: 0xffffa9bc465f78f0
+offset: 0
+pc: 0
+Code object
+   Source:          16 (index into src pool)
+   Magic:           c0de0000 (hex)
+   Stack (o):       2
+   Code size:       50[B]
+
+0:
+      0   ldfun_  UseMethod
+      5   [ 2, <1>, 0x5643b7a9b5d0(special) ]
+     22   push_  "mean"
+     27   ; UseMethod("mean")
+          call_  1
+     44   [ <?> ]
+     49   ret_  
+Executing native code: rsh2_0x5643b9a87e30, hast: 913
+Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
+At location: 3 ( SEXP: 0x5643b98f95e8 )
+At location: 4 ( SEXP: 0x5643b983d560 )
+$a
+[1] 500.5
+
+$beta
+[1] 277143506009
+
+$logic
+[1] 0.5
+
+Executing native code: f_133_1B2F_1000010400F, hast: 6959
+Executing native code: f_133_1B2F_1000010400F_0, hast: 6959
+At location: 0 ( SEXP: 0x5643b9a056e8 )
+Executing native code: f_133_1B2F_1000010400F_1, hast: 6959
+At location: 1 ( SEXP: 0x5643b9a05758 )
+At location: 7 ( SEXP: 0x5643b7a91b80 )
+At location: 9 ( SEXP: 0x5643b9a05758 )
+At location: 8 ( SEXP: 0x5643b9a05758 )
+Executing native code: rsh2_0x5643b9a87e30, hast: 913
+Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
+At location: 3 ( SEXP: 0x5643b9a05758 )
+At location: 4 ( SEXP: 0x5643b983c808 )
+Executing native code: rsh2_0x5643b9a87e30, hast: 913
+Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
+At location: 3 ( SEXP: 0x5643b9a05758 )
+At location: 4 ( SEXP: 0x5643b983c808 )
+Executing native code: rsh2_0x5643b9a87e30, hast: 913
+Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
+At location: 3 ( SEXP: 0x5643b9a05758 )
+At location: 4 ( SEXP: 0x5643b983c808 )
+$a
+[1] 500.5
+
+$beta
+[1] 277143506009
+
+$logic
+[1] 0.5
+
+Executing native code: f_133_1B2F_1000010400F, hast: 6959
+Executing native code: f_133_1B2F_1000010400F_0, hast: 6959
+At location: 0 ( SEXP: 0x5643b9ad3860 )
+
+╞═══════════════════════════╡  Compiling is.vector  ╞══════════════════════════╡
+Executing native code: rsh3_0x5643b9ae5080, hast: 2347
+Executing native code: f_133_1B2F_1000010400F_1, hast: 6959
+At location: 1 ( SEXP: 0x5643b9ad38d0 )
+At location: 7 ( SEXP: 0x5643b7a91b80 )
+At location: 9 ( SEXP: 0x5643b9ad38d0 )
+At location: 8 ( SEXP: 0x5643b9ad38d0 )
+Executing native code: rsh2_0x5643b9a87e30, hast: 913
+Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
+At location: 3 ( SEXP: 0x5643b9ad38d0 )
+At location: 4 ( SEXP: 0x5643b983c370 )
+Executing native code: rsh2_0x5643b9a87e30, hast: 913
+Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
+At location: 3 ( SEXP: 0x5643b9ad38d0 )
+At location: 4 ( SEXP: 0x5643b983c370 )
+Executing native code: rsh2_0x5643b9a87e30, hast: 913
+Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
+At location: 3 ( SEXP: 0x5643b9ad38d0 )
+At location: 4 ( SEXP: 0x5643b983c370 )
+$a
+[1] 500.5
+
+$beta
+[1] 277143506009
+
+$logic
+[1] 0.5
+

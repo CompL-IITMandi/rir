@@ -315,12 +315,16 @@ static void updateModuleNames(std::string name,  Code* c, PirJitLLVM * jit, Code
     #endif
     jit->updateFunctionNameInModule(done[c]->mName, name);
     jit->patchFixupHandle(name, c);
-    int i = 0;
     for (auto & promise : promMap[c]) {
         std::stringstream ss;
         ss << name;
         ss << "_";
-        ss << i++;
+        for (size_t i = 0; i < done[c]->extraPoolSize; i++) {
+            if (done[c]->getExtraPoolEntry(i) == done[promise.first]->container()) {
+                ss << i;
+                break;
+            }
+        }
 
         updateModuleNames(ss.str(), promise.first, jit, mainFunCodeObj, promMap, done);
     }
@@ -507,13 +511,13 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
 
         // The JIT handle and function signature to recreate the function upon deserializing
         signatureCallback(signature, startingUID);
+        #if BACKEND_PRINT_FINAL_LLVM == 1
+        std::cout << "BACKEND_INITIAL_LLVM" << std::endl;
+        jit.printModule();
+        #endif
     }
 
 
-    #if BACKEND_PRINT_FINAL_LLVM == 1
-    std::cout << "BACKEND_INITIAL_LLVM" << std::endl;
-    jit.printModule();
-    #endif
 
 
     if (MEASURE_COMPILER_BACKEND_PERF) {
@@ -524,6 +528,10 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
     function.finalize(body, signature, cls->context());
 
     function.function()->inheritFlags(cls->owner()->rirFunction());
+
+    #if DEBUG_PRINT_COMPILED_CONTEXT == 1
+    std::cout << "hast: " << body->hast << ", context: " << cls->context().toI() << std::endl;
+    #endif
     return function.function();
 }
 
