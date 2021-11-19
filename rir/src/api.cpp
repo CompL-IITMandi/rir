@@ -16,6 +16,8 @@
 #include "ir/BC.h"
 #include "ir/Compiler.h"
 
+#include "patches.h"
+
 #include <cassert>
 #include <cstdio>
 #include <list>
@@ -35,14 +37,22 @@ using namespace rir;
 
 extern "C" Rboolean R_Visible;
 
+const std::vector<std::string> BaseLibs::libBaseName = {
+    "match.fun"
+};
+
+const std::vector<std::size_t> BaseLibs::libBaseHast = {
+    26989 // 0
+};
+
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
 
 struct FunctionMeta {
     Context c;
     std::string nativeHandle;
     FunctionSignature fs;
-    std::vector<std::string> promiseHandles;
     std::vector<BC::PoolIdx> extraPoolIndices;
+    std::vector<std::string> existingDefs;
 };
 
 std::unordered_map<int, std::vector<FunctionMeta>> deserializedHastMap;
@@ -93,7 +103,216 @@ static int charToInt(const char* p) {
     return result;
 }
 
-static void hash_ast(SEXP ast, int & hast) {
+void printSpace(int & lim) {
+    int i = 0;
+    for(i = 0; i < lim; i++ ) {
+        std::cout << " ";
+    }
+}
+
+void printHeader(int & space, const char * title) {
+    std::cout << " » " << title << "}" << std::endl;
+    space++;
+}
+
+void printType(int & space, const char * attr, SEXP ptr) {
+    printSpace(space);
+    std::cout << "└■ " << attr << " {" << TYPEOF(ptr);
+}
+
+void printType(int & space, const char * attr, int val) {
+    printSpace(space);
+    std::cout << "└■ " << attr << " {" << val;
+}
+
+void printLangSXP(int space, SEXP langsxp) {
+    printHeader(space, "LANGSXP");
+
+    auto tag = TAG(langsxp);
+    auto car = CAR(langsxp);
+    auto cdr = CDR(langsxp);
+
+    printType(space, "TAG", tag);
+    printAST(space, tag);
+
+    printType(space, "CAR", car);
+    printAST(space, car);
+
+    printType(space, "CDR", cdr);
+    printAST(space, cdr);
+}
+
+void printSYMSXP(int space, SEXP symsxp) {
+    printHeader(space, "SYMSXP");
+
+    auto pname = PRINTNAME(symsxp);
+    auto value = SYMVALUE(symsxp);
+    auto internal = INTERNAL(symsxp);
+
+    printType(space, "PNAME", pname);
+    printAST(space, pname);
+
+    printType(space, "VALUE", value);
+    if (symsxp != value) {
+        // printAST(space, value);
+        std::cout << "}" << std::endl;
+    } else {
+        std::cout << "}" << std::endl;
+    }
+
+    // std::cout << "}" << std::endl;
+
+    printType(space, "INTERNAL", internal);
+    printAST(space, internal);
+}
+
+void printCHARSXP(int space, SEXP charSXP) {
+    printHeader(space, "CHARSXP");
+
+    printSpace(space);
+    std::cout << CHAR(charSXP) << std::endl;
+}
+
+void printSTRSXP(int space, SEXP strSXP) {
+    printHeader(space, "STRSXP");
+
+    printSpace(space);
+    std::cout << CHAR(STRING_ELT(strSXP, 0)) << std::endl;
+}
+
+void printREALSXP(int space, SEXP realSXP) {
+    printHeader(space, "REALSXP");
+
+    printSpace(space);
+    std::cout << *REAL(realSXP) << std::endl;
+}
+
+void printLISTSXP(int space, SEXP listsxp) {
+    printHeader(space, "LISTSXP");
+
+    auto tag = TAG(listsxp);
+    auto car = CAR(listsxp);
+    auto cdr = CDR(listsxp);
+
+    printType(space, "TAG", tag);
+    printAST(space, tag);
+
+    printType(space, "CAR", car);
+    printAST(space, car);
+
+    printType(space, "CDR", cdr);
+    printAST(space, cdr);
+
+}
+
+void printCLOSXP(int space, SEXP closxp) {
+    printHeader(space, "CLOSXP");
+
+    auto formals = FORMALS(closxp);
+    auto body = BODY(closxp);
+    auto cloenv = CLOENV(closxp);
+
+    printType(space, "FORMALS", formals);
+    printAST(space, formals);
+
+    printType(space, "BODY", body);
+    printAST(space, body);
+
+    printType(space, "CLOENV", cloenv);
+    printAST(space, cloenv);
+
+}
+
+void printExternalCodeEntry(int space, SEXP externalsxp) {
+    printHeader(space, "EXTERNALSXP");
+    if (Code::check(externalsxp)) {
+        Code * code = Code::unpack(externalsxp);
+        code->print(std::cout);
+    }
+}
+
+void printBCODESXP(int space, SEXP bcodeSXP) {
+    printHeader(space, "BCODESXP");
+    printType(space, "VECTOR_ELT(CDR(BCODESXP),0)", bcodeSXP);
+    printAST(space, VECTOR_ELT(CDR(bcodeSXP),0));
+}
+
+void printPROMSXP(int space, SEXP promSXP) {
+    printHeader(space, "PROMSXP");
+
+    auto seen = PRSEEN(promSXP);
+    auto code = PRCODE(promSXP);
+    auto env = PRENV(promSXP);
+    auto value = PRVALUE(promSXP);
+
+    printType(space, "SEEN", seen);
+    printAST(space, seen);
+
+    printType(space, "CODE", code);
+    printAST(space, code);
+
+    printType(space, "ENV", env);
+    printAST(space, env);
+
+    printType(space, "VALUE", value);
+    printAST(space, value);
+}
+
+void printENVSXP(int space, SEXP envSXP) {
+    printHeader(space, "ENVSXP");
+
+    auto frame = FRAME(envSXP);
+    auto encls = FRAME(envSXP);
+    auto hashtab = FRAME(envSXP);
+
+
+    printType(space, "FRAME", frame);
+    printAST(space, frame);
+
+    printType(space, "ENCLS", encls);
+    printAST(space, encls);
+
+    printType(space, "HASHTAB", hashtab);
+    printAST(space, hashtab);
+
+
+}
+
+void printRAWSXP(int space, SEXP rawSXP) {
+    printHeader(space, "ENVSXP");
+
+    Rbyte * rawData = RAW(rawSXP);
+
+    printSpace(space);
+    std::cout << *rawData << std::endl;
+
+}
+
+void printAST(int space, int val) {
+    std::cout << val << "}" << std::endl;
+}
+
+
+void printAST(int space, SEXP ast) {
+    switch(TYPEOF(ast)) {
+        case CLOSXP: printCLOSXP(++space, ast); break;
+        case LANGSXP: printLangSXP(++space, ast); break;
+        case SYMSXP: printSYMSXP(++space, ast); break;
+        case LISTSXP: printLISTSXP(++space, ast); break;
+        case CHARSXP: printCHARSXP(++space, ast); break;
+        case STRSXP: printSTRSXP(++space, ast); break;
+        case REALSXP: printREALSXP(++space, ast); break;
+        case BCODESXP: printBCODESXP(++space, ast); break;
+        case PROMSXP: printPROMSXP(++space, ast); break;
+        case ENVSXP: printENVSXP(++space, ast); break;
+        case RAWSXP: printRAWSXP(++space, ast); break;
+        case EXTERNALSXP: printExternalCodeEntry(++space, ast); break;
+        default: std::cout << "}" << std::endl; break;
+    }
+}
+
+
+void hash_ast(SEXP ast, int & hast) {
     if (TYPEOF(ast) == LISTSXP || TYPEOF(ast) == LANGSXP) {
         if (TYPEOF(CAR(ast)) == SYMSXP) {
             const char * pname = CHAR(PRINTNAME(CAR(ast)));
@@ -135,7 +354,6 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
 
 
         for (auto & meta : deserializedHastMap[hast]) {
-            std::cout << "found native version: " << meta.c.toI() << std::endl;
             FunctionWriter function;
             Preserve preserve;
             for (size_t i = 0; i < meta.fs.numArguments; ++i) {
@@ -143,7 +361,6 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
             }
 
             auto res = rir::Code::New(vtable->baseline()->body()->src);
-            // Can we do better?
             preserve(res->container());
 
             function.finalize(res, meta.fs, meta.c);
@@ -153,17 +370,49 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
 
             res->lazyCodeHandle(meta.nativeHandle);
 
-            for (auto & prom : meta.promiseHandles) {
-                auto p = rir::Code::New(vtable->baseline()->body()->src);
-                preserve(p->container());
-                p->lazyCodeHandle(prom);
-                res->addExtraPoolEntry(p->container());
-            }
+            // insert the promises into the extra pools recursively
+            std::function<void(std::string, rir::Code*)> updateExtrasRecursively = [&](std::string startingPrefix, rir::Code * code) {
+                int i = 0;
+                while (true) {
+                    std::stringstream pName;
+                    pName << startingPrefix << "_" << i;
+                    if (std::count(meta.existingDefs.begin(), meta.existingDefs.end(), pName.str())) {
+                        // This handle does exists inside for the code, so add this
+                        // to the code objects extraPool
+                        auto p = rir::Code::New(vtable->baseline()->body()->src);
+                        preserve(p->container());
+                        // Add the handle to the promise
+                        p->lazyCodeHandle(pName.str());
+
+                        std::cout << "Adding " << pName.str() << " to " << startingPrefix << std::endl;
+
+                        // Add this created promise into the code's extra pool entry
+                        code->addExtraPoolEntry(p->container());
+
+                        // Check if there are any promises, inside this promise
+                        updateExtrasRecursively(pName.str(), p);
+                        // Process next promises
+                        i++;
+                        continue;
+                    }
+                    break;
+                }
+            };
+
+            updateExtrasRecursively(meta.nativeHandle, res);
+
+            // std::cout << "extraPoolIndices: " << meta.extraPoolIndices.size() << std::endl;
 
             for (auto & id : meta.extraPoolIndices) {
                 auto ele = Pool::get(id);
+                // DeoptMetadata * deoptMeta = static_cast<DeoptMetadata *>(DATAPTR(ele));
+                // std::cout << "deoptMetadata: " << deoptMeta->numFrames << std::endl;
                 res->addExtraPoolEntry(ele);
             }
+
+            // for (int i = 0; i < res->extraPoolSize; i++) {
+            //     std::cout << "extraPool: " << TYPEOF(res->getExtraPoolEntry(i)) << std::endl;
+            // }
         }
 
         return what;
@@ -202,11 +451,19 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
         int versions = 0;
         metaDataFile.read(reinterpret_cast<char *>(&versions),sizeof(int));
 
+        #if API_PRINT_DESERIALIZED_VALUES == 1
         std::cout << "loading bitcode for " << functionName << "(" << hast << ")" << ", found " << versions << " versions." << std::endl;
+        #endif
+
+        #if API_PRINT_DESERIALIZED_VALUES == 1
+        std::cout << "Entry 1(nameLen): " << nameLen << std::endl;
+        std::cout << "Entry 2(name): " << functionName << std::endl;
+        std::cout << "Entry 3(hast): " << hast << std::endl;
+        std::cout << "Entry 4(number of contexts): " << versions << std::endl;
+        #endif
 
         int i = 0;
         for (i = 0; i < versions; i++) {
-
             // READ 5: CONTEXTNO
             unsigned long context = 0;
             metaDataFile.read(reinterpret_cast<char *>(&context),sizeof(unsigned long));
@@ -214,16 +471,26 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             // READING CONTEXT
             Context c(context);
 
+            #if API_PRINT_DESERIALIZED_VALUES == 1
+            std::cout << "(" << context << ") : " << c << std::endl;
+            #endif
+
+            #if API_PRINT_DESERIALIZED_VALUES == 1
+            std::cout << "Entry 5 [" << i << "] :" << std::endl;
+            std::cout << "Context: " << context << std::endl;
+            #endif
+
+            // MAIN PREFIX, THIS IS ALSO THE FUNCTION NAME
+            std::stringstream mainPrefix;
+            mainPrefix << hast << "_" << context;
+
             // PATH TO BITCODE FILE
             std::stringstream bitcodePath;
-            bitcodePath << hast << "_";
-            bitcodePath << c.toI() << ".bc";
+            bitcodePath << mainPrefix.str() << ".bc";
 
             // PATH TO BITCODE POOL
             std::stringstream poolPath;
-            poolPath << hast << "_";
-            poolPath << c.toI() << ".pool";
-
+            poolPath << mainPrefix.str() << ".pool";
 
             // CREATING THE FUNCTION SIGNATURE
 
@@ -231,6 +498,9 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             int optimization = 0;
             unsigned int numArguments = 0;
             size_t dotsPosition = 0;
+            size_t extraPoolEntries = 0;
+            size_t mainNameLen = 0;
+            char * mainName;
 
             // READ 6: ENVCREATION
             metaDataFile.read(reinterpret_cast<char *>(&envCreation),sizeof(int));
@@ -245,69 +515,30 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             metaDataFile.read(reinterpret_cast<char *>(&dotsPosition),sizeof(size_t));
 
             // READ 10: MAIN FUNCTION LENGTH
-            size_t mainFunctionNameLen = 0;
-            metaDataFile.read(reinterpret_cast<char *>(&mainFunctionNameLen),sizeof(size_t));
+            metaDataFile.read(reinterpret_cast<char *>(&mainNameLen),sizeof(size_t));
 
             // READ 11: MAIN FUNCTION NAME
-            char * mainFunctionName = new char [mainFunctionNameLen + 1];
-            metaDataFile.read(mainFunctionName,mainFunctionNameLen);
-            mainFunctionName[mainFunctionNameLen] = '\0';
+            mainName = new char [mainNameLen + 1];
+            metaDataFile.read(mainName,mainNameLen);
+            mainName[mainNameLen] = '\0';
 
-            // READ 11: ExtraPoolEntries
-            size_t extraPoolEntries = 0;
+            // READ 12: ExtraPoolEntries
             metaDataFile.read(reinterpret_cast<char *>(&extraPoolEntries),sizeof(size_t));
 
-            std::cout << "ExtraPoolEntries: " << extraPoolEntries << std::endl;
+            #if API_PRINT_DESERIALIZED_VALUES == 1
+            std::cout << "envCreation: " << envCreation << std::endl;
+            std::cout << "optimization: " << optimization << std::endl;
+            std::cout << "numArguments: " << numArguments << std::endl;
+            std::cout << "dotsPosition: " << dotsPosition << std::endl;
+            std::cout << "mainNameLen: " << mainNameLen << std::endl;
+            std::cout << "name: " << mainName << std::endl;
+            std::cout << "ePoolEntriesSize: " << extraPoolEntries << std::endl;
+            #endif
 
-            std::string mName = mainFunctionName;
-
+            // THESE ARE THE EXTRA POOL ENTRIES FOR THE MAIN CODE
             std::vector<BC::PoolIdx> extraPoolIndices;
 
-
-            std::cout << "mainFunctionName: " << mainFunctionName << std::endl;
-            auto prefixStr = mName.substr(mName.find('_') + 1);
-            std::cout << "prefixStr: " << prefixStr << std::endl;
-
-            int start = 0;
-            int end = prefixStr.find('_');
-
-            int versionPromises = std::stoi(prefixStr.substr(start, end - start), nullptr, 16);
-            start = end + 1;
-            end = prefixStr.find('_', start);
-
-            size_t versionHast;
-            if (sizeof(size_t) == sizeof(unsigned long)) {
-                versionHast = std::stoul(prefixStr.substr(start, end - start), nullptr, 16);
-            } else if (sizeof(size_t) == sizeof(unsigned long long)) {
-                versionHast = std::stoull(prefixStr.substr(start, end - start), nullptr, 16);
-            } else {
-                Rf_error("Error parsing size_t, size not specified");
-            }
-
-            start = end + 1;
-            end = prefixStr.find('_', start);
-
-            unsigned long versionContext = std::stoul(prefixStr.substr(start, end - start), nullptr, 16);
-
-            std::vector<std::string> promiseHandles;
-
-            for (int p = 0; p < versionPromises; p++) {
-                std::stringstream promiseHandle;
-                promiseHandle << "p_";
-                promiseHandle << std::hex << std::uppercase << p;
-                promiseHandle << "_";
-                promiseHandle << std::hex << std::uppercase << versionHast;
-                promiseHandle << "_";
-                promiseHandle << std::hex << std::uppercase << versionContext;
-                promiseHandles.push_back(promiseHandle.str());
-            }
-
-            // CREATE AND LOAD FUNCTION
-                // TODO HANDLE PROMISES TOO
-            FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
-
-            fs.numArguments = numArguments;
-            fs.dotsPosition = dotsPosition;
+            std::vector<std::string> existingDefs;
 
             // INSERT THE FUNCTION INTO THE JIT
             pir::Module* m = new pir::Module;
@@ -315,23 +546,21 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             logger.title("Compiling " + std::string(functionName));
             pir::Compiler cmp(m, logger);
             pir::Backend backend(m, logger, functionName);
+            backend.deserialize(bitcodePath.str(), poolPath.str(), extraPoolIndices, extraPoolEntries, existingDefs); // passing the context and fileName (remove context later)
 
-            backend.deserialize(bitcodePath.str(), poolPath.str(), extraPoolIndices, extraPoolEntries); // passing the context and fileName (remove context later)
-
-            for (auto & e : extraPoolIndices) {
-                std::cout << "extraPool: " << e << std::endl;
-            }
-
-            FunctionMeta meta = {c, mainFunctionName, fs, promiseHandles, extraPoolIndices};
-
+            // CREATE THE META TO RECREATE THE FUNCTION WHEN WE ENCOUNTER ITS RIR CREATION
+            FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
+            fs.numArguments = numArguments;
+            fs.dotsPosition = dotsPosition;
+            FunctionMeta meta = {c, mainName, fs, extraPoolIndices, existingDefs};
             deserializedHastMap[hast].push_back(meta);
 
-            std::cout << "deserialized: " << mainFunctionName << std::endl;
+            delete[] mainName;
 
-            delete[] mainFunctionName;
+
         }
         delete[] functionName;
-
+        return R_TrueValue;
     }
 
 

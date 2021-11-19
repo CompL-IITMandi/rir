@@ -23,7 +23,7 @@ class Backend {
 
     rir::Function* getOrCompile(ClosureVersion* cls);
 
-    void deserialize(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices ,size_t extraPoolEntries);
+    void deserialize(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices ,size_t extraPoolEntries, std::vector<std::string> & existingDefs);
 
   private:
     struct LastDestructor {

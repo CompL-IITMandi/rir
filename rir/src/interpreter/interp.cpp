@@ -989,7 +989,7 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
         bool needsEnv = fun->signature().envCreation ==
                         FunctionSignature::Environment::CallerProvided;
 
-        std::cout << "running context: " << fun->context().toI() << std::endl;
+        // std::cout << "running context: " << fun->context().toI() << std::endl;
 
         if (fun->flags.contains(Function::DepromiseArgs)) {
             // Force arguments and depromise
@@ -1926,7 +1926,7 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
     auto native = c->nativeCode();
     assert((!initialPC || !native) && "Cannot jump into native code");
     if (native) {
-        std::cout << "running native code: " << std::endl;
+        // std::cout << "Executing native code: " << c->getLazyCodeHandle() << std::endl;
         return native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
                       callCtxt ? callCtxt->callee : nullptr);
     }

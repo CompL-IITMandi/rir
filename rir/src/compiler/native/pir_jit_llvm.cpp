@@ -23,6 +23,8 @@
 #include "llvm/Support/raw_os_ostream.h"
 #include "llvm/Bitcode/BitcodeReader.h"
 
+#include "patches.h"
+
 #include <memory>
 
 namespace rir {
@@ -330,7 +332,7 @@ void PirJitLLVM::finalizeAndFixup() {
         fix.second.first->lazyCodeHandle(fix.second.second.str());
 }
 
-void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t extraPoolEntries) {
+void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t extraPoolEntries, std::vector<std::string> & existingDefs) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> mb = llvm::MemoryBuffer::getFile(bcPath);
     rir::pir::PirJitLLVM jit("f");
 
@@ -353,25 +355,31 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
     std::unordered_map<int64_t, int64_t> poolPatch;
 
     for (size_t i = 0; i < Rf_length(result); i++) {
-        std::cout << "Item: " << i << " (" << TYPEOF(VECTOR_ELT(result, i)) << ")" << std::endl;
         poolPatch[i] = Pool::insert(VECTOR_ELT(result, i));
         if (i >= (Rf_length(result) - extraPoolEntries)) {
-            std::cout << "extraPoolEntry: " << i <<  std::endl;
             // these entries must be copied to the extra pool when instantiated
             bcIndices.push_back(poolPatch[i]);
         }
     }
 
-    for (auto & ele : poolPatch) {
-        std::cout << "Patching " << ele.first << " : " << ele.second << std::endl;
-    }
+    // for (auto & ele : poolPatch) {
+    //     std::cout << "Patching " << ele.first << " : " << ele.second << std::endl;
+    // }
+
+    #if API_PRINT_DESERIALIZED_MODULE_BEFORE_PATCH == 1
+    llvm::raw_os_ostream dbg1(std::cout);
+    dbg1 << *llModuleHolder.get();
+    #endif
 
     fclose(reader);
+
+    for (auto & fun : llModuleHolder.get()->getFunctionList()) {
+        existingDefs.push_back(fun.getName().str());
+    }
 
     for (auto & global : llModuleHolder.get()->getGlobalList()) {
         auto pre = global.getName().str().substr(0,6) == "copool";
         if (pre) {
-            llvm::raw_os_ostream ost(std::cout);
             auto con = global.getInitializer();
 
             if (auto * v = llvm::dyn_cast<llvm::ConstantDataArray>(con)) {
@@ -400,7 +408,6 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
                 global.setInitializer(replacementValue);
             } else  if (auto * v = llvm::dyn_cast<llvm::ConstantAggregateZero>(con)) {
                 std::vector<llvm::Constant*> patchedIndices;
-                std::cout << "ConstantAggregateZero: " << global.getName().str() << std::endl;
 
                 auto arrSize = v->getNumElements();
 
@@ -418,7 +425,6 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
 
                 global.setInitializer(newInit);
             } else if (auto * v = llvm::dyn_cast<llvm::ConstantStruct>(con)) {
-                std::cout << "ConstantStruct" << std::endl;
             } else {
                 llvm::raw_os_ostream os(std::cout);
                 global.getType()->print(os);
@@ -427,12 +433,13 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
         }
     }
 
-    // llvm::raw_os_ostream ro(std::cout);
-    // ro << *llModuleHolder.get();
+    #if API_PRINT_DESERIALIZED_MODULE_AFTER_PATCH == 1
+    llvm::raw_os_ostream dbg2(std::cout);
+    dbg2 << *llModuleHolder.get();
+    #endif
 
     auto TSM = llvm::orc::ThreadSafeModule(std::move(llModuleHolder.get()), TSC);
     ExitOnErr(JIT->addIRModule(std::move(TSM)));
-
 
 }
 
@@ -695,6 +702,10 @@ void PirJitLLVM::initializeLLVM() {
 
                 auto epe = n.substr(0, 4) == "epe_"; // extra pool entry
 
+                auto base = n.substr(0, 5) == "base_"; // baseLibraryEntry
+
+                auto spef = n.substr(0, 5) == "spef_"; // specialsxp function
+
                 if (ept || efn) {
                     auto addrStr = n.substr(4);
                     auto addr = std::strtoul(addrStr.c_str(), nullptr, 16);
@@ -781,6 +792,8 @@ void PirJitLLVM::initializeLLVM() {
                         addr = reinterpret_cast<uintptr_t>(&opaqueTrue);
                     } else if (constantName.compare("constantPool") == 0) {
                         addr = reinterpret_cast<uintptr_t>(globalContext());
+                    } else if (constantName.compare("returnedValue") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&R_ReturnedValue);
                     }
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
@@ -850,7 +863,7 @@ void PirJitLLVM::initializeLLVM() {
                 } else if (hast) {
                     auto id = std::stoi(n.substr(5));
                     if (rir::Code::hastMap.count(id) == 0) {
-                        std::cout << "hast symbol not found" << std::endl;
+                        std::cout << "hast symbol not found: " << id << std::endl;
                     }
                     auto addr = ((rir::DispatchTable *)rir::Code::hastMap[id])->baseline()->body();
                     NewSymbols[Name] = JITEvaluatedSymbol(
@@ -862,19 +875,15 @@ void PirJitLLVM::initializeLLVM() {
                     auto secondDel = n.find('_', firstDel + 1);
                     auto thirdDel = n.find('_', secondDel + 1);
 
-                    std::cout << "symbol: " << n << std::endl;
-                    std::cout << "firstDel: " << firstDel << std::endl;
-                    std::cout << "secondDel: " << secondDel << std::endl;
-                    std::cout << "thirdDel: " << thirdDel << std::endl;
-
                     auto hast = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
                     auto extraPoolOffset = std::stoi(n.substr(secondDel + 1, thirdDel - secondDel - 1));
                     auto context = std::stoul(n.substr(thirdDel + 1));
-                    std::cout << "hast: " << hast << std::endl;
-                    std::cout << "extraPoolOffset: " << extraPoolOffset << std::endl;
-                    std::cout << "context: " << context << std::endl;
 
                     Context c(context);
+
+                    if (rir::Code::hastMap.count(hast) == 0) {
+                        std::cout << "hast symbol not found: " << hast << std::endl;
+                    }
 
                     rir::DispatchTable * dtable = ((rir::DispatchTable *)rir::Code::hastMap[hast]);
 
@@ -892,12 +901,41 @@ void PirJitLLVM::initializeLLVM() {
                     }
 
                     auto res = DATAPTR(code->getExtraPoolEntry(extraPoolOffset));
-                    std::cout << "resolved DeoptMetadata: " << ((uintptr_t)res) << std::endl;
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(res)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (base) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto baseIndex = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    auto funName = BaseLibs::libBaseName.at(baseIndex);
+                    auto sym = Rf_install(funName.c_str());
+                    auto fun = Rf_findFun(sym, R_GlobalEnv);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(fun)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+
+                } else if (spef) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto index = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    auto sym = Rf_install(R_FunTab[index].name);
+                    // std::cout << "patching spef" << std::endl;
+                    // printAST(0,sym);
+                    auto fun = Rf_findFun(sym,R_GlobalEnv);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(fun)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
                 } else {
                     std::cout << "unknown symbol " << n << "\n";
                 }

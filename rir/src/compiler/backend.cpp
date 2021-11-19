@@ -412,8 +412,8 @@ Backend::LastDestructor::LastDestructor() {
     }
 }
 
-void Backend::deserialize(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t extraPoolEntries) {
-    jit.deserializeAndAddModule(bcPath, poolPath, bcIndices, extraPoolEntries);
+void Backend::deserialize(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t extraPoolEntries, std::vector<std::string> & existingDefs) {
+    jit.deserializeAndAddModule(bcPath, poolPath, bcIndices, extraPoolEntries, existingDefs);
 }
 
 rir::Function* Backend::getOrCompile(ClosureVersion* cls) {

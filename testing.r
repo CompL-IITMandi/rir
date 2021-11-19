@@ -1,32 +1,67 @@
-f.loadBitcode("f_367.meta")
+# f.loadBitcode("matrix_11761.meta")
+# invisible(rir.compile(matrix))
+# start.time <- Sys.time()
+# matrix(1:9,3,3)
+# for (i in 1:1000) {
+#   matrix(1:9,3,3)
+#   matrix(1:9,3,3)
+#   matrix(1:9,3,3)
+#   matrix(1:9)
+#   matrix(1:9)
+#   matrix(1:9)
+#   matrix(1:9)
+#   matrix(1:9)
+#   matrix(1:9, 3)
+#   matrix(1:9, 3)
+#   matrix(1:9, 3)
+# }
+# end.time <- Sys.time()
+# time.taken <- end.time - start.time
+# print(paste("execution time: ",time.taken))
 
-b <- 10
+x <- list(a = 1:10, beta = exp(-3:3), logic = c(TRUE,FALSE,FALSE,TRUE))
+# compute the list mean for each list element
+f.loadBitcode("lapply_6959.meta")
+invisible(rir.compile(lapply))
+lapply(x, mean)
+# lapply(x, mean)
+# lapply(x, mean)
+# lapply(x, mean)
+# lapply(x, mean)
+# lapply(x, mean)
 
-f <- function(a) {
-  a + b;
-}
+# start.time <- Sys.time()
+# f.loadBitcode("matrix_11761.meta")
+# f.loadBitcode("rnorm_1893.meta")
+# invisible(rir.compile(matrix))
+# invisible(rir.compile(rnorm))
+# invisible(matrix(rnorm(3600), nrow=6))
+# invisible(matrix(rnorm(3600), nrow=6))
+# invisible(matrix(rnorm(3600), nrow=6))
+# invisible(matrix(rnorm(3600), nrow=6))
 
-invisible(rir.compile(f))
-f(10)
-# f(10)
-# f(10)
-# f(10)
-b <- c(1,2,3)
-f(10)
-# f(10)
-# f(10)
+# invisible(matrix(rnorm(3600), ncol=6))
+# invisible(matrix(rnorm(3600), ncol=6))
+# invisible(matrix(rnorm(3600), ncol=6))
+# invisible(matrix(rnorm(3600), ncol=6))
+# end.time <- Sys.time()
+# time.taken <- end.time - start.time
+# print(paste("execution time: ",time.taken))
 
+# f.loadBitcode("substr_7966.meta")
+# start.time <- Sys.time()
+# invisible(rir.compile(substr))
+# x <- c("asfef", "qwerty", "yuiop[", "b", "stuff.blah.yech")
+# for (i in 1:100000) {
+#   substr(x, 2, 5)
+#   substr(x, 2, 5)
+#   substr(x, 2, 5)
+#   substr(x, 2, 5)
 
-
-# f(c(10,11))
-# f(c(10,11))
-# f(c(10,11))
-# f(10)
-# f(10)
-# f(10)
-# f(10)
-# f(10,2)
-# f(10,2)
-# f(10,2)
-# f(10,2)
-# f.serialize(f)
+#   substr(x, 1:2, 2:3)
+#   substr(x, 1:2, 2:3)
+#   substr(x, 1:2, 2:3)
+# }
+# end.time <- Sys.time()
+# time.taken <- end.time - start.time
+# print(paste("execution time: ",time.taken))

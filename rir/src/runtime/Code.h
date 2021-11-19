@@ -90,6 +90,9 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
         memcpy(&lazyCodeHandle_, h.c_str(), l);
         lazyCodeHandle_[MAX_CODE_HANDLE_LENGTH - 1] = '\0';
     }
+    std::string getLazyCodeHandle() {
+        return lazyCodeHandle_;
+    }
     NativeCode nativeCode() {
         if (nativeCode_)
             return nativeCode_;

@@ -1,0 +1,975 @@
+[1] TRUE
+Adding f_853_1B2F_1000010400F_0 to f_853_1B2F_1000010400F
+Adding f_853_1B2F_1000010400F_1 to f_853_1B2F_1000010400F
+Adding f_853_1B2F_1000010400F_2 to f_853_1B2F_1000010400F
+Adding f_853_1B2F_1000010400F_2_0 to f_853_1B2F_1000010400F_2
+Adding f_853_1B2F_1000010400F_3 to f_853_1B2F_1000010400F
+Adding f_853_1B2F_1000010400F_4 to f_853_1B2F_1000010400F
+extraPoolIndices: 0
+extraPool: 26
+extraPool: 26
+extraPool: 26
+extraPool: 26
+extraPool: 26
+calling context: 1099512692751
+Executing native code: f_853_1B2F_1000010400F
+Executing native code: f_853_1B2F_1000010400F_0
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 0 ( SEXP: 0x55676b129f20 )
+forcing prom
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    is.vector
+  └■ VALUE {5}
+  └■ INTERNAL {8}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          mode
+        └■ VALUE {5}
+        └■ INTERNAL {0}
+      └■ CAR {16 » STRSXP}
+        any
+      └■ CDR {0}
+  └■ BODY {21 » BCODESXP}
+    └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+      └■ TAG {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          .Internal
+        └■ VALUE {7}
+        └■ INTERNAL {0}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {0}
+        └■ CAR {6 » LANGSXP}
+          └■ TAG {0}
+          └■ CAR {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              is.vector
+            └■ VALUE {5}
+            └■ INTERNAL {8}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                x
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {2 » LISTSXP}
+              └■ TAG {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  mode
+                └■ VALUE {5}
+                └■ INTERNAL {0}
+              └■ CDR {0}
+        └■ CDR {0}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: f_853_1B2F_1000010400F_1
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 1 ( SEXP: 0x55676b129f90 )
+forcing prom
+result
+At location: 7 ( SEXP: 0x556769326b80 )
+At location: 9 ( SEXP: 0x55676b129f90 )
+At location: 8 ( SEXP: 0x55676b129f90 )
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {21 » BCODESXP}
+    └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+      └■ TAG {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          UseMethod
+        └■ VALUE {7}
+        └■ INTERNAL {0}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {0}
+        └■ CAR {16 » STRSXP}
+          mean
+        └■ CDR {0}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b129f90 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b0cacc8 )
+result
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b129f90 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b0cacc8 )
+result
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b129f90 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b0cacc8 )
+result
+result
+$a
+[1] 5.5
+
+$beta
+[1] 4.535125
+
+$logic
+[1] 0.5
+
+calling context: 1099512692751
+Executing native code: f_853_1B2F_1000010400F
+Executing native code: f_853_1B2F_1000010400F_0
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 0 ( SEXP: 0x55676b27a2f8 )
+forcing prom
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    is.vector
+  └■ VALUE {5}
+  └■ INTERNAL {8}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          mode
+        └■ VALUE {5}
+        └■ INTERNAL {0}
+      └■ CAR {16 » STRSXP}
+        any
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: f_853_1B2F_1000010400F_1
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 1 ( SEXP: 0x55676b27a368 )
+forcing prom
+result
+At location: 7 ( SEXP: 0x556769326b80 )
+At location: 9 ( SEXP: 0x55676b27a368 )
+At location: 8 ( SEXP: 0x55676b27a368 )
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b27a368 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b0ca0f8 )
+result
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b27a368 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b0ca0f8 )
+result
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b27a368 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b0ca0f8 )
+result
+result
+$a
+[1] 5.5
+
+$beta
+[1] 4.535125
+
+$logic
+[1] 0.5
+
+calling context: 1099512692751
+Executing native code: f_853_1B2F_1000010400F
+Executing native code: f_853_1B2F_1000010400F_0
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 0 ( SEXP: 0x55676b285b08 )
+forcing prom
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    is.vector
+  └■ VALUE {5}
+  └■ INTERNAL {8}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          mode
+        └■ VALUE {5}
+        └■ INTERNAL {0}
+      └■ CAR {16 » STRSXP}
+        any
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh2_0x55676b277980
+forcing prom
+Executing native code: f_853_1B2F_1000010400F_1
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 1 ( SEXP: 0x55676b285b78 )
+forcing prom
+result
+At location: 7 ( SEXP: 0x556769326b80 )
+At location: 9 ( SEXP: 0x55676b285b78 )
+At location: 8 ( SEXP: 0x55676b285b78 )
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b285b78 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b0c9c60 )
+result
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b285b78 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b0c9c60 )
+result
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b285b78 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b0c9c60 )
+result
+result
+$a
+[1] 5.5
+
+$beta
+[1] 4.535125
+
+$logic
+[1] 0.5
+
+calling context: 1099512692751
+Executing native code: f_853_1B2F_1000010400F
+Executing native code: f_853_1B2F_1000010400F_0
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 0 ( SEXP: 0x55676b284410 )
+forcing prom
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    is.vector
+  └■ VALUE {5}
+  └■ INTERNAL {8}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          mode
+        └■ VALUE {5}
+        └■ INTERNAL {0}
+      └■ CAR {16 » STRSXP}
+        any
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh2_0x55676b277980
+forcing prom
+Executing native code: f_853_1B2F_1000010400F_1
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 1 ( SEXP: 0x55676b284480 )
+forcing prom
+result
+At location: 7 ( SEXP: 0x556769326b80 )
+At location: 9 ( SEXP: 0x55676b284480 )
+At location: 8 ( SEXP: 0x55676b284480 )
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b284480 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b2353b8 )
+result
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b284480 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b2353b8 )
+result
+stvarI
+ldfunImpl » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    FUN
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+result
+ » CLOSXP}
+  └■ FORMALS {2 » LISTSXP}
+    └■ TAG {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        x
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        
+      └■ VALUE {1}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          ...
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CDR {0}
+  └■ BODY {26 » EXTERNALSXP}
+  └■ CLOENV {4 » ENVSXP}
+    └■ FRAME {0}
+    └■ ENCLS {0}
+    └■ HASHTAB {0}
+calling context: 1099511627791
+Executing native code: rsh1_0x55676b2afc00
+Executing native code: f_853_1B2F_1000010400F_2
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    X
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 3 ( SEXP: 0x55676b284480 )
+Symbol Lookup: 
+ » SYMSXP}
+  └■ PNAME {9 » CHARSXP}
+    i
+  └■ VALUE {1}
+  └■ INTERNAL {0}
+At location: 4 ( SEXP: 0x55676b2353b8 )
+result
+result
+$a
+[1] 5.5
+
+$beta
+[1] 4.535125
+
+$logic
+[1] 0.5
+
