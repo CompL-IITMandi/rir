@@ -19,11 +19,11 @@
 # time.taken <- end.time - start.time
 # print(paste("execution time: ",time.taken))
 
-x <- list(a = 1:10, beta = exp(-3:3), logic = c(TRUE,FALSE,FALSE,TRUE))
+# x <- list(a = 1:10, beta = exp(-3:3), logic = c(TRUE,FALSE,FALSE,TRUE))
 # compute the list mean for each list element
-f.loadBitcode("lapply_6959.meta")
-invisible(rir.compile(lapply))
-lapply(x, mean)
+# f.loadBitcode("lapply_6959.meta")
+# invisible(rir.compile(lapply))
+# lapply(x, mean)
 # lapply(x, mean)
 # lapply(x, mean)
 # lapply(x, mean)
@@ -65,3 +65,20 @@ lapply(x, mean)
 # end.time <- Sys.time()
 # time.taken <- end.time - start.time
 # print(paste("execution time: ",time.taken))
+
+fun <- function(num) {
+  recurse_fibonacci <- function(n) {
+    if(n <= 1) {
+      return(n)
+    } else {
+      return(recurse_fibonacci(n-1) + recurse_fibonacci(n-2))
+    }
+  }
+  recurse_fibonacci(num)
+}
+
+fun(10)
+fun(10)
+fun(10)
+fun(10)
+f.serialize(fun)

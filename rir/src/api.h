@@ -12,12 +12,18 @@
 
 extern int R_ENABLE_JIT;
 
-class BaseLibs {
+struct FunctionMeta {
+  rir::Context c;
+  std::string nativeHandle;
+  rir::FunctionSignature fs;
+  std::vector<rir::BC::PoolIdx> extraPoolIndices;
+  std::vector<std::string> existingDefs;
+  std::vector<unsigned> promiseSrcEntries;
+};
+
+class DeserializerData {
   public:
-  static const std::vector<std::string> libBaseName;
-
-  static const std::vector<std::size_t> libBaseHast;
-
+  static std::unordered_map<int, std::vector<FunctionMeta>> deserializedHastMap;
 };
 
 REXPORT SEXP rirInvocationCount(SEXP what);

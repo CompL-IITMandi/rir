@@ -37,25 +37,9 @@ using namespace rir;
 
 extern "C" Rboolean R_Visible;
 
-const std::vector<std::string> BaseLibs::libBaseName = {
-    "match.fun"
-};
-
-const std::vector<std::size_t> BaseLibs::libBaseHast = {
-    26989 // 0
-};
-
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
 
-struct FunctionMeta {
-    Context c;
-    std::string nativeHandle;
-    FunctionSignature fs;
-    std::vector<BC::PoolIdx> extraPoolIndices;
-    std::vector<std::string> existingDefs;
-};
-
-std::unordered_map<int, std::vector<FunctionMeta>> deserializedHastMap;
+std::unordered_map<int, std::vector<FunctionMeta>> DeserializerData::deserializedHastMap;
 
 static size_t oldMaxInput = 0;
 static size_t oldInlinerMax = 0;
@@ -330,90 +314,8 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
         if (TYPEOF(body) == EXTERNALSXP)
             return what;
 
-        SEXP b = BODY(what);
-        if (TYPEOF(body) == BCODESXP) {
-            b = VECTOR_ELT(CDR(body), 0);
-        }
-
         // Change the input closure inplace
         Compiler::compileClosure(what);
-
-
-        DispatchTable* vtable = DispatchTable::unpack(BODY(what));
-        auto rirBody = vtable->baseline()->body();
-
-        SEXP ast = src_pool_at(globalContext(), rirBody->src);
-
-        // The hast is inserted into the code object of the bytecode
-        // Calculate hast for the given function
-        int hast = 0;
-        hash_ast(ast, hast);
-
-        Code::hastMap[hast] = vtable;
-
-
-
-        for (auto & meta : deserializedHastMap[hast]) {
-            FunctionWriter function;
-            Preserve preserve;
-            for (size_t i = 0; i < meta.fs.numArguments; ++i) {
-                function.addArgWithoutDefault();
-            }
-
-            auto res = rir::Code::New(vtable->baseline()->body()->src);
-            preserve(res->container());
-
-            function.finalize(res, meta.fs, meta.c);
-
-            function.function()->inheritFlags(vtable->baseline());
-            vtable->insert(function.function());
-
-            res->lazyCodeHandle(meta.nativeHandle);
-
-            // insert the promises into the extra pools recursively
-            std::function<void(std::string, rir::Code*)> updateExtrasRecursively = [&](std::string startingPrefix, rir::Code * code) {
-                int i = 0;
-                while (true) {
-                    std::stringstream pName;
-                    pName << startingPrefix << "_" << i;
-                    if (std::count(meta.existingDefs.begin(), meta.existingDefs.end(), pName.str())) {
-                        // This handle does exists inside for the code, so add this
-                        // to the code objects extraPool
-                        auto p = rir::Code::New(vtable->baseline()->body()->src);
-                        preserve(p->container());
-                        // Add the handle to the promise
-                        p->lazyCodeHandle(pName.str());
-
-                        std::cout << "Adding " << pName.str() << " to " << startingPrefix << std::endl;
-
-                        // Add this created promise into the code's extra pool entry
-                        code->addExtraPoolEntry(p->container());
-
-                        // Check if there are any promises, inside this promise
-                        updateExtrasRecursively(pName.str(), p);
-                        // Process next promises
-                        i++;
-                        continue;
-                    }
-                    break;
-                }
-            };
-
-            updateExtrasRecursively(meta.nativeHandle, res);
-
-            // std::cout << "extraPoolIndices: " << meta.extraPoolIndices.size() << std::endl;
-
-            for (auto & id : meta.extraPoolIndices) {
-                auto ele = Pool::get(id);
-                // DeoptMetadata * deoptMeta = static_cast<DeoptMetadata *>(DATAPTR(ele));
-                // std::cout << "deoptMetadata: " << deoptMeta->numFrames << std::endl;
-                res->addExtraPoolEntry(ele);
-            }
-
-            // for (int i = 0; i < res->extraPoolSize; i++) {
-            //     std::cout << "extraPool: " << TYPEOF(res->getExtraPoolEntry(i)) << std::endl;
-            // }
-        }
 
         return what;
     } else {
@@ -498,7 +400,11 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             int optimization = 0;
             unsigned int numArguments = 0;
             size_t dotsPosition = 0;
-            size_t extraPoolEntries = 0;
+            size_t cPoolEntriesSize = 0;
+            size_t srcPoolEntriesSize = 0;
+            size_t ePoolEntriesSize = 0;
+            size_t promiseSrcPoolEntriesSize = 0;
+
             size_t mainNameLen = 0;
             char * mainName;
 
@@ -522,8 +428,19 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             metaDataFile.read(mainName,mainNameLen);
             mainName[mainNameLen] = '\0';
 
-            // READ 12: ExtraPoolEntries
-            metaDataFile.read(reinterpret_cast<char *>(&extraPoolEntries),sizeof(size_t));
+            // READ 12: ConstantPoolEntries
+            metaDataFile.read(reinterpret_cast<char *>(&cPoolEntriesSize),sizeof(size_t));
+
+            // READ 13: SourcePoolEntries
+            metaDataFile.read(reinterpret_cast<char *>(&srcPoolEntriesSize),sizeof(size_t));
+
+            // READ 14: ExtraPoolEntries
+            metaDataFile.read(reinterpret_cast<char *>(&ePoolEntriesSize),sizeof(size_t));
+
+            // READ 15: ExtraPoolEntries
+            metaDataFile.read(reinterpret_cast<char *>(&promiseSrcPoolEntriesSize),sizeof(size_t));
+
+            std::vector<unsigned> promiseSrcEntries; // Insert the entries in order and fix them up
 
             #if API_PRINT_DESERIALIZED_VALUES == 1
             std::cout << "envCreation: " << envCreation << std::endl;
@@ -532,7 +449,10 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             std::cout << "dotsPosition: " << dotsPosition << std::endl;
             std::cout << "mainNameLen: " << mainNameLen << std::endl;
             std::cout << "name: " << mainName << std::endl;
-            std::cout << "ePoolEntriesSize: " << extraPoolEntries << std::endl;
+            std::cout << "cPoolEntriesSize: " << cPoolEntriesSize << std::endl;
+            std::cout << "srcPoolEntriesSize: " << srcPoolEntriesSize << std::endl;
+            std::cout << "ePoolEntriesSize: " << ePoolEntriesSize << std::endl;
+            std::cout << "promiseSrcPoolEntriesSize: " << promiseSrcPoolEntriesSize << std::endl;
             #endif
 
             // THESE ARE THE EXTRA POOL ENTRIES FOR THE MAIN CODE
@@ -546,14 +466,14 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             logger.title("Compiling " + std::string(functionName));
             pir::Compiler cmp(m, logger);
             pir::Backend backend(m, logger, functionName);
-            backend.deserialize(bitcodePath.str(), poolPath.str(), extraPoolIndices, extraPoolEntries, existingDefs); // passing the context and fileName (remove context later)
+            backend.deserialize(bitcodePath.str(), poolPath.str(), extraPoolIndices, cPoolEntriesSize, srcPoolEntriesSize, ePoolEntriesSize, existingDefs, promiseSrcEntries); // passing the context and fileName (remove context later)
 
             // CREATE THE META TO RECREATE THE FUNCTION WHEN WE ENCOUNTER ITS RIR CREATION
             FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
             fs.numArguments = numArguments;
             fs.dotsPosition = dotsPosition;
-            FunctionMeta meta = {c, mainName, fs, extraPoolIndices, existingDefs};
-            deserializedHastMap[hast].push_back(meta);
+            FunctionMeta meta = {c, mainName, fs, extraPoolIndices, existingDefs, promiseSrcEntries};
+            DeserializerData::deserializedHastMap[hast].push_back(meta);
 
             delete[] mainName;
 

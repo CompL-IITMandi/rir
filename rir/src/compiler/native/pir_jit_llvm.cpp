@@ -332,7 +332,7 @@ void PirJitLLVM::finalizeAndFixup() {
         fix.second.first->lazyCodeHandle(fix.second.second.str());
 }
 
-void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t extraPoolEntries, std::vector<std::string> & existingDefs) {
+void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t cPoolEntriesSize, size_t srcPoolEntriesSize, size_t ePoolEntriesSize, std::vector<std::string> & existingDefs, std::vector<unsigned> & promiseSrcEntries) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> mb = llvm::MemoryBuffer::getFile(bcPath);
     rir::pir::PirJitLLVM jit("f");
 
@@ -351,16 +351,137 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
     R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
 
     SEXP result = R_Unserialize(&inputStream);
+    size_t totalEntriesInSerializedPool = (size_t)Rf_length(result);
 
     std::unordered_map<int64_t, int64_t> poolPatch;
+    std::unordered_map<int64_t, int64_t> sPoolPatch;
 
-    for (size_t i = 0; i < Rf_length(result); i++) {
-        poolPatch[i] = Pool::insert(VECTOR_ELT(result, i));
-        if (i >= (Rf_length(result) - extraPoolEntries)) {
-            // these entries must be copied to the extra pool when instantiated
-            bcIndices.push_back(poolPatch[i]);
+    size_t streamIndex = 0;
+
+    size_t cpIndex = 0;
+    size_t srcIndex = 0;
+
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    int pIndex = 0;
+    #endif
+
+
+
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << "ConstantPool: [ ";
+    #endif
+
+    while (streamIndex < cPoolEntriesSize) {
+        auto ele = VECTOR_ELT(result, streamIndex);
+
+        if (TYPEOF(ele) == CLOSXP) {
+            int h = 0;
+            hash_ast(BODY(ele), h);
+
+            // If closure with the same hast has been added to the CP already, just use that index
+            if (rir::Code::cpHastPatch.count(h)) {
+                poolPatch[streamIndex] = rir::Code::cpHastPatch[h];
+
+                #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+                std::cout << "{ " << streamIndex << " to " << rir::Code::cpHastPatch[h] << ", TYPE: " << TYPEOF(ele) << " } ";
+                #endif
+            } else {
+                // copool_x streamIndex ---becomes---> runtime_constant_pool_index
+                auto runtimeCpIndex = Pool::insert(ele);
+                poolPatch[streamIndex] = runtimeCpIndex;
+
+                #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+                std::cout << "{ " << streamIndex << " to " << runtimeCpIndex << ", TYPE: " << TYPEOF(ele) << " } ";
+                #endif
+
+                // Store this in a map, so that we can prevent duplicate insertions into the pool
+                rir::Code::cpHastPatch[h] = runtimeCpIndex;
+            }
+
+        } else {
+            // copool_x streamIndex ---becomes---> runtime_constant_pool_index
+            auto runtimeCpIndex = Pool::insert(ele);
+            poolPatch[streamIndex] = runtimeCpIndex;
+
+            #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+            std::cout << "{ " << streamIndex << " to " << runtimeCpIndex << ", TYPE: " << TYPEOF(ele) << " } ";
+            #endif
+
         }
+        streamIndex++;
+        cpIndex++;
     }
+
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << " ]" << std::endl;
+    #endif
+
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << "SourcePool: [ ";
+    #endif
+
+    while (streamIndex < cPoolEntriesSize + srcPoolEntriesSize) {
+        auto ele = VECTOR_ELT(result, streamIndex);
+        auto patchedIndex = src_pool_add(globalContext(), ele);
+
+        #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+        std::cout << "{ " << srcIndex << " to " << patchedIndex << " from " << streamIndex << ", TYPE: " << TYPEOF(ele) << " } ";
+        #endif
+
+        sPoolPatch[srcIndex] = patchedIndex;
+
+        streamIndex++;
+        srcIndex++;
+
+    }
+
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << " ]" << std::endl;
+    #endif
+
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << "ExtraPool: [ ";
+    #endif
+
+    while (streamIndex < cPoolEntriesSize + srcPoolEntriesSize + ePoolEntriesSize) {
+        auto ele = VECTOR_ELT(result, streamIndex);
+        auto patchedIndex = Pool::insert(ele);
+
+        poolPatch[cpIndex] = patchedIndex;
+
+        #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+        std::cout << "{ " << cpIndex << " to " << patchedIndex << " from " << streamIndex << ", TYPE: " << TYPEOF(ele) << " } ";
+        #endif
+
+        bcIndices.push_back(patchedIndex);
+
+        streamIndex++;
+        cpIndex++;
+    }
+
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << " ]" << std::endl;
+    #endif
+
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << "Promise Src Entries: [ ";
+    #endif
+
+    while (streamIndex  < totalEntriesInSerializedPool) {
+        auto ele = VECTOR_ELT(result, streamIndex);
+        auto patchedIndex = src_pool_add(globalContext(), ele);
+        promiseSrcEntries.push_back(patchedIndex);
+        #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+        std::cout << "{ " << pIndex++ << " to " << patchedIndex << " from " << streamIndex << ", TYPE: " << TYPEOF(ele) << " } ";
+        #endif
+
+        streamIndex++;
+    }
+
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << " ]" << std::endl;
+    #endif
+
 
     // for (auto & ele : poolPatch) {
     //     std::cout << "Patching " << ele.first << " : " << ele.second << std::endl;
@@ -379,6 +500,7 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
 
     for (auto & global : llModuleHolder.get()->getGlobalList()) {
         auto pre = global.getName().str().substr(0,6) == "copool";
+        auto srp = global.getName().str().substr(0,6) == "srpool";
         if (pre) {
             auto con = global.getInitializer();
 
@@ -387,7 +509,7 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
 
                 auto arrSize = v->getNumElements();
 
-                for (auto i = 0; i < arrSize; i++) {
+                for (unsigned int i = 0; i < arrSize; i++) {
                     auto val = v->getElementAsAPInt(i).getSExtValue();
 
                     // Offset relative to the serialized pool
@@ -411,7 +533,7 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
 
                 auto arrSize = v->getNumElements();
 
-                for (auto i = 0; i < arrSize; i++) {
+                for (unsigned int i = 0; i < arrSize; i++) {
                     auto val = llvm::APInt().getSExtValue();
 
                     // Offset relative to the serialized pool
@@ -424,11 +546,24 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
                 auto newInit = llvm::ConstantArray::get(ty, patchedIndices);
 
                 global.setInitializer(newInit);
-            } else if (auto * v = llvm::dyn_cast<llvm::ConstantStruct>(con)) {
             } else {
-                llvm::raw_os_ostream os(std::cout);
-                global.getType()->print(os);
-                std::cout << global.getName().str() << " -> Unknown Type " << std::endl;
+                if (!llvm::dyn_cast<llvm::ConstantStruct>(con)) {
+                    llvm::raw_os_ostream os(std::cout);
+                    global.getType()->print(os);
+                    std::cout << global.getName().str() << " -> Unknown Type " << std::endl;
+                }
+            }
+        }
+
+        // All src pool references have a srpool prefix
+        if (srp) {
+            auto con = global.getInitializer();
+            if (auto * v = llvm::dyn_cast<llvm::ConstantInt>(con)) {
+                auto val = v->getSExtValue();
+                // Offset relative to the serialized pool
+                llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, sPoolPatch[val]));
+
+                global.setInitializer(replacementValue);
             }
         }
     }
@@ -702,7 +837,7 @@ void PirJitLLVM::initializeLLVM() {
 
                 auto epe = n.substr(0, 4) == "epe_"; // extra pool entry
 
-                auto base = n.substr(0, 5) == "base_"; // baseLibraryEntry
+                // auto base = n.substr(0, 5) == "base_"; // baseLibraryEntry
 
                 auto spef = n.substr(0, 5) == "spef_"; // specialsxp function
 
@@ -804,7 +939,7 @@ void PirJitLLVM::initializeLLVM() {
 
                     char * p = (char *) malloc( sizeof(char) * msgSize );
 
-                    for (int i = 0; i < msgSize; i++) {
+                    for (size_t i = 0; i < msgSize; i++) {
                         p[i] = n.substr(4).c_str()[i];
                     }
 
@@ -887,7 +1022,7 @@ void PirJitLLVM::initializeLLVM() {
 
                     rir::DispatchTable * dtable = ((rir::DispatchTable *)rir::Code::hastMap[hast]);
 
-                    rir::Code * code;
+                    rir::Code * code = rir::Code::New(0);
 
                     for (size_t i = 1; i < dtable->size(); ++i) {
                         auto e = dtable->get(i);
@@ -896,32 +1031,34 @@ void PirJitLLVM::initializeLLVM() {
                         }
                     }
 
-                    if (!code) {
-                        std::cout << "failed to find the version in dispatch table" << std::endl;
+                    if (code) {
+                        auto res = DATAPTR(code->getExtraPoolEntry(extraPoolOffset));
+
+                        NewSymbols[Name] = JITEvaluatedSymbol(
+                            static_cast<JITTargetAddress>(
+                                reinterpret_cast<uintptr_t>(res)),
+                            JITSymbolFlags::Exported | (JITSymbolFlags::None));
                     }
 
-                    auto res = DATAPTR(code->getExtraPoolEntry(extraPoolOffset));
+                }
+                // else if (base) {
+                //     auto firstDel = n.find('_');
+                //     auto secondDel = n.find('_', firstDel + 1);
 
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(
-                            reinterpret_cast<uintptr_t>(res)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
-                } else if (base) {
-                    auto firstDel = n.find('_');
-                    auto secondDel = n.find('_', firstDel + 1);
+                //     auto baseIndex = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                //     auto funName = BaseLibs::libBaseName.at(baseIndex);
+                //     auto sym = Rf_install(funName.c_str());
+                //     auto fun = Rf_findFun(sym, R_GlobalEnv);
 
-                    auto baseIndex = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
-                    auto funName = BaseLibs::libBaseName.at(baseIndex);
-                    auto sym = Rf_install(funName.c_str());
-                    auto fun = Rf_findFun(sym, R_GlobalEnv);
-
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(
-                            reinterpret_cast<uintptr_t>(fun)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                //     NewSymbols[Name] = JITEvaluatedSymbol(
+                //         static_cast<JITTargetAddress>(
+                //             reinterpret_cast<uintptr_t>(fun)),
+                //         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
 
-                } else if (spef) {
+                // }
+
+                else if (spef) {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 

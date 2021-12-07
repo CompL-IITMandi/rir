@@ -1,6 +1,7 @@
 #include "builtins.h"
 
 #include "api.h"
+#include "patches.h"
 #include "compiler/native/types_llvm.h"
 #include "compiler/parameter.h"
 #include "interpreter/cache.h"
@@ -331,6 +332,24 @@ static SEXP callImpl(ArglistOrder::CallId callId, rir::Code* c, Immediate ast,
     return doCall(call, globalContext(), true);
 }
 
+static SEXP callStaticImpl(ArglistOrder::CallId callId, rir::Code* c, Immediate ast,
+                     Immediate calleeCP, SEXP env, size_t nargs,
+                     unsigned long available) {
+    auto ctx = globalContext();
+    auto callee = cp_pool_at(globalContext(), calleeCP);
+    CallContext call(callId, c, callee, nargs, ast,
+                     ostack_cell_at(ctx, (long)nargs - 1), env, R_NilValue,
+                     Context(available), ctx);
+
+    SLOWASSERT(env == symbol::delayedEnv || TYPEOF(env) == ENVSXP ||
+               LazyEnvironment::check(env) || env == R_NilValue);
+    SLOWASSERT(ctx);
+    #if DEBUG_NATIVE_LOCATIONS == 1
+    std::cout << "callStaticImpl" << std::endl;
+    #endif
+    return doCall(call, globalContext(), true);
+}
+
 static SEXP namedCallImpl(ArglistOrder::CallId callId, rir::Code* c,
                           Immediate ast, SEXP callee, SEXP env, size_t nargs,
                           Immediate* names, unsigned long available) {
@@ -584,7 +603,11 @@ static SEXP binopEnvImpl(SEXP lhs, SEXP rhs, SEXP env, Immediate srcIdx,
     return res;
 }
 
+#if DEBUG_NATIVE_LOCATIONS == 1
+bool debugBinopImpl = true;
+#else
 bool debugBinopImpl = false;
+#endif
 static SEXP binopImpl(SEXP lhs, SEXP rhs, BinopKind kind) {
     SEXP res = nullptr;
 
@@ -827,6 +850,9 @@ static SEXP deoptSentinelContainer = []() {
 
 void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                DeoptReason* deoptReason, SEXP deoptTrigger) {
+    #if DEBUG_NATIVE_LOCATIONS == 1
+    std::cout << "deoptImpl" << std::endl;
+    #endif
     recordDeoptReason(deoptTrigger, *deoptReason);
 
     assert(m->numFrames >= 1);
@@ -933,6 +959,13 @@ void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                            (RCNTXT*)R_GlobalContext);
     assert(false);
 }
+
+void deoptPoolImpl(rir::Code* c, SEXP cls, SEXP metaDataStore, R_bcstack_t* args,
+               DeoptReason* deoptReason, SEXP deoptTrigger) {
+
+    deoptImpl(c,cls,(DeoptMetadata *)DATAPTR(metaDataStore), args, deoptReason, deoptTrigger);
+}
+
 
 void recordTypefeedbackImpl(Opcode* pos, rir::Code* code, SEXP value) {
     switch (*pos) {
@@ -2078,8 +2111,10 @@ SEXP makeVectorImpl(int mode, size_t len) {
 }
 
 void llDebugMsgImpl(void * ptr, int tag, int location) {
+    #if DEBUG_NATIVE_LOCATIONS == 1
+    std::cout << "At location: " << location << " (" << (char *) ptr << ")"  << std::endl;
+    #endif
 
-    // std::cout << "At location: " << location;
 
     // switch (tag) {
     // case 0:
@@ -2161,8 +2196,13 @@ void nonLocalReturnImpl(SEXP res, SEXP env) {
 
 bool clsEqImpl(SEXP lhs, SEXP rhs) {
     SLOWASSERT(TYPEOF(lhs) == CLOSXP && TYPEOF(rhs) == CLOSXP);
-    return CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) &&
-           BODY_EXPR(lhs) == BODY_EXPR(rhs);
+    #if DEBUG_NATIVE_LOCATIONS == 1
+    std::cout << "clsEqImpl: " << (CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) &&
+           BODY_EXPR(lhs) == BODY_EXPR(rhs)) << std::endl;
+    #endif
+    return true;
+    // return CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) &&
+    //        BODY_EXPR(lhs) == BODY_EXPR(rhs);
 }
 
 void checkTypeImpl(SEXP val, uint64_t type, const char* msg) {
@@ -2253,6 +2293,12 @@ void NativeBuiltins::initializeBuiltins() {
         "callBuiltin", (void*)&callBuiltinImpl,
         llvm::FunctionType::get(
             t::SEXP, {t::voidPtr, t::Int, t::SEXP, t::SEXP, t::i64}, false)};
+    get_(Id::callStatic) = {
+        "callStatic", (void*)&callStaticImpl,
+        llvm::FunctionType::get(
+            t::SEXP,
+            {t::i64, t::voidPtr, t::Int, t::Int, t::SEXP, t::i64, t::i64},
+            false)};
     get_(Id::call) = {
         "call", (void*)&callImpl,
         llvm::FunctionType::get(
@@ -2335,6 +2381,14 @@ void NativeBuiltins::initializeBuiltins() {
         (void*)&deoptImpl,
         llvm::FunctionType::get(t::t_void,
                                 {t::voidPtr, t::SEXP, t::voidPtr,
+                                 t::stackCellPtr, t::DeoptReasonPtr, t::SEXP},
+                                false),
+        {llvm::Attribute::NoReturn}};
+    get_(Id::deoptPool) = {
+        "deoptPool",
+        (void*)&deoptPoolImpl,
+        llvm::FunctionType::get(t::t_void,
+                                {t::voidPtr, t::SEXP, t::SEXP,
                                  t::stackCellPtr, t::DeoptReasonPtr, t::SEXP},
                                 false),
         {llvm::Attribute::NoReturn}};

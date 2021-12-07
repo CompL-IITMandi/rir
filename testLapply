@@ -1,112 +1,214 @@
+loading bitcode for lapply(6959), found 1 versions.
+Entry 1(nameLen): 6
+Entry 2(name): lapply
+Entry 3(hast): 6959
+Entry 4(number of contexts): 1
+(1099512692751) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0 miss: 1
+Entry 5 [0] :
+Context: 1099512692751
+envCreation: 1
+optimization: 1
+numArguments: 3
+dotsPosition: 2
+mainNameLen: 22
+name: f_376_1B2F_1000010400F
+cPoolEntriesSize: 14
+srcPoolEntriesSize: 4
+ePoolEntriesSize: 0
+promiseSrcPoolEntriesSize: 5
+
+╞════════════════════════════╡  Compiling lapply  ╞════════════════════════════╡
+ConstantPool: [ { 0 to 1, TYPE: 1 } { 1 to 2, TYPE: 1 } { 2 to 3, TYPE: 2 } { 3 to 4, TYPE: 3 } { 4 to 5, TYPE: 3 } { 5 to 6, TYPE: 16 } { 6 to 7, TYPE: 16 } { 7 to 8, TYPE: 3 } { 8 to 9, TYPE: 0 } { 9 to 10, TYPE: 1 } { 10 to 8, TYPE: 3 } { 11 to 11, TYPE: 2 } { 12 to 12, TYPE: 1 } { 13 to 13, TYPE: 16 }  ]
+SourcePool: [ { 0 to 1 from 14, TYPE: 6 } { 1 to 2 from 15, TYPE: 6 } { 2 to 3 from 16, TYPE: 1 } { 3 to 4 from 17, TYPE: 6 }  ]
+ExtraPool: [  ]
+Promise Src Entries: [ { 0 to 5 from 18, TYPE: 6 } { 1 to 6 from 19, TYPE: 6 } { 2 to 7 from 20, TYPE: 1 } { 3 to 8 from 21, TYPE: 1 } { 4 to 9 from 22, TYPE: 1 }  ]
 [1] TRUE
-Adding f_853_1B2F_1000010400F_0 to f_853_1B2F_1000010400F
-Adding f_853_1B2F_1000010400F_1 to f_853_1B2F_1000010400F
-Adding f_853_1B2F_1000010400F_2 to f_853_1B2F_1000010400F
-Adding f_853_1B2F_1000010400F_2_0 to f_853_1B2F_1000010400F_2
-Adding f_853_1B2F_1000010400F_3 to f_853_1B2F_1000010400F
-Adding f_853_1B2F_1000010400F_4 to f_853_1B2F_1000010400F
-extraPoolIndices: 0
-extraPool: 26
-extraPool: 26
-extraPool: 26
-extraPool: 26
-extraPool: 26
-calling context: 1099512692751
-Executing native code: f_853_1B2F_1000010400F
-Executing native code: f_853_1B2F_1000010400F_0
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 0 ( SEXP: 0x55676b129f20 )
-forcing prom
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    is.vector
-  └■ VALUE {5}
-  └■ INTERNAL {8}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CAR {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CDR {2 » LISTSXP}
+[1] "is.vector"
+[1] TRUE
+Executing native code: f_376_1B2F_1000010400F
+At location: 51
+createPromiseImpl
+ » PROMSXP}
+  └■ SEEN {00}
+  └■ CODE {26 » EXTERNALSXP}
+Code object
+   Source:          5 (index into src pool)
+   Magic:           c0de0000 (hex)
+   Stack (o):       0
+   Code size:       0[B]
+
+  └■ ENV {4 » ENVSXP}
+    └■ FRAME {2 » LISTSXP}
       └■ TAG {1 » SYMSXP}
         └■ PNAME {9 » CHARSXP}
-          mode
-        └■ VALUE {5}
+          X
+        └■ VALUE {1}
         └■ INTERNAL {0}
-      └■ CAR {16 » STRSXP}
-        any
-      └■ CDR {0}
-  └■ BODY {21 » BCODESXP}
-    └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
-      └■ TAG {0}
-      └■ CAR {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          .Internal
-        └■ VALUE {7}
-        └■ INTERNAL {0}
+      └■ CAR {5 » PROMSXP}
+        └■ SEEN {00}
+        └■ CODE {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            x
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ ENV {4 » ENVSXP}
+          └■ FRAME {0}
+          └■ ENCLS {0}
+          └■ HASHTAB {0}
+        └■ VALUE {1 » SYMSXP}
+          └■ PNAME {0}
+          └■ VALUE {1}
+          └■ INTERNAL {0}
       └■ CDR {2 » LISTSXP}
-        └■ TAG {0}
-        └■ CAR {6 » LANGSXP}
-          └■ TAG {0}
-          └■ CAR {1 » SYMSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            FUN
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
             └■ PNAME {9 » CHARSXP}
-              is.vector
+              mean
             └■ VALUE {5}
             └■ INTERNAL {8}
-          └■ CDR {2 » LISTSXP}
-            └■ TAG {0}
-            └■ CAR {1 » SYMSXP}
-              └■ PNAME {9 » CHARSXP}
-                x
-              └■ VALUE {1}
-              └■ INTERNAL {0}
-            └■ CDR {2 » LISTSXP}
-              └■ TAG {0}
-              └■ CAR {1 » SYMSXP}
-                └■ PNAME {9 » CHARSXP}
-                  mode
-                └■ VALUE {5}
-                └■ INTERNAL {0}
-              └■ CDR {0}
-        └■ CDR {0}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: f_853_1B2F_1000010400F_1
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 1 ( SEXP: 0x55676b129f90 )
-forcing prom
-result
-At location: 7 ( SEXP: 0x556769326b80 )
-At location: 9 ( SEXP: 0x55676b129f90 )
-At location: 8 ( SEXP: 0x55676b129f90 )
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
+          └■ ENV {4 » ENVSXP}
+            └■ FRAME {0}
+            └■ ENCLS {0}
+            └■ HASHTAB {0}
+          └■ VALUE {1 » SYMSXP}
+            └■ PNAME {0}
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              ...
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CDR {0}
+    └■ ENCLS {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          X
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {5 » PROMSXP}
+        └■ SEEN {00}
+        └■ CODE {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            x
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ ENV {4 » ENVSXP}
+          └■ FRAME {0}
+          └■ ENCLS {0}
+          └■ HASHTAB {0}
+        └■ VALUE {1 » SYMSXP}
+          └■ PNAME {0}
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            FUN
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              mean
+            └■ VALUE {5}
+            └■ INTERNAL {8}
+          └■ ENV {4 » ENVSXP}
+            └■ FRAME {0}
+            └■ ENCLS {0}
+            └■ HASHTAB {0}
+          └■ VALUE {1 » SYMSXP}
+            └■ PNAME {0}
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              ...
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CDR {0}
+    └■ HASHTAB {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          X
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {5 » PROMSXP}
+        └■ SEEN {00}
+        └■ CODE {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            x
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ ENV {4 » ENVSXP}
+          └■ FRAME {0}
+          └■ ENCLS {0}
+          └■ HASHTAB {0}
+        └■ VALUE {1 » SYMSXP}
+          └■ PNAME {0}
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            FUN
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              mean
+            └■ VALUE {5}
+            └■ INTERNAL {8}
+          └■ ENV {4 » ENVSXP}
+            └■ FRAME {0}
+            └■ ENCLS {0}
+            └■ HASHTAB {0}
+          └■ VALUE {1 » SYMSXP}
+            └■ PNAME {0}
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              ...
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CDR {0}
+  └■ VALUE {1 » SYMSXP}
+    └■ PNAME {0}
+    └■ VALUE {1}
+    └■ INTERNAL {0}
+At location: 52
+callStaticImpl
+Executing native code: f_376_1B2F_1000010400F_0
+At location: 43
+forcePromiseImpl
  » CLOSXP}
   └■ FORMALS {2 » LISTSXP}
     └■ TAG {1 » SYMSXP}
@@ -148,30 +250,7 @@ result
     └■ FRAME {0}
     └■ ENCLS {0}
     └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b129f90 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b0cacc8 )
-result
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
+res: 
  » CLOSXP}
   └■ FORMALS {2 » LISTSXP}
     └■ TAG {1 » SYMSXP}
@@ -196,109 +275,26 @@ result
         └■ VALUE {1}
         └■ INTERNAL {0}
       └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b129f90 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b0cacc8 )
-result
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CAR {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CDR {2 » LISTSXP}
-      └■ TAG {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          ...
-        └■ VALUE {1}
-        └■ INTERNAL {0}
+  └■ BODY {21 » BCODESXP}
+    └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+      └■ TAG {0}
       └■ CAR {1 » SYMSXP}
         └■ PNAME {9 » CHARSXP}
-          
-        └■ VALUE {1}
+          UseMethod
+        └■ VALUE {7}
         └■ INTERNAL {0}
-      └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {0}
+        └■ CAR {16 » STRSXP}
+          mean
+        └■ CDR {0}
   └■ CLOENV {4 » ENVSXP}
     └■ FRAME {0}
     └■ ENCLS {0}
     └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b129f90 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b0cacc8 )
-result
-result
-$a
-[1] 5.5
-
-$beta
-[1] 4.535125
-
-$logic
-[1] 0.5
-
-calling context: 1099512692751
-Executing native code: f_853_1B2F_1000010400F
-Executing native code: f_853_1B2F_1000010400F_0
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 0 ( SEXP: 0x55676b27a2f8 )
-forcing prom
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    is.vector
-  └■ VALUE {5}
-  └■ INTERNAL {8}
-result
+Executing native code end: f_376_1B2F_1000010400F_0
+At location: 53
+clsEqImpl called
  » CLOSXP}
   └■ FORMALS {2 » LISTSXP}
     └■ TAG {1 » SYMSXP}
@@ -320,32 +316,59 @@ result
       └■ CAR {16 » STRSXP}
         any
       └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
+  └■ BODY {6 » LANGSXP}
+    └■ TAG {0}
+    └■ CAR {1 » SYMSXP}
+      └■ PNAME {9 » CHARSXP}
+        .Internal
+      └■ VALUE {7}
+      └■ INTERNAL {0}
+    └■ CDR {2 » LISTSXP}
+      └■ TAG {0}
+      └■ CAR {6 » LANGSXP}
+        └■ TAG {0}
+        └■ CAR {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            is.vector
+          └■ VALUE {5}
+          └■ INTERNAL {8}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {0}
+          └■ CAR {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                mode
+              └■ VALUE {5}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+      └■ CDR {0}
   └■ CLOENV {4 » ENVSXP}
     └■ FRAME {0}
     └■ ENCLS {0}
     └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: f_853_1B2F_1000010400F_1
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 1 ( SEXP: 0x55676b27a368 )
-forcing prom
-result
-At location: 7 ( SEXP: 0x556769326b80 )
-At location: 9 ( SEXP: 0x55676b27a368 )
-At location: 8 ( SEXP: 0x55676b27a368 )
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
+lhs: 0x5606c9a48b50, rhs: 0x5606c9a48b50
+CLOENV(lhs) == CLOENV(rhs): 1
+lhs: 0x5606cb862ce8, rhs: 0x5606cb83d430
+FORMALS(lhs) == FORMALS(rhs): 0
+lhs: 0x5606cb862c40, rhs: 0x5606cb83d3c0
+BODY_EXPR(lhs) == BODY_EXPR(rhs): 0
+At location: 54
+At location: 55
+forcePromiseImpl
+}
+At location: 56
+At location: 57
+At location: 58
+At location: 60
+At location: 61
+At location: 63
+clsEqImpl called
  » CLOSXP}
   └■ FORMALS {2 » LISTSXP}
     └■ TAG {1 » SYMSXP}
@@ -370,213 +393,297 @@ result
         └■ VALUE {1}
         └■ INTERNAL {0}
       └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b27a368 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b0ca0f8 )
-result
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
+  └■ BODY {6 » LANGSXP}
+    └■ TAG {0}
     └■ CAR {1 » SYMSXP}
       └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
+        UseMethod
+      └■ VALUE {7}
       └■ INTERNAL {0}
     └■ CDR {2 » LISTSXP}
-      └■ TAG {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          ...
-        └■ VALUE {1}
-        └■ INTERNAL {0}
-      └■ CAR {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          
-        └■ VALUE {1}
-        └■ INTERNAL {0}
-      └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b27a368 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b0ca0f8 )
-result
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CAR {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CDR {2 » LISTSXP}
-      └■ TAG {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          ...
-        └■ VALUE {1}
-        └■ INTERNAL {0}
-      └■ CAR {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          
-        └■ VALUE {1}
-        └■ INTERNAL {0}
-      └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b27a368 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b0ca0f8 )
-result
-result
-$a
-[1] 5.5
-
-$beta
-[1] 4.535125
-
-$logic
-[1] 0.5
-
-calling context: 1099512692751
-Executing native code: f_853_1B2F_1000010400F
-Executing native code: f_853_1B2F_1000010400F_0
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 0 ( SEXP: 0x55676b285b08 )
-forcing prom
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    is.vector
-  └■ VALUE {5}
-  └■ INTERNAL {8}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CAR {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CDR {2 » LISTSXP}
-      └■ TAG {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          mode
-        └■ VALUE {5}
-        └■ INTERNAL {0}
+      └■ TAG {0}
       └■ CAR {16 » STRSXP}
-        any
+        mean
       └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
   └■ CLOENV {4 » ENVSXP}
     └■ FRAME {0}
     └■ ENCLS {0}
     └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh2_0x55676b277980
-forcing prom
-Executing native code: f_853_1B2F_1000010400F_1
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 1 ( SEXP: 0x55676b285b78 )
-forcing prom
-result
-At location: 7 ( SEXP: 0x556769326b80 )
-At location: 9 ( SEXP: 0x55676b285b78 )
-At location: 8 ( SEXP: 0x55676b285b78 )
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
+lhs: 0x5606c9a48b50, rhs: 0x5606c9a48b50
+CLOENV(lhs) == CLOENV(rhs): 1
+lhs: 0x5606cb8621c0, rhs: 0x5606cb83d270
+FORMALS(lhs) == FORMALS(rhs): 0
+lhs: 0x5606cb862118, rhs: 0x5606cb83d200
+BODY_EXPR(lhs) == BODY_EXPR(rhs): 0
+At location: 64
+At location: 65
+createPromiseImpl
+ » PROMSXP}
+  └■ SEEN {00}
+  └■ CODE {26 » EXTERNALSXP}
+Code object
+   Source:          7 (index into src pool)
+   Magic:           c0de0000 (hex)
+   Stack (o):       0
+   Code size:       0[B]
+
+  └■ ENV {4 » ENVSXP}
+    └■ FRAME {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          i
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {13}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            X
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ ENV {0}
+          └■ VALUE {19}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              FUN
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {3 » CLOSXP}
+            └■ FORMALS {2 » LISTSXP}
+              └■ TAG {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  x
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CDR {2 » LISTSXP}
+                └■ TAG {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    ...
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CDR {0}
+            └■ BODY {21 » BCODESXP}
+              └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+                └■ TAG {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    UseMethod
+                  └■ VALUE {7}
+                  └■ INTERNAL {0}
+                └■ CDR {2 » LISTSXP}
+                  └■ TAG {0}
+                  └■ CAR {16 » STRSXP}
+                    mean
+                  └■ CDR {0}
+            └■ CLOENV {4 » ENVSXP}
+              └■ FRAME {0}
+              └■ ENCLS {0}
+              └■ HASHTAB {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                ...
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+    └■ ENCLS {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          i
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {13}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            X
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ ENV {0}
+          └■ VALUE {19}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              FUN
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {3 » CLOSXP}
+            └■ FORMALS {2 » LISTSXP}
+              └■ TAG {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  x
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CDR {2 » LISTSXP}
+                └■ TAG {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    ...
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CDR {0}
+            └■ BODY {21 » BCODESXP}
+              └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+                └■ TAG {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    UseMethod
+                  └■ VALUE {7}
+                  └■ INTERNAL {0}
+                └■ CDR {2 » LISTSXP}
+                  └■ TAG {0}
+                  └■ CAR {16 » STRSXP}
+                    mean
+                  └■ CDR {0}
+            └■ CLOENV {4 » ENVSXP}
+              └■ FRAME {0}
+              └■ ENCLS {0}
+              └■ HASHTAB {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                ...
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+    └■ HASHTAB {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          i
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {13}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            X
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ ENV {0}
+          └■ VALUE {19}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              FUN
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {3 » CLOSXP}
+            └■ FORMALS {2 » LISTSXP}
+              └■ TAG {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  x
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CDR {2 » LISTSXP}
+                └■ TAG {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    ...
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CDR {0}
+            └■ BODY {21 » BCODESXP}
+              └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+                └■ TAG {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    UseMethod
+                  └■ VALUE {7}
+                  └■ INTERNAL {0}
+                └■ CDR {2 » LISTSXP}
+                  └■ TAG {0}
+                  └■ CAR {16 » STRSXP}
+                    mean
+                  └■ CDR {0}
+            └■ CLOENV {4 » ENVSXP}
+              └■ FRAME {0}
+              └■ ENCLS {0}
+              └■ HASHTAB {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                ...
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+  └■ VALUE {1 » SYMSXP}
+    └■ PNAME {0}
+    └■ VALUE {1}
+    └■ INTERNAL {0}
+At location: 66
+Executing native code: f_376_1B2F_1000010400F_2
+At location: 47
+res: 
+}
+Executing native code end: f_376_1B2F_1000010400F_2
+At location: 67
+At location: 63
+clsEqImpl called
  » CLOSXP}
   └■ FORMALS {2 » LISTSXP}
     └■ TAG {1 » SYMSXP}
@@ -601,213 +708,308 @@ result
         └■ VALUE {1}
         └■ INTERNAL {0}
       └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b285b78 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b0c9c60 )
-result
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
+  └■ BODY {6 » LANGSXP}
+    └■ TAG {0}
     └■ CAR {1 » SYMSXP}
       └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
+        UseMethod
+      └■ VALUE {7}
       └■ INTERNAL {0}
     └■ CDR {2 » LISTSXP}
-      └■ TAG {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          ...
-        └■ VALUE {1}
-        └■ INTERNAL {0}
-      └■ CAR {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          
-        └■ VALUE {1}
-        └■ INTERNAL {0}
-      └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b285b78 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b0c9c60 )
-result
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CAR {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CDR {2 » LISTSXP}
-      └■ TAG {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          ...
-        └■ VALUE {1}
-        └■ INTERNAL {0}
-      └■ CAR {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          
-        └■ VALUE {1}
-        └■ INTERNAL {0}
-      └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b285b78 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b0c9c60 )
-result
-result
-$a
-[1] 5.5
-
-$beta
-[1] 4.535125
-
-$logic
-[1] 0.5
-
-calling context: 1099512692751
-Executing native code: f_853_1B2F_1000010400F
-Executing native code: f_853_1B2F_1000010400F_0
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 0 ( SEXP: 0x55676b284410 )
-forcing prom
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    is.vector
-  └■ VALUE {5}
-  └■ INTERNAL {8}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CAR {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CDR {2 » LISTSXP}
-      └■ TAG {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          mode
-        └■ VALUE {5}
-        └■ INTERNAL {0}
+      └■ TAG {0}
       └■ CAR {16 » STRSXP}
-        any
+        mean
       └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
   └■ CLOENV {4 » ENVSXP}
     └■ FRAME {0}
     └■ ENCLS {0}
     └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh2_0x55676b277980
-forcing prom
-Executing native code: f_853_1B2F_1000010400F_1
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 1 ( SEXP: 0x55676b284480 )
-forcing prom
-result
-At location: 7 ( SEXP: 0x556769326b80 )
-At location: 9 ( SEXP: 0x55676b284480 )
-At location: 8 ( SEXP: 0x55676b284480 )
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
+lhs: 0x5606c9a48b50, rhs: 0x5606c9a48b50
+CLOENV(lhs) == CLOENV(rhs): 1
+lhs: 0x5606cb8621c0, rhs: 0x5606cb83d270
+FORMALS(lhs) == FORMALS(rhs): 0
+lhs: 0x5606cb862118, rhs: 0x5606cb83d200
+BODY_EXPR(lhs) == BODY_EXPR(rhs): 0
+At location: 64
+At location: 65
+createPromiseImpl
+ » PROMSXP}
+  └■ SEEN {00}
+  └■ CODE {26 » EXTERNALSXP}
+Code object
+   Source:          7 (index into src pool)
+   Magic:           c0de0000 (hex)
+   Stack (o):       0
+   Code size:       0[B]
+
+nativeCode 0x7fd4e005d330
+  └■ ENV {4 » ENVSXP}
+    └■ FRAME {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          i
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {13}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            X
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ ENV {0}
+          └■ VALUE {19}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                mean.default
+              └■ VALUE {5}
+              └■ INTERNAL {0}
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {3 » CLOSXP}
+            └■ FORMALS {2 » LISTSXP}
+              └■ TAG {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  x
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CDR {2 » LISTSXP}
+                └■ TAG {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    ...
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CDR {0}
+            └■ BODY {21 » BCODESXP}
+              └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+                └■ TAG {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    UseMethod
+                  └■ VALUE {7}
+                  └■ INTERNAL {0}
+                └■ CDR {2 » LISTSXP}
+                  └■ TAG {0}
+                  └■ CAR {16 » STRSXP}
+                    mean
+                  └■ CDR {0}
+            └■ CLOENV {4 » ENVSXP}
+              └■ FRAME {0}
+              └■ ENCLS {0}
+              └■ HASHTAB {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                ...
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+    └■ ENCLS {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          i
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {13}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            X
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ ENV {0}
+          └■ VALUE {19}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                mean.default
+              └■ VALUE {5}
+              └■ INTERNAL {0}
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {3 » CLOSXP}
+            └■ FORMALS {2 » LISTSXP}
+              └■ TAG {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  x
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CDR {2 » LISTSXP}
+                └■ TAG {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    ...
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CDR {0}
+            └■ BODY {21 » BCODESXP}
+              └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+                └■ TAG {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    UseMethod
+                  └■ VALUE {7}
+                  └■ INTERNAL {0}
+                └■ CDR {2 » LISTSXP}
+                  └■ TAG {0}
+                  └■ CAR {16 » STRSXP}
+                    mean
+                  └■ CDR {0}
+            └■ CLOENV {4 » ENVSXP}
+              └■ FRAME {0}
+              └■ ENCLS {0}
+              └■ HASHTAB {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                ...
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+    └■ HASHTAB {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          i
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {13}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            X
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ ENV {0}
+          └■ VALUE {19}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                mean.default
+              └■ VALUE {5}
+              └■ INTERNAL {0}
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {3 » CLOSXP}
+            └■ FORMALS {2 » LISTSXP}
+              └■ TAG {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  x
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CDR {2 » LISTSXP}
+                └■ TAG {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    ...
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CDR {0}
+            └■ BODY {21 » BCODESXP}
+              └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+                └■ TAG {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    UseMethod
+                  └■ VALUE {7}
+                  └■ INTERNAL {0}
+                └■ CDR {2 » LISTSXP}
+                  └■ TAG {0}
+                  └■ CAR {16 » STRSXP}
+                    mean
+                  └■ CDR {0}
+            └■ CLOENV {4 » ENVSXP}
+              └■ FRAME {0}
+              └■ ENCLS {0}
+              └■ HASHTAB {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                ...
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+  └■ VALUE {1 » SYMSXP}
+    └■ PNAME {0}
+    └■ VALUE {1}
+    └■ INTERNAL {0}
+At location: 66
+Executing native code: f_376_1B2F_1000010400F_2
+At location: 47
+res: 
+ » REALSXP}
+  0.0497871
+Executing native code end: f_376_1B2F_1000010400F_2
+At location: 67
+At location: 63
+clsEqImpl called
  » CLOSXP}
   └■ FORMALS {2 » LISTSXP}
     └■ TAG {1 » SYMSXP}
@@ -832,138 +1034,309 @@ result
         └■ VALUE {1}
         └■ INTERNAL {0}
       └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b284480 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b2353b8 )
-result
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
+  └■ BODY {6 » LANGSXP}
+    └■ TAG {0}
     └■ CAR {1 » SYMSXP}
       └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
+        UseMethod
+      └■ VALUE {7}
       └■ INTERNAL {0}
     └■ CDR {2 » LISTSXP}
-      └■ TAG {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          ...
-        └■ VALUE {1}
-        └■ INTERNAL {0}
-      └■ CAR {1 » SYMSXP}
-        └■ PNAME {9 » CHARSXP}
-          
-        └■ VALUE {1}
-        └■ INTERNAL {0}
+      └■ TAG {0}
+      └■ CAR {16 » STRSXP}
+        mean
       └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
   └■ CLOENV {4 » ENVSXP}
     └■ FRAME {0}
     └■ ENCLS {0}
     └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b284480 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b2353b8 )
-result
-stvarI
-ldfunImpl » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    FUN
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-result
- » CLOSXP}
-  └■ FORMALS {2 » LISTSXP}
-    └■ TAG {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        x
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CAR {1 » SYMSXP}
-      └■ PNAME {9 » CHARSXP}
-        
-      └■ VALUE {1}
-      └■ INTERNAL {0}
-    └■ CDR {2 » LISTSXP}
+lhs: 0x5606c9a48b50, rhs: 0x5606c9a48b50
+CLOENV(lhs) == CLOENV(rhs): 1
+lhs: 0x5606cb8621c0, rhs: 0x5606cb83d270
+FORMALS(lhs) == FORMALS(rhs): 0
+lhs: 0x5606cb862118, rhs: 0x5606cb83d200
+BODY_EXPR(lhs) == BODY_EXPR(rhs): 0
+At location: 64
+At location: 65
+createPromiseImpl
+ » PROMSXP}
+  └■ SEEN {00}
+  └■ CODE {26 » EXTERNALSXP}
+Code object
+   Source:          7 (index into src pool)
+   Magic:           c0de0000 (hex)
+   Stack (o):       0
+   Code size:       0[B]
+
+nativeCode 0x7fd4e005d330
+  └■ ENV {4 » ENVSXP}
+    └■ FRAME {2 » LISTSXP}
       └■ TAG {1 » SYMSXP}
         └■ PNAME {9 » CHARSXP}
-          ...
+          i
         └■ VALUE {1}
         └■ INTERNAL {0}
-      └■ CAR {1 » SYMSXP}
+      └■ CAR {13}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            X
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ ENV {0}
+          └■ VALUE {19}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                mean.default
+              └■ VALUE {5}
+              └■ INTERNAL {0}
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {3 » CLOSXP}
+            └■ FORMALS {2 » LISTSXP}
+              └■ TAG {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  x
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CDR {2 » LISTSXP}
+                └■ TAG {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    ...
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CDR {0}
+            └■ BODY {21 » BCODESXP}
+              └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+                └■ TAG {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    UseMethod
+                  └■ VALUE {7}
+                  └■ INTERNAL {0}
+                └■ CDR {2 » LISTSXP}
+                  └■ TAG {0}
+                  └■ CAR {16 » STRSXP}
+                    mean
+                  └■ CDR {0}
+            └■ CLOENV {4 » ENVSXP}
+              └■ FRAME {0}
+              └■ ENCLS {0}
+              └■ HASHTAB {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                ...
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+    └■ ENCLS {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
         └■ PNAME {9 » CHARSXP}
-          
+          i
         └■ VALUE {1}
         └■ INTERNAL {0}
-      └■ CDR {0}
-  └■ BODY {26 » EXTERNALSXP}
-  └■ CLOENV {4 » ENVSXP}
-    └■ FRAME {0}
-    └■ ENCLS {0}
-    └■ HASHTAB {0}
-calling context: 1099511627791
-Executing native code: rsh1_0x55676b2afc00
-Executing native code: f_853_1B2F_1000010400F_2
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    X
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 3 ( SEXP: 0x55676b284480 )
-Symbol Lookup: 
- » SYMSXP}
-  └■ PNAME {9 » CHARSXP}
-    i
-  └■ VALUE {1}
-  └■ INTERNAL {0}
-At location: 4 ( SEXP: 0x55676b2353b8 )
-result
-result
+      └■ CAR {13}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            X
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ ENV {0}
+          └■ VALUE {19}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                mean.default
+              └■ VALUE {5}
+              └■ INTERNAL {0}
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {3 » CLOSXP}
+            └■ FORMALS {2 » LISTSXP}
+              └■ TAG {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  x
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CDR {2 » LISTSXP}
+                └■ TAG {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    ...
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CDR {0}
+            └■ BODY {21 » BCODESXP}
+              └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+                └■ TAG {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    UseMethod
+                  └■ VALUE {7}
+                  └■ INTERNAL {0}
+                └■ CDR {2 » LISTSXP}
+                  └■ TAG {0}
+                  └■ CAR {16 » STRSXP}
+                    mean
+                  └■ CDR {0}
+            └■ CLOENV {4 » ENVSXP}
+              └■ FRAME {0}
+              └■ ENCLS {0}
+              └■ HASHTAB {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                ...
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+    └■ HASHTAB {2 » LISTSXP}
+      └■ TAG {1 » SYMSXP}
+        └■ PNAME {9 » CHARSXP}
+          i
+        └■ VALUE {1}
+        └■ INTERNAL {0}
+      └■ CAR {13}
+      └■ CDR {2 » LISTSXP}
+        └■ TAG {1 » SYMSXP}
+          └■ PNAME {9 » CHARSXP}
+            X
+          └■ VALUE {1}
+          └■ INTERNAL {0}
+        └■ CAR {5 » PROMSXP}
+          └■ SEEN {00}
+          └■ CODE {1 » SYMSXP}
+            └■ PNAME {9 » CHARSXP}
+              x
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ ENV {0}
+          └■ VALUE {19}
+        └■ CDR {2 » LISTSXP}
+          └■ TAG {1 » SYMSXP}
+            └■ PNAME {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                mean.default
+              └■ VALUE {5}
+              └■ INTERNAL {0}
+            └■ VALUE {1}
+            └■ INTERNAL {0}
+          └■ CAR {3 » CLOSXP}
+            └■ FORMALS {2 » LISTSXP}
+              └■ TAG {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  x
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CAR {1 » SYMSXP}
+                └■ PNAME {9 » CHARSXP}
+                  
+                └■ VALUE {1}
+                └■ INTERNAL {0}
+              └■ CDR {2 » LISTSXP}
+                └■ TAG {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    ...
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    
+                  └■ VALUE {1}
+                  └■ INTERNAL {0}
+                └■ CDR {0}
+            └■ BODY {21 » BCODESXP}
+              └■ VECTOR_ELT(CDR(BCODESXP),0) {21 » LANGSXP}
+                └■ TAG {0}
+                └■ CAR {1 » SYMSXP}
+                  └■ PNAME {9 » CHARSXP}
+                    UseMethod
+                  └■ VALUE {7}
+                  └■ INTERNAL {0}
+                └■ CDR {2 » LISTSXP}
+                  └■ TAG {0}
+                  └■ CAR {16 » STRSXP}
+                    mean
+                  └■ CDR {0}
+            └■ CLOENV {4 » ENVSXP}
+              └■ FRAME {0}
+              └■ ENCLS {0}
+              └■ HASHTAB {0}
+          └■ CDR {2 » LISTSXP}
+            └■ TAG {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                ...
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CAR {1 » SYMSXP}
+              └■ PNAME {9 » CHARSXP}
+                
+              └■ VALUE {1}
+              └■ INTERNAL {0}
+            └■ CDR {0}
+  └■ VALUE {1 » SYMSXP}
+    └■ PNAME {0}
+    └■ VALUE {1}
+    └■ INTERNAL {0}
+At location: 66
+Executing native code: f_376_1B2F_1000010400F_2
+At location: 47
+res: 
+}
+Executing native code end: f_376_1B2F_1000010400F_2
+At location: 67
+At location: 63
+res: 
+}
+Executing native code end: f_376_1B2F_1000010400F
 $a
 [1] 5.5
 

@@ -1,13 +1,152 @@
+loading bitcode for bitwShiftL(2433), found 2 versions.
+Entry 1(nameLen): 10
+Entry 2(name): bitwShiftL
+Entry 3(hast): 2433
+Entry 4(number of contexts): 2
+(12888097295) : !ExpMi,CorrOrd,!TMany,Argmatch;Eager1,NonRefl0,NonRefl1,!Obj0,!Obj1,SimpleReal0,SimpleReal1
+Entry 5 [0] :
+Context: 12888097295
+envCreation: 1
+optimization: 1
+numArguments: 2
+dotsPosition: 18446744073709551615
+mainNameLen: 19
+name: f_222_981_30030C20F
+cPoolEntriesSize: 0
+srcPoolEntriesSize: 0
+ePoolEntriesSize: 0
+promiseSrcPoolEntriesSize: 1
+ConstantPool: [  ]
+SourcePool: [  ]
+ExtraPool: [  ]
+Promise Src Entries: [ { 0 to 1 from 0, TYPE: 6 }  ]
+(4296032271) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0,SimpleReal0
+Entry 5 [1] :
+Context: 4296032271
+envCreation: 1
+optimization: 1
+numArguments: 2
+dotsPosition: 18446744073709551615
+mainNameLen: 19
+name: f_221_981_10010400F
+cPoolEntriesSize: 2
+srcPoolEntriesSize: 0
+ePoolEntriesSize: 0
+promiseSrcPoolEntriesSize: 1
+ConstantPool: [ { 0 to 1, TYPE: 1 } { 1 to 2, TYPE: 1 }  ]
+SourcePool: [  ]
+ExtraPool: [  ]
+Promise Src Entries: [ { 0 to 2 from 2, TYPE: 6 }  ]
 [1] TRUE
+loading bitcode for bitwXor(2148), found 2 versions.
+Entry 1(nameLen): 7
+Entry 2(name): bitwXor
+Entry 3(hast): 2148
+Entry 4(number of contexts): 2
+(8660238351) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,NonRefl1,!Obj0,!Obj1,SimpleInt0,SimpleReal1
+Entry 5 [0] :
+Context: 8660238351
+envCreation: 1
+optimization: 1
+numArguments: 2
+dotsPosition: 18446744073709551615
+mainNameLen: 19
+name: f_292_864_20430C00F
+cPoolEntriesSize: 0
+srcPoolEntriesSize: 0
+ePoolEntriesSize: 0
+promiseSrcPoolEntriesSize: 1
+ConstantPool: [  ]
+SourcePool: [  ]
+ExtraPool: [  ]
+Promise Src Entries: [ { 0 to 3 from 0, TYPE: 6 }  ]
+(204521487) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,NonRefl1,!Obj0,!Obj1,SimpleInt0,SimpleInt1
+Entry 5 [1] :
+Context: 204521487
+envCreation: 1
+optimization: 1
+numArguments: 2
+dotsPosition: 18446744073709551615
+mainNameLen: 17
+name: f_500_864_C30C00F
+cPoolEntriesSize: 0
+srcPoolEntriesSize: 0
+ePoolEntriesSize: 0
+promiseSrcPoolEntriesSize: 1
+ConstantPool: [  ]
+SourcePool: [  ]
+ExtraPool: [  ]
+Promise Src Entries: [ { 0 to 4 from 0, TYPE: 6 }  ]
 [1] TRUE
+loading bitcode for execute(1302), found 1 versions.
+Entry 1(nameLen): 7
+Entry 2(name): execute
+Entry 3(hast): 1302
+Entry 4(number of contexts): 1
+(4296032527) : !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,NonRefl0,!Obj0,SimpleReal0
+Entry 5 [0] :
+Context: 4296032527
+envCreation: 1
+optimization: 1
+numArguments: 1
+dotsPosition: 18446744073709551615
+mainNameLen: 19
+name: f_650_516_10010410F
+cPoolEntriesSize: 40
+srcPoolEntriesSize: 0
+ePoolEntriesSize: 0
+promiseSrcPoolEntriesSize: 2
+ConstantPool: [ { 0 to 3, TYPE: 1 } { 1 to 4, TYPE: 1 } { 2 to 5, TYPE: 1 } { 3 to 6, TYPE: 1 } { 4 to 7, TYPE: 1 } { 5 to 8, TYPE: 1 } { 6 to 9, TYPE: 1 } { 7 to 10, TYPE: 1 } { 8 to 11, TYPE: 1 } { 9 to 12, TYPE: 1 } { 10 to 13, TYPE: 1 } { 11 to 14, TYPE: 1 } { 12 to 15, TYPE: 1 } { 13 to 16, TYPE: 1 } { 14 to 17, TYPE: 1 } { 15 to 18, TYPE: 14 } { 16 to 19, TYPE: 14 } { 17 to 20, TYPE: 14 } { 18 to 21, TYPE: 14 } { 19 to 22, TYPE: 14 } { 20 to 23, TYPE: 14 } { 21 to 24, TYPE: 14 } { 22 to 25, TYPE: 14 } { 23 to 26, TYPE: 14 } { 24 to 27, TYPE: 14 } { 25 to 28, TYPE: 14 } { 26 to 29, TYPE: 3 } { 27 to 30, TYPE: 3 } { 28 to 31, TYPE: 14 } { 29 to 32, TYPE: 14 } { 30 to 30, TYPE: 3 } { 31 to 33, TYPE: 14 } { 32 to 34, TYPE: 14 } { 33 to 35, TYPE: 14 } { 34 to 36, TYPE: 14 } { 35 to 37, TYPE: 3 } { 36 to 2, TYPE: 1 } { 37 to 38, TYPE: 6 } { 38 to 37, TYPE: 3 } { 39 to 2, TYPE: 1 }  ]
+SourcePool: [  ]
+ExtraPool: [  ]
+Promise Src Entries: [ { 0 to 5 from 40, TYPE: 6 } { 1 to 6 from 41, TYPE: 1 }  ]
 [1] TRUE
+loading bitcode for mandelbrot(38962), found 2 versions.
+Entry 1(nameLen): 10
+Entry 2(name): mandelbrot
+Entry 3(hast): 38962
+Entry 4(number of contexts): 2
+(4296032271) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0,SimpleReal0
+Entry 5 [0] :
+Context: 4296032271
+envCreation: 1
+optimization: 1
+numArguments: 1
+dotsPosition: 18446744073709551615
+mainNameLen: 20
+name: f_390_9832_10010400F
+cPoolEntriesSize: 31
+srcPoolEntriesSize: 0
+ePoolEntriesSize: 0
+promiseSrcPoolEntriesSize: 1
+ConstantPool: [ { 0 to 3, TYPE: 1 } { 1 to 4, TYPE: 1 } { 2 to 5, TYPE: 1 } { 3 to 6, TYPE: 1 } { 4 to 7, TYPE: 1 } { 5 to 8, TYPE: 1 } { 6 to 9, TYPE: 1 } { 7 to 10, TYPE: 1 } { 8 to 11, TYPE: 1 } { 9 to 12, TYPE: 1 } { 10 to 13, TYPE: 1 } { 11 to 14, TYPE: 1 } { 12 to 15, TYPE: 1 } { 13 to 16, TYPE: 1 } { 14 to 17, TYPE: 1 } { 15 to 39, TYPE: 14 } { 16 to 40, TYPE: 14 } { 17 to 41, TYPE: 14 } { 18 to 42, TYPE: 14 } { 19 to 43, TYPE: 14 } { 20 to 44, TYPE: 14 } { 21 to 45, TYPE: 14 } { 22 to 29, TYPE: 3 } { 23 to 30, TYPE: 3 } { 24 to 46, TYPE: 14 } { 25 to 47, TYPE: 14 } { 26 to 30, TYPE: 3 } { 27 to 48, TYPE: 14 } { 28 to 49, TYPE: 14 } { 29 to 50, TYPE: 14 } { 30 to 51, TYPE: 14 }  ]
+SourcePool: [  ]
+ExtraPool: [  ]
+Promise Src Entries: [ { 0 to 7 from 31, TYPE: 6 }  ]
+(16399) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0
+Entry 5 [1] :
+Context: 16399
+envCreation: 1
+optimization: 1
+numArguments: 1
+dotsPosition: 18446744073709551615
+mainNameLen: 15
+name: f_723_9832_400F
+cPoolEntriesSize: 35
+srcPoolEntriesSize: 0
+ePoolEntriesSize: 0
+promiseSrcPoolEntriesSize: 1
+ConstantPool: [ { 0 to 3, TYPE: 1 } { 1 to 4, TYPE: 1 } { 2 to 5, TYPE: 1 } { 3 to 6, TYPE: 1 } { 4 to 7, TYPE: 1 } { 5 to 8, TYPE: 1 } { 6 to 9, TYPE: 1 } { 7 to 10, TYPE: 1 } { 8 to 11, TYPE: 1 } { 9 to 12, TYPE: 1 } { 10 to 13, TYPE: 1 } { 11 to 14, TYPE: 1 } { 12 to 15, TYPE: 1 } { 13 to 16, TYPE: 1 } { 14 to 17, TYPE: 1 } { 15 to 52, TYPE: 14 } { 16 to 53, TYPE: 14 } { 17 to 54, TYPE: 14 } { 18 to 55, TYPE: 14 } { 19 to 56, TYPE: 14 } { 20 to 57, TYPE: 14 } { 21 to 58, TYPE: 14 } { 22 to 59, TYPE: 14 } { 23 to 60, TYPE: 14 } { 24 to 61, TYPE: 14 } { 25 to 62, TYPE: 14 } { 26 to 29, TYPE: 3 } { 27 to 30, TYPE: 3 } { 28 to 63, TYPE: 14 } { 29 to 64, TYPE: 14 } { 30 to 30, TYPE: 3 } { 31 to 65, TYPE: 14 } { 32 to 66, TYPE: 14 } { 33 to 67, TYPE: 14 } { 34 to 68, TYPE: 14 }  ]
+SourcePool: [  ]
+ExtraPool: [  ]
+Promise Src Entries: [ { 0 to 8 from 35, TYPE: 6 }  ]
 [1] TRUE
-Adding f_556_9832_10010410F_0 to f_556_9832_10010410F
-Adding f_556_9832_10010410F_1 to f_556_9832_10010410F
-Adding f_556_9832_10010410F_2 to f_556_9832_10010410F
-Adding f_556_9832_10010410F_3 to f_556_9832_10010410F
-Adding f_556_9832_10010410F_4 to f_556_9832_10010410F
-Adding f_556_9832_10010410F_5 to f_556_9832_10010410F
-Adding f_556_9832_10010410F_6 to f_556_9832_10010410F
-[1] 101
-[1] "execution time:  14.5464897155762"
+[1] 15
+[1] 15
+callStaticImpl
+[1] 15
+callStaticImpl
+[1] 15
+callStaticImpl
+[1] 15
+[1] "execution time:  0.626486778259277"

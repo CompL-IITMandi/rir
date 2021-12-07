@@ -16,6 +16,9 @@
 #include "utils/Pool.h"
 #include "utils/measuring.h"
 
+#include "api.h"
+#include "patches.h"
+
 #include <assert.h>
 #include <deque>
 #include <libintl.h>
@@ -394,6 +397,9 @@ SEXP createLegacyArglist(ArglistOrder::CallId id, size_t length,
     assert(id == ArglistOrder::NOT_REORDERED || reordering);
     assert((!recreateOriginalPromargs || ast) &&
            "need ast to recreate promargs");
+    #if DEBUG_INSTRUMENT_RIR_CALL == 1
+    std::cout << "createLegacyArglist() initial assertions passed" << std::endl;
+    #endif
     SEXP result = R_NilValue;
     SEXP pos = result;
 
@@ -405,9 +411,20 @@ SEXP createLegacyArglist(ArglistOrder::CallId id, size_t length,
     size_t actualLength = (reorder && id != ArglistOrder::NOT_REORDERED)
                               ? reordering->originalArglistLength(id)
                               : length;
+    #if DEBUG_INSTRUMENT_RIR_CALL == 1
+    std::cout << "initial input to arglist: " << ast << std::endl;
+    // printAST(0, ast);
+    #endif
     auto a = ast;
     for (size_t i = 0; i < length; ++i) {
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "creating legacy arg: " << i << std::endl;
+        #endif
         a = CDR(a);
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "element: " << a << std::endl;
+        // printAST(0, a);
+        #endif
         auto getArg = args.getArgAndName(i, reorder, TAG(a));
         auto arg = getArg.first;
         auto name = getArg.second;
@@ -853,6 +870,11 @@ void inferCurrentContext(CallContext& call, size_t formalNargs,
 static void supplyMissingArgs(CallContext& call, const Function* fun) {
     auto context = fun->context();
     auto expected = fun->expectedNargs();
+    #if DEBUG_INSTRUMENT_RIR_CALL == 1
+    std::cout << "supplyMissingArgs(): " << std::endl;
+    std::cout << "  context: " << context.toI() << std::endl;
+    std::cout << "  expected nargs: " << expected << std::endl;
+    #endif
     assert(expected >= call.suppliedArgs ||
            !context.includes(Assumption::NotTooManyArguments));
     assert(expected == call.suppliedArgs ||
@@ -947,8 +969,13 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
         goto fallbackToLegacyCall;
     }
     case CLOSXP: {
-        if (TYPEOF(BODY(call.callee)) != EXTERNALSXP)
+        if (TYPEOF(BODY(call.callee)) != EXTERNALSXP) {
             goto fallbackToLegacyCall;
+        }
+
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "CLOSXP called" << std::endl;
+        #endif
 
         R_CheckStack();
         SEXP body = BODY(call.callee);
@@ -963,10 +990,15 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
         assert(DispatchTable::check(body));
 
         auto table = DispatchTable::unpack(body);
-
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "vtable found" << std::endl;
+        #endif
 
         inferCurrentContext(call, table->baseline()->signature().formalNargs(),
                             ctx);
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "Inferred Context: (" << call.givenContext.toI() << ")" << call.givenContext << std::endl;
+        #endif
         Function* fun = dispatch(call, table);
         fun->registerInvocation();
 
@@ -988,8 +1020,9 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
         }
         bool needsEnv = fun->signature().envCreation ==
                         FunctionSignature::Environment::CallerProvided;
-
-        // std::cout << "running context: " << fun->context().toI() << std::endl;
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "Dispatched Context: (" << fun->context().toI() << ")" << fun->context() << std::endl;
+        #endif
 
         if (fun->flags.contains(Function::DepromiseArgs)) {
             // Force arguments and depromise
@@ -1003,6 +1036,9 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
 
         SEXP result;
         if (!needsEnv) {
+            #if DEBUG_INSTRUMENT_RIR_CALL == 1
+            std::cout << "Callee created environment" << std::endl;
+            #endif
             // Default fast calling convention for pir, environment is created
             // by the callee
             SEXP arglist = call.arglist;
@@ -1012,9 +1048,15 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
             }
 
             supplyMissingArgs(call, fun);
+            #if DEBUG_INSTRUMENT_RIR_CALL == 1
+            std::cout << "Supplied missing args" << std::endl;
+            #endif
             result =
                 rirCallTrampoline(call, fun, symbol::delayedEnv, arglist, ctx);
         } else {
+            #if DEBUG_INSTRUMENT_RIR_CALL == 1
+            std::cout << "caller created environment" << std::endl;
+            #endif
             // TODO: figure out why this slowcase happens too often...
             int npreserved = 0;
 
@@ -1108,6 +1150,9 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
         assert(!fun->flags.contains(Function::Deopt));
         if (popArgs)
             ostack_popn(ctx, call.passedArgs - call.suppliedArgs);
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "call_result: " << result << std::endl;
+        #endif
         return result;
     }
     default:
@@ -1115,8 +1160,15 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
     };
 
 fallbackToLegacyCall:
+    #if DEBUG_INSTRUMENT_RIR_CALL == 1
+    std::cout << "fallbackToLegacyCall" << std::endl;
+    #endif
     SEXP arglist = createPromargsFromStackValues(call, ctx);
     PROTECT(arglist);
+
+    #if DEBUG_INSTRUMENT_RIR_CALL == 1
+    std::cout << "createPromargsFromStackValues done" << std::endl;
+    #endif
 
     SEXP res;
     if (TYPEOF(call.callee) == BUILTINSXP) {
@@ -1131,7 +1183,6 @@ fallbackToLegacyCall:
         if (flag < 2)
             R_Visible = static_cast<Rboolean>(flag != 1);
     } else {
-
         assert(TYPEOF(call.callee) == CLOSXP &&
                TYPEOF(BODY(call.callee)) != EXTERNALSXP);
         res = Rf_applyClosure(call.ast, call.callee, arglist,
@@ -1926,9 +1977,17 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
     auto native = c->nativeCode();
     assert((!initialPC || !native) && "Cannot jump into native code");
     if (native) {
-        // std::cout << "Executing native code: " << c->getLazyCodeHandle() << std::endl;
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "Executing native code: " << c->getLazyCodeHandle() << std::endl;
+        auto res = native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
+                      callCtxt ? callCtxt->callee : nullptr);
+        printAST(0, res);
+        return res;
+        #else
         return native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
                       callCtxt ? callCtxt->callee : nullptr);
+        #endif
+
     }
 
 #ifdef THREADED_CODE

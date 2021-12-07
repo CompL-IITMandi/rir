@@ -69,9 +69,9 @@ mandelbrot <- function(size) {
 
 # mandelbrot becomes a static site, how to handle that?
 
-# execute <- function(n = 3000L) {
-#     mandelbrot(n)
-# }
+execute <- function(n = 3000L) {
+    mandelbrot(n)
+}
 
 # invisible(rir.compile(bitwShiftL))
 # invisible(rir.compile(bitwXor))
@@ -80,18 +80,21 @@ mandelbrot <- function(size) {
 # f.printHAST(bitwXor);
 
 
-f.loadBitcode("mandelbrot_38962.meta")
 f.loadBitcode("bitwShiftL_2433.meta")
 f.loadBitcode("bitwXor_2148.meta")
-f.loadBitcode("print_913.meta")
+f.loadBitcode("execute_1302.meta")
+f.loadBitcode("mandelbrot_38962.meta")
 
-invisible(rir.compile(mandelbrot))
-invisible(rir.compile(bitwShiftL))
-invisible(rir.compile(bitwXor))
-invisible(rir.compile(print))
+# invisible(rir.compile(mandelbrot))
+# invisible(rir.compile(bitwShiftL))
+# invisible(rir.compile(bitwXor))
+# invisible(rir.compile(print))
 start.time <- Sys.time()
-mandelbrot(1000)
-
+execute(50)
+execute(50)
+execute(50)
+execute(50)
+execute(50)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(paste("execution time: ",time.taken))
