@@ -73,36 +73,23 @@ execute <- function(n = 3000L) {
     mandelbrot(n)
 }
 
-# invisible(rir.compile(bitwShiftL))
-# invisible(rir.compile(bitwXor))
-
-# f.printHAST(bitwShiftL);
-# f.printHAST(bitwXor);
 
 
+start.time <- Sys.time()
 f.loadBitcode("bitwShiftL_2433.meta")
 f.loadBitcode("bitwXor_2148.meta")
 f.loadBitcode("execute_1302.meta")
 f.loadBitcode("mandelbrot_38962.meta")
 
-# invisible(rir.compile(mandelbrot))
-# invisible(rir.compile(bitwShiftL))
-# invisible(rir.compile(bitwXor))
-# invisible(rir.compile(print))
-start.time <- Sys.time()
-execute(50)
-execute(50)
-execute(50)
-execute(50)
-execute(50)
+invisible(rir.compile(mandelbrot))
+invisible(rir.compile(execute))
+invisible(rir.compile(bitwShiftL))
+invisible(rir.compile(bitwXor))
+execute(100)
+execute(100)
+execute(100)
+execute(100)
+execute(100)
 end.time <- Sys.time()
 time.taken <- end.time - start.time
 print(paste("execution time: ",time.taken))
-
-# execute(10)
-# execute(10)
-# execute()
-# execute()
-
-# f.serialize(mandelbrot)
-# 38962

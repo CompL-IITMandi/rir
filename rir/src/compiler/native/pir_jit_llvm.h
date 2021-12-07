@@ -52,8 +52,12 @@ class PirJitLLVM {
                  const std::unordered_set<Instruction*>& needsLdVarForUpdate,
                  ClosureStreamLogger& log);
 
-    void deserializeAndAddModule(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t cPoolEntriesSize, size_t srcPoolEntriesSize, size_t ePoolEntriesSize, std::vector<std::string> & existingDefs, std::vector<unsigned> & promiseSrcEntries);
-
+    void deserializeAndAddModule(
+      size_t hast, Context context,
+      int & envCreation, int & optimization, unsigned int & numArguments, size_t & dotsPosition,
+      std::string bcPath, std::string poolPath, std::string startingHandle,
+      size_t & cPoolEntriesSize, size_t & srcPoolEntriesSize, size_t & ePoolEntriesSize, size_t & promiseSrcPoolEntriesSize
+      );
     using GetModule = std::function<llvm::Module&()>;
     using GetFunction = std::function<llvm::Function*(Code*)>;
     using GetBuiltin = std::function<llvm::Function*(const NativeBuiltin&)>;

@@ -39,7 +39,7 @@ extern "C" Rboolean R_Visible;
 
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
 
-std::unordered_map<int, std::vector<FunctionMeta>> DeserializerData::deserializedHastMap;
+std::unordered_map<int, std::vector<rir::Function *>> DeserializerData::deserializedHastMap;
 
 static size_t oldMaxInput = 0;
 static size_t oldInlinerMax = 0;
@@ -440,7 +440,7 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             // READ 15: ExtraPoolEntries
             metaDataFile.read(reinterpret_cast<char *>(&promiseSrcPoolEntriesSize),sizeof(size_t));
 
-            std::vector<unsigned> promiseSrcEntries; // Insert the entries in order and fix them up
+
 
             #if API_PRINT_DESERIALIZED_VALUES == 1
             std::cout << "envCreation: " << envCreation << std::endl;
@@ -455,10 +455,16 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             std::cout << "promiseSrcPoolEntriesSize: " << promiseSrcPoolEntriesSize << std::endl;
             #endif
 
-            // THESE ARE THE EXTRA POOL ENTRIES FOR THE MAIN CODE
-            std::vector<BC::PoolIdx> extraPoolIndices;
+            // int envCreation = 0;
+            // int optimization = 0;
+            // unsigned int numArguments = 0;
+            // size_t dotsPosition = 0;
+            // size_t promiseSrcPoolEntriesSize = 0;
 
-            std::vector<std::string> existingDefs;
+            // CREATE THE META TO RECREATE THE FUNCTION WHEN WE ENCOUNTER ITS RIR CREATION
+            FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
+            fs.numArguments = numArguments;
+            fs.dotsPosition = dotsPosition;
 
             // INSERT THE FUNCTION INTO THE JIT
             pir::Module* m = new pir::Module;
@@ -466,18 +472,13 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             logger.title("Compiling " + std::string(functionName));
             pir::Compiler cmp(m, logger);
             pir::Backend backend(m, logger, functionName);
-            backend.deserialize(bitcodePath.str(), poolPath.str(), extraPoolIndices, cPoolEntriesSize, srcPoolEntriesSize, ePoolEntriesSize, existingDefs, promiseSrcEntries); // passing the context and fileName (remove context later)
-
-            // CREATE THE META TO RECREATE THE FUNCTION WHEN WE ENCOUNTER ITS RIR CREATION
-            FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
-            fs.numArguments = numArguments;
-            fs.dotsPosition = dotsPosition;
-            FunctionMeta meta = {c, mainName, fs, extraPoolIndices, existingDefs, promiseSrcEntries};
-            DeserializerData::deserializedHastMap[hast].push_back(meta);
+            backend.deserialize(
+                hast, c,
+                envCreation, optimization, numArguments, dotsPosition,
+                bitcodePath.str(), poolPath.str(), std::string(mainName),
+                cPoolEntriesSize, srcPoolEntriesSize, ePoolEntriesSize, promiseSrcPoolEntriesSize); // passing the context and fileName (remove context later)
 
             delete[] mainName;
-
-
         }
         delete[] functionName;
         return R_TrueValue;

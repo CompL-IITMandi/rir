@@ -108,71 +108,12 @@ class Compiler {
             SET_FORMALS(cpEntry, FORMALS(formals));
         }
 
-        for (auto & meta : DeserializerData::deserializedHastMap[hast]) {
-            FunctionWriter function;
-            Preserve preserve;
-            for (size_t i = 0; i < meta.fs.numArguments; ++i) {
-                function.addArgWithoutDefault();
-            }
-
-            auto res = rir::Code::New(vtable->baseline()->body()->src);
-            preserve(res->container());
-
-            function.finalize(res, meta.fs, meta.c);
-
-            function.function()->inheritFlags(vtable->baseline());
-            vtable->insert(function.function());
-
-            res->lazyCodeHandle(meta.nativeHandle);
-
-            // insert the promises into the extra pools recursively
-            std::function<void(std::string, rir::Code*)> updateExtrasRecursively = [&](std::string startingPrefix, rir::Code * code) {
-                int i = 0;
-                while (true) {
-                    std::stringstream pName;
-                    pName << startingPrefix << "_" << i;
-                    if (std::count(meta.existingDefs.begin(), meta.existingDefs.end(), pName.str())) {
-                        // This handle does exists inside for the code, so add this
-                        // to the code objects extraPool
-                        auto p = rir::Code::New(vtable->baseline()->body()->src);
-                        preserve(p->container());
-                        // Add the handle to the promise
-                        p->lazyCodeHandle(pName.str());
-
-                        #if COMPILER_PRINT_PORMISE_LINK == 1
-                        std::cout << "Adding " << pName.str() << " to " << startingPrefix << std::endl;
-                        #endif
-
-                        // Add this created promise into the code's extra pool entry
-                        code->addExtraPoolEntry(p->container());
-
-                        // Check if there are any promises, inside this promise
-                        updateExtrasRecursively(pName.str(), p);
-                        // Process next promises
-                        i++;
-                        continue;
-                    }
-                    break;
-                }
-            };
-
-            updateExtrasRecursively(meta.nativeHandle, res);
-
-            // std::cout << "extraPoolIndices: " << meta.extraPoolIndices.size() << std::endl;
-
-            for (auto & id : meta.extraPoolIndices) {
-                auto ele = Pool::get(id);
-                // DeoptMetadata * deoptMeta = static_cast<DeoptMetadata *>(DATAPTR(ele));
-                // std::cout << "deoptMetadata: " << deoptMeta->numFrames << std::endl;
-                res->addExtraPoolEntry(ele);
-            }
-
-            // for (int i = 0; i < res->extraPoolSize; i++) {
-            //     std::cout << "extraPool: " << TYPEOF(res->getExtraPoolEntry(i)) << std::endl;
-            // }
+        // Link deserialized existing versions
+        for (auto & function : DeserializerData::deserializedHastMap[hast]) {
+            function->inheritFlags(vtable->baseline());
+            vtable->insert(function);
         }
 
-        // Set the closure fields.
         UNPROTECT(1);
         return vtable->container();
     }
@@ -189,19 +130,6 @@ class Compiler {
             origBC = p(body);
             body = VECTOR_ELT(CDR(body), 0);
         }
-
-        // int h1 = 0;
-        // hash_ast(body, h1);
-
-        // if (Code::hastMap.count(h1) > 0) {
-        //     auto orig = src_pool_at(globalContext(), ((DispatchTable*)Code::hastMap[h1])->baseline()->body()->src);
-        //     // already compiled, but duplicate
-        //     SET_CLOENV(inClosure, CLOENV(orig) );
-
-        //     SET_BODY(inClosure, BODY(orig));
-
-        //     SET_FORMALS(inClosure, FORMALS(orig) );
-        // }
 
         Compiler c(body, FORMALS(inClosure), CLOENV(inClosure));
         SEXP compiledFun = p(c.finalize());
@@ -232,86 +160,14 @@ class Compiler {
         Code::hastMap[hast] = vtable;
 
         if (Code::cpHastPatch.count(hast) > 0) {
-            // std::cout << "patching cp Entry" << std::endl;
-            // std::cout << "CLOENV: " << CLOENV(inClosure) << std::endl;
-            // std::cout << "FORMALS: " << FORMALS(inClosure) << std::endl;
-            // std::cout << "BODY_EXPR: " << BODY_EXPR(inClosure) << std::endl;
             Pool::patch(Code::cpHastPatch[hast], inClosure);
-            // auto cpEntry = cp_pool_at(globalContext(), Code::cpHastPatch[hast]);
-            // SET_CLOENV(cpEntry, CLOENV(inClosure));
-            // SET_BODY(cpEntry, BODY(inClosure));
-            // SET_FORMALS(cpEntry, FORMALS(inClosure));
         }
 
-        for (auto & meta : DeserializerData::deserializedHastMap[hast]) {
-            FunctionWriter function;
-            Preserve preserve;
-            for (size_t i = 0; i < meta.fs.numArguments; ++i) {
-                function.addArgWithoutDefault();
-            }
-
-            auto res = rir::Code::New(vtable->baseline()->body()->src);
-            preserve(res->container());
-
-            function.finalize(res, meta.fs, meta.c);
-
-            function.function()->inheritFlags(vtable->baseline());
-            vtable->insert(function.function());
-
-            res->lazyCodeHandle(meta.nativeHandle);
-
-            // ExtraIndex
-            int eIndex = 0;
-
-            // insert the promises into the extra pools recursively
-            std::function<void(std::string, rir::Code*)> updateExtrasRecursively = [&](std::string startingPrefix, rir::Code * code) {
-                int i = 0;
-                while (true) {
-                    std::stringstream pName;
-                    pName << startingPrefix << "_" << i;
-                    if (std::count(meta.existingDefs.begin(), meta.existingDefs.end(), pName.str())) {
-                        // Store the srcIndex of the resolved data here, instead of runtime data (maybe improve?)
-                        unsigned patchedSrcIdx = meta.promiseSrcEntries[eIndex++];
-
-                        // This handle does exists inside for the code, so add this
-                        // to the code objects extraPool
-                        auto p = rir::Code::New(patchedSrcIdx);
-                        preserve(p->container());
-                        // Add the handle to the promise
-                        p->lazyCodeHandle(pName.str());
-
-                        #if COMPILER_PRINT_PORMISE_LINK == 1
-                        std::cout << "Adding " << pName.str() << " to " << startingPrefix << std::endl;
-                        #endif
-
-
-                        // Add this created promise into the code's extra pool entry
-                        code->addExtraPoolEntry(p->container());
-
-                        // Check if there are any promises, inside this promise
-                        updateExtrasRecursively(pName.str(), p);
-                        // Process next promises
-                        i++;
-                        continue;
-                    }
-                    break;
-                }
-            };
-
-            updateExtrasRecursively(meta.nativeHandle, res);
-
-            // std::cout << "extraPoolIndices: " << meta.extraPoolIndices.size() << std::endl;
-
-            for (auto & id : meta.extraPoolIndices) {
-                auto ele = Pool::get(id);
-                // DeoptMetadata * deoptMeta = static_cast<DeoptMetadata *>(DATAPTR(ele));
-                // std::cout << "deoptMetadata: " << deoptMeta->numFrames << std::endl;
-                res->addExtraPoolEntry(ele);
-            }
-
-            // for (int i = 0; i < res->extraPoolSize; i++) {
-            //     std::cout << "extraPool: " << TYPEOF(res->getExtraPoolEntry(i)) << std::endl;
-            // }
+        // Link deserialized existing versions
+        for (auto & function : DeserializerData::deserializedHastMap[hast]) {
+            std::cout << "linking function: " << function->body()->getLazyCodeHandle() << std::endl;
+            function->inheritFlags(vtable->baseline());
+            vtable->insert(function);
         }
     }
 };

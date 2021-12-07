@@ -23,7 +23,12 @@ class Backend {
 
     rir::Function* getOrCompile(ClosureVersion* cls);
 
-    void deserialize(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t cPoolEntriesSize, size_t srcPoolEntriesSize, size_t ePoolEntriesSize, std::vector<std::string> & existingDefs, std::vector<unsigned> & promiseSrcEntries);
+    void deserialize(
+      size_t hast, Context context,
+      int & envCreation, int & optimization, unsigned int & numArguments, size_t & dotsPosition, // for function signature
+      std::string bcPath, std::string poolPath, std::string startingHandle,
+      size_t & cPoolEntriesSize, size_t & srcPoolEntriesSize, size_t & ePoolEntriesSize, size_t & promiseSrcPoolEntriesSize
+      );
 
   private:
     struct LastDestructor {

@@ -5,7 +5,9 @@
 #include "compiler/native/pass_schedule_llvm.h"
 #include "compiler/native/types_llvm.h"
 #include "utils/filesystem.h"
+#include "utils/FunctionWriter.h"
 #include "R/Funtab.h"
+
 
 #include "runtime/DispatchTable.h"
 
@@ -332,46 +334,43 @@ void PirJitLLVM::finalizeAndFixup() {
         fix.second.first->lazyCodeHandle(fix.second.second.str());
 }
 
-void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t cPoolEntriesSize, size_t srcPoolEntriesSize, size_t ePoolEntriesSize, std::vector<std::string> & existingDefs, std::vector<unsigned> & promiseSrcEntries) {
-    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> mb = llvm::MemoryBuffer::getFile(bcPath);
-    rir::pir::PirJitLLVM jit("f");
+void PirJitLLVM::deserializeAndAddModule(
+    size_t hast, Context context,
+    int & envCreation, int & optimization, unsigned int & numArguments, size_t & dotsPosition,
+    std::string bcPath, std::string poolPath, std::string startingHandle,
+    size_t & cPoolEntriesSize, size_t & srcPoolEntriesSize, size_t & ePoolEntriesSize, size_t & promiseSrcPoolEntriesSize
+    ) {
 
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "Loading pool file: " << poolPath << std::endl;
+    #endif
 
-    llvm::Expected<std::unique_ptr<llvm::Module>> llModuleHolder = llvm::parseBitcodeFile(mb->get()->getMemBufferRef(), jit.getContext());
-
-    if (std::error_code ec = errorToErrorCode(llModuleHolder.takeError())) {
-        std::stringstream errMsg;
-        errMsg << "Error reading module from bitcode : " << bcPath << std::endl;
-    }
-
+    // Load the serialized pool from the .pool file
     FILE *reader;
     reader = fopen(poolPath.c_str(),"r");
 
+    // Initialize the deserializing stream
     R_inpstream_st inputStream;
     R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
 
+    // Vector storing the result of deserialized pool
     SEXP result = R_Unserialize(&inputStream);
-    size_t totalEntriesInSerializedPool = (size_t)Rf_length(result);
 
-    std::unordered_map<int64_t, int64_t> poolPatch;
-    std::unordered_map<int64_t, int64_t> sPoolPatch;
-
-    size_t streamIndex = 0;
-
-    size_t cpIndex = 0;
-    size_t srcIndex = 0;
-
-    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
-    int pIndex = 0;
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "Pool deserialized" << std::endl;
     #endif
 
+    // size_t totalEntriesInSerializedPool = (size_t)Rf_length(result);
+    size_t streamIndex = 0;
 
-
+    // Constant Pool patches
+    std::unordered_map<int64_t, int64_t> poolPatch;
+    size_t cpIndex = 0;
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
     std::cout << "ConstantPool: [ ";
     #endif
-
     while (streamIndex < cPoolEntriesSize) {
+        // Load element from the serialized pool
         auto ele = VECTOR_ELT(result, streamIndex);
 
         if (TYPEOF(ele) == CLOSXP) {
@@ -380,7 +379,7 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
 
             // If closure with the same hast has been added to the CP already, just use that index
             if (rir::Code::cpHastPatch.count(h)) {
-                poolPatch[streamIndex] = rir::Code::cpHastPatch[h];
+                poolPatch[cpIndex] = rir::Code::cpHastPatch[h];
 
                 #if DESERIALIZED_PRINT_POOL_PATCHES == 1
                 std::cout << "{ " << streamIndex << " to " << rir::Code::cpHastPatch[h] << ", TYPE: " << TYPEOF(ele) << " } ";
@@ -388,7 +387,7 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
             } else {
                 // copool_x streamIndex ---becomes---> runtime_constant_pool_index
                 auto runtimeCpIndex = Pool::insert(ele);
-                poolPatch[streamIndex] = runtimeCpIndex;
+                poolPatch[cpIndex] = runtimeCpIndex;
 
                 #if DESERIALIZED_PRINT_POOL_PATCHES == 1
                 std::cout << "{ " << streamIndex << " to " << runtimeCpIndex << ", TYPE: " << TYPEOF(ele) << " } ";
@@ -401,7 +400,7 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
         } else {
             // copool_x streamIndex ---becomes---> runtime_constant_pool_index
             auto runtimeCpIndex = Pool::insert(ele);
-            poolPatch[streamIndex] = runtimeCpIndex;
+            poolPatch[cpIndex] = runtimeCpIndex;
 
             #if DESERIALIZED_PRINT_POOL_PATCHES == 1
             std::cout << "{ " << streamIndex << " to " << runtimeCpIndex << ", TYPE: " << TYPEOF(ele) << " } ";
@@ -411,15 +410,16 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
         streamIndex++;
         cpIndex++;
     }
-
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
     std::cout << " ]" << std::endl;
     #endif
 
+    // Source Pool patches
+    std::unordered_map<int64_t, int64_t> sPoolPatch;
+    size_t srcIndex = 0;
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
     std::cout << "SourcePool: [ ";
     #endif
-
     while (streamIndex < cPoolEntriesSize + srcPoolEntriesSize) {
         auto ele = VECTOR_ELT(result, streamIndex);
         auto patchedIndex = src_pool_add(globalContext(), ele);
@@ -434,43 +434,45 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
         srcIndex++;
 
     }
-
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
     std::cout << " ]" << std::endl;
     #endif
 
+    // Extra Pool patches
+    size_t epIndex = 0;
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
     std::cout << "ExtraPool: [ ";
     #endif
-
     while (streamIndex < cPoolEntriesSize + srcPoolEntriesSize + ePoolEntriesSize) {
         auto ele = VECTOR_ELT(result, streamIndex);
         auto patchedIndex = Pool::insert(ele);
 
-        poolPatch[cpIndex] = patchedIndex;
+        poolPatch[epIndex] = patchedIndex;
 
         #if DESERIALIZED_PRINT_POOL_PATCHES == 1
-        std::cout << "{ " << cpIndex << " to " << patchedIndex << " from " << streamIndex << ", TYPE: " << TYPEOF(ele) << " } ";
+        std::cout << "{ " << epIndex << " to " << patchedIndex << " from " << streamIndex << ", TYPE: " << TYPEOF(ele) << " } ";
         #endif
 
-        bcIndices.push_back(patchedIndex);
-
         streamIndex++;
-        cpIndex++;
+        epIndex++;
     }
 
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
     std::cout << " ]" << std::endl;
     #endif
 
+    // Promise src entries, ordered in depth first manner
+    std::vector<unsigned> srcEntriesForCode;
+    int pIndex = 0;
+
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
     std::cout << "Promise Src Entries: [ ";
     #endif
 
-    while (streamIndex  < totalEntriesInSerializedPool) {
+    while (streamIndex  < cPoolEntriesSize + srcPoolEntriesSize + ePoolEntriesSize + promiseSrcPoolEntriesSize) {
         auto ele = VECTOR_ELT(result, streamIndex);
         auto patchedIndex = src_pool_add(globalContext(), ele);
-        promiseSrcEntries.push_back(patchedIndex);
+        srcEntriesForCode.push_back(patchedIndex);
         #if DESERIALIZED_PRINT_POOL_PATCHES == 1
         std::cout << "{ " << pIndex++ << " to " << patchedIndex << " from " << streamIndex << ", TYPE: " << TYPEOF(ele) << " } ";
         #endif
@@ -482,11 +484,6 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
     std::cout << " ]" << std::endl;
     #endif
 
-
-    // for (auto & ele : poolPatch) {
-    //     std::cout << "Patching " << ele.first << " : " << ele.second << std::endl;
-    // }
-
     #if API_PRINT_DESERIALIZED_MODULE_BEFORE_PATCH == 1
     llvm::raw_os_ostream dbg1(std::cout);
     dbg1 << *llModuleHolder.get();
@@ -494,10 +491,52 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
 
     fclose(reader);
 
-    for (auto & fun : llModuleHolder.get()->getFunctionList()) {
-        existingDefs.push_back(fun.getName().str());
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "Pool patches prepared" << std::endl;
+    #endif
+
+
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "Loading bc file: " << bcPath << std::endl;
+    #endif
+
+    // Load the bc file into a memory buffer
+    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> mb = llvm::MemoryBuffer::getFile(bcPath);
+    rir::pir::PirJitLLVM jit("f");
+
+    // Load the memory buffer into a module
+    llvm::Expected<std::unique_ptr<llvm::Module>> llModuleHolder = llvm::parseBitcodeFile(mb->get()->getMemBufferRef(), jit.getContext());
+
+
+    if (std::error_code ec = errorToErrorCode(llModuleHolder.takeError())) {
+        std::stringstream errMsg;
+        errMsg << "Error reading module from bitcode : " << bcPath << std::endl;
     }
 
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "bitcode successfully loaded" << std::endl;
+    #endif
+
+    std::set<std::string> existingFunctionHandles;
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << "FunctionList: [ ";
+    #endif
+    for (auto & fun : llModuleHolder.get()->getFunctionList()) {
+        existingFunctionHandles.insert(fun.getName().str());
+        #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+        std::cout << fun.getName().str() << " ";
+        #endif
+    }
+    #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+    std::cout << " ]" << std::endl;
+    #endif
+
+
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "Pool deserialized" << std::endl;
+    #endif
+
+    // Apply pool patches
     for (auto & global : llModuleHolder.get()->getGlobalList()) {
         auto pre = global.getName().str().substr(0,6) == "copool";
         auto srp = global.getName().str().substr(0,6) == "srpool";
@@ -534,10 +573,9 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
                 auto arrSize = v->getNumElements();
 
                 for (unsigned int i = 0; i < arrSize; i++) {
-                    auto val = llvm::APInt().getSExtValue();
 
                     // Offset relative to the serialized pool
-                    llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, poolPatch[val]));
+                    llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, poolPatch[0]));
                     patchedIndices.push_back(replacementValue);
 
                 }
@@ -568,14 +606,92 @@ void PirJitLLVM::deserializeAndAddModule(std::string bcPath, std::string poolPat
         }
     }
 
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "Pool patches applied" << std::endl;
+    #endif
+
     #if API_PRINT_DESERIALIZED_MODULE_AFTER_PATCH == 1
     llvm::raw_os_ostream dbg2(std::cout);
     dbg2 << *llModuleHolder.get();
     #endif
 
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "Inserting native code into jit" << std::endl;
+    #endif
+
+    // Insert native code into the JIT
     auto TSM = llvm::orc::ThreadSafeModule(std::move(llModuleHolder.get()), TSC);
     ExitOnErr(JIT->addIRModule(std::move(TSM)));
 
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "JIT loaded with native code" << std::endl;
+    #endif
+
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "Linking code objects" << std::endl;
+    #endif
+    // Link code and promises
+
+    FunctionWriter function;
+    Preserve preserve;
+    for (size_t i = 0; i < numArguments; ++i) {
+        function.addArgWithoutDefault();
+    }
+
+    // ExtraIndex
+    int eIndex = 0;
+
+    auto res = rir::Code::New(srcEntriesForCode[eIndex++]);
+    preserve(res->container());
+
+    FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
+    fs.numArguments = numArguments;
+    fs.dotsPosition = dotsPosition;
+
+    function.finalize(res, fs, context);
+
+    res->lazyCodeHandle(startingHandle);
+
+    // insert the promises into the extra pools recursively
+    std::function<void(std::string, rir::Code*)> updateExtrasRecursively = [&](std::string startingPrefix, rir::Code * code) {
+        int i = 0;
+        while (true) {
+            std::stringstream pName;
+            pName << startingPrefix << "_" << i;
+            if (existingFunctionHandles.count(pName.str())) {
+                // Store the srcIndex of the resolved data here, instead of runtime data (maybe improve?)
+                unsigned patchedSrcIdx = srcEntriesForCode[eIndex++];
+
+                // This handle does exists inside for the code, so add this
+                // to the code objects extraPool
+                auto p = rir::Code::New(patchedSrcIdx);
+                preserve(p->container());
+                // Add the handle to the promise
+                p->lazyCodeHandle(pName.str());
+
+                #if COMPILER_PRINT_PORMISE_LINK == 1
+                std::cout << "Adding " << pName.str() << " to " << startingPrefix << std::endl;
+                #endif
+
+
+                // Add this created promise into the code's extra pool entry
+                code->addExtraPoolEntry(p->container());
+
+                // Check if there are any promises, inside this promise
+                updateExtrasRecursively(pName.str(), p);
+                // Process next promises
+                i++;
+                continue;
+            }
+            break;
+        }
+    };
+    updateExtrasRecursively(startingHandle, res);
+    #if PRINT_DESERIALIZER_PROGRESS == 1
+    std::cout << "Deserialization done" << std::endl;
+    #endif
+
+    DeserializerData::deserializedHastMap[hast].push_back(function.function());
 }
 
 void PirJitLLVM::compile(

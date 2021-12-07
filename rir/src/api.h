@@ -23,7 +23,7 @@ struct FunctionMeta {
 
 class DeserializerData {
   public:
-  static std::unordered_map<int, std::vector<FunctionMeta>> deserializedHastMap;
+  static std::unordered_map<int, std::vector<rir::Function *>> deserializedHastMap;
 };
 
 REXPORT SEXP rirInvocationCount(SEXP what);

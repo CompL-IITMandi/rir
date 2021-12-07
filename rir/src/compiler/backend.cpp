@@ -412,8 +412,17 @@ Backend::LastDestructor::LastDestructor() {
     }
 }
 
-void Backend::deserialize(std::string bcPath, std::string poolPath, std::vector<BC::PoolIdx> & bcIndices, size_t cPoolEntriesSize, size_t srcPoolEntriesSize, size_t ePoolEntriesSize, std::vector<std::string> & existingDefs, std::vector<unsigned> & promiseSrcEntries) {
-    jit.deserializeAndAddModule(bcPath, poolPath, bcIndices, cPoolEntriesSize, srcPoolEntriesSize, ePoolEntriesSize, existingDefs, promiseSrcEntries);
+void Backend::deserialize(
+    size_t hast, Context context,
+    int & envCreation, int & optimization, unsigned int & numArguments, size_t & dotsPosition, // for function signature
+    std::string bcPath, std::string poolPath, std::string startingHandle,
+    size_t & cPoolEntriesSize, size_t & srcPoolEntriesSize, size_t & ePoolEntriesSize, size_t & promiseSrcPoolEntriesSize
+    ) {
+    jit.deserializeAndAddModule(
+        hast, context,
+        envCreation, optimization, numArguments, dotsPosition,
+        bcPath, poolPath, startingHandle,
+        cPoolEntriesSize, srcPoolEntriesSize, ePoolEntriesSize, promiseSrcPoolEntriesSize);
 }
 
 rir::Function* Backend::getOrCompile(ClosureVersion* cls) {
