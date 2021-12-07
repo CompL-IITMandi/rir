@@ -1,0 +1,51 @@
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd98d6
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 9
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd98f6
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 41
+[1] 120
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd98d6
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 9
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd9927
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 90
+[1] 120
+[1] 120
+[1] 120
+[1] 120
+[1] 120
+TRY_PATCH_DEOPTMETADATA (patched_pc for inst)     : 0x556a9ebd98d6
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 9
+deoptImpl
+[1] 1
+Serializing bitcode: f(3276), found 2 version(s)
+(4296032527) : !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,NonRefl0,!Obj0,SimpleReal0
+Enabled debug statements
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd98d6
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 9
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd98f6
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 41
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd9927
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 90
+Disabled debug statements
+serializing: 3276, numArgs: 1
+(15) : !ExpMi,CorrOrd,!TMany,Argmatch
+Enabled debug statements
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd98d6
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 9
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd98f6
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 41
+TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : 0x556a9ebd9927
+                        (codeStartInst)           : 93916418119885
+                        (offset)                  : 90
+Disabled debug statements
+serializing: 3276, numArgs: 1
+[1] 2

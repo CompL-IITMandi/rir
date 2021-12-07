@@ -1,204 +1,70 @@
-Serializing bitcode: lapply(6959), found 1 version(s)
-(1099512692751) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0 miss: 1
+$a
+[1] 500.5
+
+$beta
+[1] 277143506009
+
+$logic
+[1] 0.5
+
+$a
+[1] 500.5
+
+$beta
+[1] 277143506009
+
+$logic
+[1] 0.5
+
 
 ╞════════════════════════════╡  Compiling lapply  ╞════════════════════════════╡
-[1] 1
-== closure 0x5643b7bc1250 (dispatch table 0x5643b82dcca0, env 0x5643b7ab0b50) ==
-= version 0 (0x5643b9131ea8) =
-[sigature] needsEnv 
-[flags]    
-[stats]    invoked: 0, deopt: 0
-0:
-      0   ldfun_  match.fun
-      5   [ 0, <0> ]
-     22   mk_promise_  0
-     27   ; match.fun(FUN)
-          call_  1
-     44   [ <?> ]
-     49   stvar_cached_  FUN{0}
-     58   ldfun_  is.vector
-     63   [ 0, <0> ]
-     80   mk_promise_  1
-     85   ; is.vector(X)
-          call_  1
-    102   [ <?> ]
-    107   ; !is.vector(X)
-          not_  
-    108   ; !is.vector(X) || is.object(X)
-          aslogical_  
-    109   dup_  
-    110   brtrue_  3
-    115   push_  .Primitive("is.object")
-    120   dup_  
-    121   ldvar_noforce_  is.object
-    126   identical_noforce_  
-    127   [ _ ]
-    132   brtrue_  1
-    137   pop_  
-    138   ldfun_  is.object
-    143   [ 0, <0> ]
-    160   mk_promise_  2
-    165   ; is.object(X)
-          call_  1
-    182   br_  2
-1:
-    187   ldvar_cached_  X{1}
-    196   [ <?> ]
-    201   ; is.object(X)
-          call_  1
-2:
-    218   [ <?> ]
-    223   ; !is.vector(X) || is.object(X)
-          aslogical_  
-    224   lgl_or_  
-3:
-    225   asbool_  
-    226   brtrue_  4
-    231   br_  5
-4:
-    236   ldfun_  as.list
-    241   [ 0, <0> ]
-    258   mk_promise_  3
-    263   ; as.list(X)
-          call_  1
-    280   [ <?> ]
-    285   stvar_cached_  X{1}
-5:
-    294   ldvar_cached_  X{1}
-    303   [ <?> ]
-    308   dup_  
-    309   names_  
-    310   swap_  
-    311   length_  
-    312   dup_  
-    313   push_  "list"
-    318   swap_  
-    319   call_builtin_  2 : .Primitive("vector")
-    332   pick_  2
-    337   set_names_  
-    338   swap_  
-    339   push_  0
-6:
-    344   inc_  
-    345   dup2_  
-    346   ; .Internal(lapply(X, FUN))
-          lt_  
-    347   brtrue_  7
-    352   dup_  
-    353   stvar_  i
-    358   ldfun_  FUN
-    363   [ 0, <0> ]
-    380   mk_promise_  4
-    385   push_  `...`
-    390   call_dots_  2 [ _ .xpandDotsTrigger ]
-    415   [ <?> ]
-    420   pull_  1
-    425   pick_  4
-    430   swap_  
-    431   ; .Internal(lapply(X, FUN))
-          subassign2_1_  
-    432   put_  2
-    437   br_  6
-7:
-    442   pop_  
-    443   pop_  
-    444   visible_  
-    445   ret_  
-
-[Prom (index 0)]
-0:
-      0   ldvar_  FUN
-      5   [ <?> ]
-     10   ret_  
-
-[Prom (index 1)]
-0:
-      0   ldvar_  X
-      5   [ <?> ]
-     10   ret_  
-
-[Prom (index 2)]
-0:
-      0   ldvar_  X
-      5   [ <?> ]
-     10   ret_  
-
-[Prom (index 3)]
-0:
-      0   ldvar_  X
-      5   [ <?> ]
-     10   ret_  
-
-[Prom (index 4)]
-0:
-      0   ldvar_  X
-      5   [ <?> ]
-     10   dup_  
-     11   is_  NonObject
-     16   [ _ ]
-     21   brfalse_  1
-     26   br_  2
-1:
-     31   mk_promise_  0
-     36   br_  3
-2:
-     41   ldvar_  i
-     46   [ <?> ]
-3:
-     51   ; X[[i]]
-          extract2_1_  
-     52   [ <?> ]
-     57   visible_  
-     58   ret_  
-
-[Prom (index 4.0)]
-0:
-      0   ldvar_  i
-      5   [ <?> ]
-     10   ret_  
-= version 1 (0x5643b91320b8) =
-[sigature] optimized code | context: [!ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0 miss: 1]
-[flags]    
-[stats]    invoked: 0, deopt: 0
-Executing native code: f_133_1B2F_1000010400F, hast: 6959
-Executing native code: f_133_1B2F_1000010400F_0, hast: 6959
-At location: 0 ( SEXP: 0x5643b98f9578 )
-Executing native code: f_133_1B2F_1000010400F_1, hast: 6959
-At location: 1 ( SEXP: 0x5643b98f95e8 )
-At location: 7 ( SEXP: 0x5643b7a91b80 )
-At location: 9 ( SEXP: 0x5643b98f95e8 )
-At location: 8 ( SEXP: 0x5643b98f95e8 )
-Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
-At location: 3 ( SEXP: 0x5643b98f95e8 )
-At location: 4 ( SEXP: 0x5643b983d560 )
-Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
-At location: 3 ( SEXP: 0x5643b98f95e8 )
-At location: 4 ( SEXP: 0x5643b983d560 )
+rirSrc: 13
+rirSrc: 1
+rirSrc: 2
+rirSrc: 11
+rirSrc: 9
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): isEager
+rirSrc: 43
+At location: 8
+At location: 9
+At location: 31
+At location: 0
+forcePromiseImpl
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 10
+At location: 11
+At location: 12
+forcePromiseImpl
+At location: 13
+At location: 14
+At location: 15
+At location: 17
+At location: 18
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
 
 ╞══════════════════════════════╡  Compiling FUN  ╞═════════════════════════════╡
-body: 0x5643b9a08710
-src: 0x5643b9a08710
-pc-src: 0xffffa9bc465f78f0
-offset: 0
-pc: 0
-Code object
-   Source:          16 (index into src pool)
-   Magic:           c0de0000 (hex)
-   Stack (o):       2
-   Code size:       50[B]
-
-0:
-      0   ldfun_  UseMethod
-      5   [ 2, <1>, 0x5643b7a9b5d0(special) ]
-     22   push_  "mean"
-     27   ; UseMethod("mean")
-          call_  1
-     44   [ <?> ]
-     49   ret_  
-Executing native code: rsh2_0x5643b9a87e30, hast: 913
-Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
-At location: 3 ( SEXP: 0x5643b98f95e8 )
-At location: 4 ( SEXP: 0x5643b983d560 )
+rirSrc: 96
+At location: 4
+At location: 23
+At location: 20
 $a
 [1] 500.5
 
@@ -208,26 +74,46 @@ $beta
 $logic
 [1] 0.5
 
-Executing native code: f_133_1B2F_1000010400F, hast: 6959
-Executing native code: f_133_1B2F_1000010400F_0, hast: 6959
-At location: 0 ( SEXP: 0x5643b9a056e8 )
-Executing native code: f_133_1B2F_1000010400F_1, hast: 6959
-At location: 1 ( SEXP: 0x5643b9a05758 )
-At location: 7 ( SEXP: 0x5643b7a91b80 )
-At location: 9 ( SEXP: 0x5643b9a05758 )
-At location: 8 ( SEXP: 0x5643b9a05758 )
-Executing native code: rsh2_0x5643b9a87e30, hast: 913
-Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
-At location: 3 ( SEXP: 0x5643b9a05758 )
-At location: 4 ( SEXP: 0x5643b983c808 )
-Executing native code: rsh2_0x5643b9a87e30, hast: 913
-Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
-At location: 3 ( SEXP: 0x5643b9a05758 )
-At location: 4 ( SEXP: 0x5643b983c808 )
-Executing native code: rsh2_0x5643b9a87e30, hast: 913
-Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
-At location: 3 ( SEXP: 0x5643b9a05758 )
-At location: 4 ( SEXP: 0x5643b983c808 )
+At location: 8
+At location: 9
+At location: 31
+At location: 0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+At location: 32
+At location: 33
+At location: 34
+At location: 10
+At location: 11
+At location: 12
+forcePromiseImpl
+At location: 13
+At location: 14
+At location: 15
+At location: 17
+At location: 18
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
 $a
 [1] 500.5
 
@@ -237,29 +123,3687 @@ $beta
 $logic
 [1] 0.5
 
-Executing native code: f_133_1B2F_1000010400F, hast: 6959
-Executing native code: f_133_1B2F_1000010400F_0, hast: 6959
-At location: 0 ( SEXP: 0x5643b9ad3860 )
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
 
 ╞═══════════════════════════╡  Compiling is.vector  ╞══════════════════════════╡
-Executing native code: rsh3_0x5643b9ae5080, hast: 2347
-Executing native code: f_133_1B2F_1000010400F_1, hast: 6959
-At location: 1 ( SEXP: 0x5643b9ad38d0 )
-At location: 7 ( SEXP: 0x5643b7a91b80 )
-At location: 9 ( SEXP: 0x5643b9ad38d0 )
-At location: 8 ( SEXP: 0x5643b9ad38d0 )
-Executing native code: rsh2_0x5643b9a87e30, hast: 913
-Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
-At location: 3 ( SEXP: 0x5643b9ad38d0 )
-At location: 4 ( SEXP: 0x5643b983c370 )
-Executing native code: rsh2_0x5643b9a87e30, hast: 913
-Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
-At location: 3 ( SEXP: 0x5643b9ad38d0 )
-At location: 4 ( SEXP: 0x5643b983c370 )
-Executing native code: rsh2_0x5643b9a87e30, hast: 913
-Executing native code: f_133_1B2F_1000010400F_2, hast: 6959
-At location: 3 ( SEXP: 0x5643b9ad38d0 )
-At location: 4 ( SEXP: 0x5643b983c370 )
+rirSrc: 45
+At location: 43
+forcePromiseImpl
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+
+╞═══════════════════════╡  Compiling mostattributes<-  ╞═══════════════════════╡
+rirSrc: 169
+At location: 44
+At location: 45
+At location: 31
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+At location: 32
+At location: 33
+At location: 34
+At location: 43
+forcePromiseImpl
+At location: 44
+At location: 45
+At location: 31
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+At location: 32
+At location: 33
+At location: 34
+At location: 43
+forcePromiseImpl
+At location: 44
+At location: 45
+
+╞════════════════════════════╡  Compiling vapply  ╞════════════════════════════╡
+rirSrc: 865
+rirSrc: 853
+rirSrc: 854
+rirSrc: 864
+rirSrc: 860
+rirSrc: 861
+rirSrc: 862
+rirSrc: 863
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): isEager
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+
+╞══════════════════════════════╡  Compiling FUN  ╞═════════════════════════════╡
+rirSrc: 508
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+
+╞═══════════════════════════╡  Compiling is.factor  ╞══════════════════════════╡
+rirSrc: 487
+rirSrc: 486
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): isEager
+At location: 89
+forcePromiseImpl
+At location: 90
+At location: 92
+At location: 93
+At location: 94
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+
+╞══════════════════════════════╡  Compiling FUN  ╞═════════════════════════════╡
+rirSrc: 689
+At location: 98
+At location: 99
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+$a
+   25%    50%    75% 
+250.75 500.50 750.25 
+
+$beta
+         25%          50%          75% 
+3.059023e-07 1.000000e+00 3.269017e+06 
+
+$logic
+25% 50% 75% 
+0.0 0.5 1.0 
+
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 43
+forcePromiseImpl
+
+╞═══════════════════════════╡  Compiling is.factor  ╞══════════════════════════╡
+rirSrc: 487
+rirSrc: 486
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): isEager
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+
+╞═════════════════════════════╡  Compiling pmin  ╞═════════════════════════════╡
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+
+╞════════════════════════════╡  Compiling unique  ╞════════════════════════════╡
+rirSrc: 1045
+
+╞═══════════════════════════╡  Compiling match.arg  ╞══════════════════════════╡
+rirSrc: 1089
+rirSrc: 1048
+rirSrc: 1047
+mkarg(hasEnv): !isEager
+rirSrc: 1055
+rirSrc: 1053
+rirSrc: 1052
+mkarg(hasEnv): !isEager
+rirSrc: 1051
+rirSrc: 1050
+rirSrc: 1049
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+rirSrc: 1057
+rirSrc: 1056
+mkarg(hasEnv): !isEager
+rirSrc: 1064
+rirSrc: 1065
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+rirSrc: 1096
+rirSrc: 1092
+mkarg(hasEnv): !isEager
+rirSrc: 1105
+rirSrc: 1104
+mkarg(hasEnv): !isEager
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+
+╞═════════════════════════╡  Compiling sys.function  ╞═════════════════════════╡
+rirSrc: 1098
+At location: 208
+
+╞══════════════════════════╡  Compiling sys.parent  ╞══════════════════════════╡
+rirSrc: 1100
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+
+╞═══════════════════════════╡  Compiling sys.frame  ╞══════════════════════════╡
+rirSrc: 1107
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+
+╞═════════════════════════════╡  Compiling which  ╞════════════════════════════╡
+rirSrc: 1126
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+
+╞═══════════════════════════╡  Compiling stopifnot  ╞══════════════════════════╡
+
+╞══════════════════════════╡  Compiling format_perc  ╞═════════════════════════╡
+rirSrc: 1377
+rirSrc: 1367
+rirSrc: 1365
+mkarg(hasEnv): !isEager
+rirSrc: 1374
+rirSrc: 1372
+rirSrc: 1373
+rirSrc: 1370
+rirSrc: 1371
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+
+╞═══════════════════════════╡  Compiling strsplit  ╞═══════════════════════════╡
+rirSrc: 1576
+At location: 263
+forcePromiseImpl
+At location: 264
+
+╞═════════════════════════════╡  Compiling %in%  ╞═════════════════════════════╡
+rirSrc: 1580
+rirSrc: 1578
+rirSrc: 1577
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): isEager
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+
+╞═════════════════════════╡  Compiling storage.mode  ╞═════════════════════════╡
+rirSrc: 1593
+rirSrc: 1584
+mkarg(hasEnv): !isEager
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+
+╞═══════════════════════════╡  Compiling getOption  ╞══════════════════════════╡
+rirSrc: 1596
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+
+╞══════════════════════════════╡  Compiling FUN  ╞═════════════════════════════╡
+rirSrc: 689
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+$a
+   25%    50%    75% 
+250.75 500.50 750.25 
+
+$beta
+         25%          50%          75% 
+3.059023e-07 1.000000e+00 3.269017e+06 
+
+$logic
+25% 50% 75% 
+0.0 0.5 1.0 
+
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 43
+forcePromiseImpl
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+
+╞═════════════════════════════╡  Compiling pmin  ╞═════════════════════════════╡
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+
+╞═══════════════════════════╡  Compiling stopifnot  ╞══════════════════════════╡
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+$a
+   25%    50%    75% 
+250.75 500.50 750.25 
+
+$beta
+         25%          50%          75% 
+3.059023e-07 1.000000e+00 3.269017e+06 
+
+$logic
+25% 50% 75% 
+0.0 0.5 1.0 
+
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 43
+forcePromiseImpl
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+
+╞═════════════════════════════╡  Compiling pmin  ╞═════════════════════════════╡
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+
+╞═══════════════════════════╡  Compiling stopifnot  ╞══════════════════════════╡
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+$a
+   25%    50%    75% 
+250.75 500.50 750.25 
+
+$beta
+         25%          50%          75% 
+3.059023e-07 1.000000e+00 3.269017e+06 
+
+$logic
+25% 50% 75% 
+0.0 0.5 1.0 
+
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 43
+forcePromiseImpl
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+
+╞═════════════════════════════╡  Compiling pmin  ╞═════════════════════════════╡
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+
+╞═══════════════════════════╡  Compiling stopifnot  ╞══════════════════════════╡
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+$a
+   25%    50%    75% 
+250.75 500.50 750.25 
+
+$beta
+         25%          50%          75% 
+3.059023e-07 1.000000e+00 3.269017e+06 
+
+$logic
+25% 50% 75% 
+0.0 0.5 1.0 
+
+At location: 8
+At location: 9
+At location: 31
+At location: 0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+At location: 32
+At location: 33
+At location: 34
+At location: 10
+At location: 11
+At location: 12
+forcePromiseImpl
+At location: 13
+At location: 14
+At location: 15
+At location: 17
+At location: 18
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
 $a
 [1] 500.5
 
@@ -269,3 +3813,2625 @@ $beta
 $logic
 [1] 0.5
 
+At location: 8
+At location: 9
+At location: 31
+At location: 0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+At location: 32
+At location: 33
+At location: 34
+At location: 10
+At location: 11
+At location: 12
+forcePromiseImpl
+At location: 13
+At location: 14
+At location: 15
+At location: 17
+At location: 18
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+$a
+[1] 500.5
+
+$beta
+[1] 277143506009
+
+$logic
+[1] 0.5
+
+At location: 8
+At location: 9
+At location: 31
+At location: 0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+At location: 32
+At location: 33
+At location: 34
+At location: 10
+At location: 11
+At location: 12
+forcePromiseImpl
+At location: 13
+At location: 14
+At location: 15
+At location: 17
+At location: 18
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+$a
+[1] 500.5
+
+$beta
+[1] 277143506009
+
+$logic
+[1] 0.5
+
+At location: 8
+At location: 9
+At location: 31
+At location: 0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58637caf0
+ --> (1) : 0x55e5865319e0
+At location: 32
+At location: 33
+At location: 34
+At location: 10
+At location: 11
+At location: 12
+forcePromiseImpl
+At location: 13
+At location: 14
+At location: 15
+At location: 17
+At location: 18
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+At location: 21
+At location: 22
+At location: 4
+At location: 23
+At location: 20
+$a
+[1] 500.5
+
+$beta
+[1] 277143506009
+
+$logic
+[1] 0.5
+
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 43
+forcePromiseImpl
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+
+╞═════════════════════════════╡  Compiling pmin  ╞═════════════════════════════╡
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+
+╞═══════════════════════════╡  Compiling stopifnot  ╞══════════════════════════╡
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+$a
+   25%    50%    75% 
+250.75 500.50 750.25 
+
+$beta
+         25%          50%          75% 
+3.059023e-07 1.000000e+00 3.269017e+06 
+
+$logic
+25% 50% 75% 
+0.0 0.5 1.0 
+
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 43
+forcePromiseImpl
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+
+╞═════════════════════════════╡  Compiling pmin  ╞═════════════════════════════╡
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+
+╞═══════════════════════════╡  Compiling stopifnot  ╞══════════════════════════╡
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+$a
+   25%    50%    75% 
+250.75 500.50 750.25 
+
+$beta
+         25%          50%          75% 
+3.059023e-07 1.000000e+00 3.269017e+06 
+
+$logic
+25% 50% 75% 
+0.0 0.5 1.0 
+
+At location: 31
+forcePromiseImpl
+At location: 32
+At location: 33
+At location: 34
+At location: 43
+forcePromiseImpl
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+
+╞═════════════════════════════╡  Compiling pmin  ╞═════════════════════════════╡
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+
+╞═══════════════════════════╡  Compiling stopifnot  ╞══════════════════════════╡
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e586397a70
+ --> (1) : 0x55e586685ce0
+ --> (2) : 0x55e586454f70
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 98
+At location: 99
+At location: 298
+At location: 299
+At location: 300
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 134
+At location: 135
+At location: 189
+At location: 190
+At location: 191
+At location: 113
+At location: 114
+At location: 208
+forcePromiseImpl
+At location: 209
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e5863fed80
+At location: 192
+At location: 193
+At location: 136
+At location: 137
+At location: 138
+At location: 139
+At location: 140
+At location: 141
+At location: 201
+At location: 202
+At location: 203
+At location: 124
+At location: 127
+At location: 128
+At location: 116
+At location: 117
+forcePromiseImpl
+At location: 204
+At location: 205
+At location: 130
+At location: 131
+At location: 211
+forcePromiseImpl
+forcePromiseImpl
+At location: 206
+At location: 198
+At location: 200
+forcePromiseImpl
+At location: 142
+At location: 143
+forcePromiseImpl
+At location: 144
+At location: 145
+At location: 147
+At location: 148
+At location: 150
+At location: 151
+At location: 155
+At location: 156
+At location: 157
+At location: 158
+At location: 159
+At location: 160
+forcePromiseImpl
+At location: 161
+forcePromiseImpl
+At location: 168
+At location: 169
+At location: 174
+At location: 175
+At location: 102
+forcePromiseImpl
+At location: 103
+At location: 104
+At location: 212
+forcePromiseImpl
+At location: 213
+At location: 214
+At location: 233
+At location: 234
+At location: 235
+At location: 236
+forcePromiseImpl
+At location: 237
+At location: 238
+At location: 239
+At location: 241
+At location: 253
+At location: 242
+At location: 243
+At location: 244
+At location: 245
+At location: 223
+At location: 217
+At location: 218
+forcePromiseImpl
+At location: 224
+At location: 229
+At location: 230
+At location: 231
+At location: 232
+At location: 263
+forcePromiseImpl
+At location: 264
+At location: 268
+forcePromiseImpl
+At location: 269
+forcePromiseImpl
+At location: 270
+At location: 271
+At location: 272
+At location: 273
+At location: 285
+forcePromiseImpl
+At location: 286
+At location: 287
+At location: 288
+At location: 289
+At location: 290
+At location: 220
+forcePromiseImpl
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 64
+At location: 65
+At location: 31
+At location: 50
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+forcePromiseImpl
+EXTERNALSXP
+ --> (0) : 0x55e58634ceb0
+ --> (1) : 0x55e586675a00
+At location: 32
+At location: 33
+At location: 34
+At location: 66
+At location: 67
+At location: 68
+forcePromiseImpl
+At location: 69
+At location: 70
+At location: 71
+At location: 73
+At location: 74
+At location: 75
+At location: 76
+At location: 83
+At location: 84
+At location: 85
+At location: 83
+At location: 84
+At location: 85
+At location: 44
+At location: 45
+At location: 295
+forcePromiseImpl
+At location: 248
+At location: 250
+At location: 251
+$a
+   25%    50%    75% 
+250.75 500.50 750.25 
+
+$beta
+         25%          50%          75% 
+3.059023e-07 1.000000e+00 3.269017e+06 
+
+$logic
+25% 50% 75% 
+0.0 0.5 1.0 
+
+Entry 1(nameLen): 6
+Entry 2(name): lapply
+Entry 3(hast): 6959
+Entry 4(number of contexts): 1
+Serializing bitcode: lapply(6959), found 1 version(s)
+(1099512692751) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0 miss: 1
+Entry 5 [0] :
+Context: 1099512692751
+
+╞════════════════════════════╡  Compiling lapply  ╞════════════════════════════╡
+rirSrc: 13
+rirSrc: 1
+rirSrc: 2
+rirSrc: 11
+rirSrc: 9
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): !isEager
+mkarg(hasEnv): isEager
+Updating name: rsh22_0x55e586434510 -> f_980_1B2F_1000010400F{0x55e586503970}
+Updating name: rsh22_0x55e58639a270 -> f_980_1B2F_1000010400F_2{0x55e5865582a0}
+Updating name: rsh22_0x55e5867778c0 -> f_980_1B2F_1000010400F_2_0{0x55e5868d4750}
+Updating name: rsh22_0x55e586382500 -> f_980_1B2F_1000010400F_1{0x55e584890be0}
+Updating name: rsh22_0x55e58638ba50 -> f_980_1B2F_1000010400F_0{0x55e5863d64a0}
+Constant Pool Entries: [ 0{ TYPE: 1} 1{ TYPE: 1} 2{ TYPE: 2} 3{ TYPE: 3} 4{ TYPE: 3} 5{ TYPE: 16} 6{ TYPE: 16} 7{ TYPE: 0} 8{ TYPE: 1} 9{ TYPE: 2} 10{ TYPE: 1} 11{ TYPE: 16}  ]
+Source Pool Entries: [ {0 at 12, TYPE: 6} {1 at 13, TYPE: 6} {2 at 14, TYPE: 1} {3 at 15, TYPE: 6}  ]
+Extra Pool Entries: [  ]
+Promise Src Entries: [ { 13 at 16} { 11 at 17} { 9 at 18} { 2 at 19} { 1 at 20}  ]
+envCreation: 1
+optimization: 1
+numArguments: 3
+dotsPosition: 2
+mainNameLen: 22
+name: f_980_1B2F_1000010400F
+cPoolEntriesSize: 12
+srcPoolEntriesSize: 4
+ePoolEntriesSize: 0
+promiseSrcPoolEntriesSize: 5
+[1] 1

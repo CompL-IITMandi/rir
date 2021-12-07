@@ -55,11 +55,14 @@ class PirJitLLVM {
                  const std::unordered_set<Instruction*>& needsLdVarForUpdate,
                  ClosureStreamLogger& log);
 
-    void moduleMakeup(std::function<void(llvm::Module*, rir::Code *)> sCallback, rir::Code * code);
+    void moduleMakeup(std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> sCallback, rir::Code * code, std::vector<unsigned> & srcIndices);
 
     void updateFunctionNameInModule(std::string, std::string);
     void patchFixupHandle(std::string newName, Code * code);
     void printModule();
+
+    void enableDebugStatements();
+    void disableDebugStatements();
 
     using GetModule = std::function<llvm::Module&()>;
     using GetFunction = std::function<llvm::Function*(Code*)>;
@@ -70,6 +73,7 @@ class PirJitLLVM {
     static llvm::LLVMContext& getContext();
 
   private:
+    bool debugStatements = false;
     std::string name;
     // Initialized on the first call to compile
     std::unique_ptr<llvm::Module> M;

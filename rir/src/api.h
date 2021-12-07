@@ -32,14 +32,14 @@ REXPORT SEXP pirSetDebugFlags(SEXP debugFlags);
 SEXP pirCompile(SEXP closure, const rir::Context& assumptions,
                 const std::string& name, const rir::pir::DebugOptions& debug);
 SEXP pirCompileAndSerialize(SEXP closure, const rir::Context& assumptions,
-                const std::string& name, const rir::pir::DebugOptions& debug, std::function<void(llvm::Module*, rir::Code *)> sCallback,
+                const std::string& name, const rir::pir::DebugOptions& debug, std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> sCallback,
                 std::function<void(rir::FunctionSignature &, std::string)> signatureCallback);
 
 extern SEXP rirOptDefaultOpts(SEXP closure, const rir::Context&, SEXP name);
 extern SEXP rirOptDefaultOptsDryrun(SEXP closure, const rir::Context&,
                                     SEXP name);
 
-void hash_ast(SEXP ast, int & hast);
+void hash_ast(SEXP ast, size_t & hast);
 void printAST(int space, SEXP ast);
 void printAST(int space, int val);
 

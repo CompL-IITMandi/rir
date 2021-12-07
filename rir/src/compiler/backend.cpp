@@ -308,11 +308,12 @@ static void toCSSA(Module* m, Code* code) {
 static void updateModuleNames(std::string name,  Code* c, PirJitLLVM * jit, Code * mainFunCodeObj,
     std::unordered_map<Code*,
         std::unordered_map<Code*, std::pair<unsigned, MkArg*>>> & promMap,
-        std::unordered_map<Code*, rir::Code*> & done
+        std::unordered_map<Code*, rir::Code*> & done, std::vector<unsigned> & srcIndices
         ) {
     #if BACKEND_PRINT_NAME_UPDATES == 1
-    std::cout << "Updating name: " << done[c]->mName << " -> " << name << std::endl;
+    std::cout << "Updating name: " << done[c]->mName << " -> " << name << "{" << done[c]->container() << "}" << std::endl;
     #endif
+    srcIndices.push_back(c->rirSrc()->src);
     jit->updateFunctionNameInModule(done[c]->mName, name);
     jit->patchFixupHandle(name, c);
     for (auto & promise : promMap[c]) {
@@ -326,7 +327,7 @@ static void updateModuleNames(std::string name,  Code* c, PirJitLLVM * jit, Code
             }
         }
 
-        updateModuleNames(ss.str(), promise.first, jit, mainFunCodeObj, promMap, done);
+        updateModuleNames(ss.str(), promise.first, jit, mainFunCodeObj, promMap, done, srcIndices);
     }
 }
 
@@ -392,12 +393,17 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         Measuring::startTimer("backend.cpp: pir2llvm");
     }
 
-    int hast = -1;
+    size_t hast = 0;
     if (cls->owner()->hasOriginClosure()) {
         auto c = cls->owner()->rirClosure();
         auto body = BODY(c);
         auto dt = DispatchTable::unpack(body);
         hast = dt->baseline()->body()->hast;
+    }
+
+    if (sCallback != NULL) {
+        std::cout << "Enabled debug statements" << std::endl;
+        jit.enableDebugStatements();
     }
 
     std::unordered_map<Code*, rir::Code*> done;
@@ -432,6 +438,8 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
 
     // sCallback is non null if we are trying to serialize the function
     if (sCallback != NULL) {
+        std::cout << "Disabled debug statements" << std::endl;
+        jit.disableDebugStatements();
         #if BACKEND_INITIAL_COMPILATION_SUCCESS_MSG == 1
         std::cout << "Initial compilation successful, name patching begins now" << std::endl;
         #endif
@@ -502,12 +510,16 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
 
         }
 
+        std::vector<unsigned> srcIndices;
+
 
         // Updates the names in a scheme that allows it to be read by the deserializer
-        updateModuleNames(startingUID, mainFunCodeObj, &jit, mainFunCodeObj, promMap, done);
+        updateModuleNames(startingUID, mainFunCodeObj, &jit, mainFunCodeObj, promMap, done, srcIndices);
 
         // Callback to patch the symbols and serialize the to bc
-        jit.moduleMakeup(sCallback, done[mainFunCodeObj]);
+        jit.moduleMakeup(sCallback, done[mainFunCodeObj], srcIndices);
+
+        std::cout << "serializing: " << hast << ", numArgs: " << signature.numArguments << std::endl;
 
         // The JIT handle and function signature to recreate the function upon deserializing
         signatureCallback(signature, startingUID);
@@ -546,9 +558,14 @@ Backend::LastDestructor::LastDestructor() {
     }
 }
 
-void Backend::addSerializer(std::function<void(llvm::Module*, rir::Code *)> call, std::function<void(FunctionSignature &, std::string)> signCall) {
+void Backend::addSerializer(std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> call, std::function<void(FunctionSignature &, std::string)> signCall) {
     sCallback = call;
     signatureCallback = signCall;
+}
+
+void Backend::clearSerializer() {
+    sCallback = nullptr;
+    signatureCallback = nullptr;
 }
 
 rir::Function* Backend::getOrCompile(ClosureVersion* cls) {

@@ -67,65 +67,44 @@ mandelbrot <- function(size) {
     return (sum);
 }
 
-# mandelbrot becomes a static site, how to handle that?
+execute <- function(n = 3000L) {
+    mandelbrot(n)
+}
 
-# execute <- function(n = 3000L) {
-#     mandelbrot(n)
-# }
+verifyResult <- function(result, innerIterations) {
+    if (innerIterations == 500) { return (result == 191) }
+    if (innerIterations == 750) { return (result == 50)  }
+    if (innerIterations ==   1) { return (result == 128) }
 
-# invisible(rir.compile(bitwShiftL))
-# invisible(rir.compile(bitwXor))
+    write(paste(paste("No verification result for", innerIterations), "found\n"), stdout())
+    write(paste(paste("Result is:", result), " \n"), stdout())
+    return (FALSE);
+  }
 
-# f.printHAST(bitwShiftL);
-# f.printHAST(bitwXor);
+innerBenchmarkLoop.mandelbrot <- function(class, iterations) {
+  if (!verifyResult(execute(iterations), iterations)) {
+      return(FALSE)
+  }
+  return(TRUE)
+}
 
-# invisible(rir.compile(mandelbrot))
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
 
-# execute(10)
-# execute(10)
-# execute()
-# execute()
-
-# f.serialize(mandelbrot, c(4296032527))
-# f.serialize(bitwShiftL, c(12888097295, 4296032271, 8592065039, 15))
-# f.serialize(print, c(1099512693007))
-# f.serialize(bitwXor, c(8660238351, 204521487, 12888096783, 15))
-
-# invisible(rir.compile(mandelbrot))
-# invisible(rir.compile(bitwShiftL))
-# invisible(rir.compile(print))
-# invisible(rir.compile(bitwXor))
-
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
-# mandelbrot(10)
-
-start.time <- Sys.time()
-
-mandelbrot(300)
-# mandelbrot(100)
-# mandelbrot(100)
-# mandelbrot(100)
-# mandelbrot(100)
-# mandelbrot(100)
-# mandelbrot(100)
-# mandelbrot(100)
-# mandelbrot(100)
-# mandelbrot(100)
-# mandelbrot(100)
-# mandelbrot(100)
-
-end.time <- Sys.time()
-time.taken <- end.time - start.time
-print(paste("execution time: ",time.taken))
+f.serialize(bitwShiftL)
+f.serialize(bitwXor)
+f.serialize(mandelbrot)
+f.serialize(execute)

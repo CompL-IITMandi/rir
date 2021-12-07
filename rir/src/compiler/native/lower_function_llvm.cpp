@@ -48,6 +48,8 @@ using namespace llvm;
 extern "C" size_t R_NSize;
 extern "C" size_t R_NodesInUse;
 
+static int location = 0;
+
 static_assert(sizeof(unsigned long) == sizeof(uint64_t),
               "sizeof(unsigned long) and sizeof(uint64_t) should match");
 
@@ -91,6 +93,26 @@ class NativeAllocator : public SSAAllocator {
         return SSAAllocator::interfere(a, b);
     }
 };
+
+llvm::Value* LowerFunctionLLVM::globalSrcConst(llvm::Constant* init,
+                                            llvm::Type* ty) {
+    if (!ty)
+        ty = init->getType();
+
+    #if PATCH_GLOBAL_CONSTANT_NAMES == 1
+
+    static int num = 0;
+    std::stringstream name;
+    name << "srpool_" << num++;
+    return new llvm::GlobalVariable(getModule(), ty, true,
+                                    llvm::GlobalValue::PrivateLinkage, init, name.str());
+
+    #else
+    return new llvm::GlobalVariable(getModule(), ty, true,
+                                    llvm::GlobalValue::PrivateLinkage, init);
+    #endif
+}
+
 
 llvm::Value* LowerFunctionLLVM::globalConst(llvm::Constant* init,
                                             llvm::Type* ty) {
@@ -197,6 +219,13 @@ llvm::Value* LowerFunctionLLVM::force(Instruction* i, llvm::Value* arg) {
     builder.CreateCondBr(tv, needsEval, isPromVal, branchMostlyFalse);
 
     builder.SetInsertPoint(needsEval);
+    #if DEBUG_LOCATIONS == 1
+    if (debugStatements) {
+        auto msg = builder.CreateGlobalString(
+                "force() call");
+        addDebugMsg(msg, -1, location++);
+    }
+    #endif
     auto evaled =
         call(NativeBuiltins::get(NativeBuiltins::Id::forcePromise), {arg});
     checkIsSexp(evaled, "force result");
@@ -490,6 +519,18 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
                                              llvm::Value* env) {
     if (supportsFastBuiltinCall(builtin, args.size())) {
         return withCallFrame(args, [&]() -> llvm::Value* {
+            #if PATCH_CP_ENTRIES == 1
+            auto iVal = globalConst(c(srcIdx), t::i32);
+            auto iLoad = builder.CreateLoad(iVal);
+            return call(NativeBuiltins::get(NativeBuiltins::Id::callBuiltin),
+                    {
+                        paramCode(),
+                        iLoad,
+                        constant(builtin, t::SEXP),
+                        env,
+                        c(args.size()),
+                    });
+            #else
             return call(NativeBuiltins::get(NativeBuiltins::Id::callBuiltin),
                         {
                             paramCode(),
@@ -498,6 +539,7 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
                             env,
                             c(args.size()),
                         });
+            #endif
         });
     }
 
@@ -583,32 +625,80 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
     }
 
     if (auto a = LdArg::Cast(val)) {
-        // std::cout << "LdArg" << std::endl;
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() LdArg");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         res = argument(a->pos);
     } else if (vali && variables_.count(vali)) {
-        // std::cout << "variables_" << std::endl;
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() vali");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         res = getVariable(vali);
     } else if (val == Env::elided()) {
-        // std::cout << "Env::elided" << std::endl;
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() Env::Elided");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         res = constant(R_NilValue, needed);
     } else if (auto e = Env::Cast(val)) {
-        // std::cout << "Env::Cast" << std::endl;
         if (e == Env::notClosed()) {
-            // std::cout << "Env::notClosed" << std::endl;
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() Env::notClosed");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = closxpEnv(paramClosure());
         } else if (e == Env::nil()) {
-            // std::cout << "Env::nil" << std::endl;
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() Env::nil");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = constant(R_NilValue, needed);
         } else if (Env::isStaticEnv(e)) {
-            // std::cout << "Env::isStaticEnv" << std::endl;
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() Env::isStaticEnv");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = constant(e->rho, t::SEXP);
         } else {
             assert(false);
         }
     } else if (val->asRValue()) {
-        // std::cout << "asRValue" << std::endl;
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() asRValue");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         res = constant(val->asRValue(), needed);
     } else if (val == OpaqueTrue::instance()) {
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() OpaqueTrue::instance");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         #if PATCH_OPAQUE_TRUE == 1
         // Something that is always true, but llvm does not know about
         res = builder.CreateLoad(convertToExternalSymbol("spe_opaqueTrue", t::Int));
@@ -618,20 +708,35 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         res = builder.CreateLoad(convertToPointer(&one, t::Int, true));
         #endif
     } else if (auto ld = Const::Cast(val)) {
-        // std::cout << "Const::Cast" << std::endl;
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() Const::Cast");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() DeoptReason");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         auto dr = (DeoptReasonWrapper*)val;
 
         #if TRY_PATCH_DEOPTREASON == 1
+        auto realOffset = dr->reason.origin.pc() - dr->reason.origin.srcCode()->code();
         Constant * srcAddr;
-        if (dr->reason.srcCode()->hast != (size_t)-1) {
+        if (dr->reason.srcCode()->hast != 0) {
             std::stringstream ss;
             ss << "hast_" << dr->reason.srcCode()->hast;
             srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
         } else {
             #if DEBUG_ERR_MSG == 1
-            std::cerr << "Failed to patch DeoptReason" << std::endl;
+            std::cerr << "Failed to patch DeoptReason: " << dr->reason.srcCode()->hast << std::endl;
+            // dr->reason.srcCode()->disassemble(std::cout);
             #endif
             srcAddr = (Constant*)builder.CreateIntToPtr(
                 llvm::ConstantInt::get(
@@ -641,6 +746,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
                                 false)),
                 t::voidPtr);
         }
+        auto drs = llvm::ConstantStruct::get(
+            t::DeoptReason, {c(dr->reason.reason, 32),
+                             c(realOffset, 32), srcAddr});
         #else
         auto srcAddr = (Constant*)builder.CreateIntToPtr(
         llvm::ConstantInt::get(
@@ -649,28 +757,20 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
                         reinterpret_cast<uint64_t>(dr->reason.srcCode()),
                         false)),
         t::voidPtr);
-        #endif
-
-        // DispatchTable * vtable = (DispatchTable *) rir::Code::hastMap[dr->reason.srcCode()->hast];
-
-        // std::cout << "body: " << vtable->baseline()->body() << std::endl;
-
-        // std::cout << "src: " << dr->reason.srcCode() << std::endl;
-
-        // std::cout << "pc-src: " << (dr->reason.pc() - ((uint64_t)dr->reason.srcCode())) << std::endl;
-        // std::cout << "offset: " << dr->reason.origin.offset() << std::endl;
-
-        // std::cout << "pc: " << dr->reason.pc() << std::endl;
-
-        // dr->reason.srcCode()->print(std::cout);
-
-
-
         auto drs = llvm::ConstantStruct::get(
             t::DeoptReason, {c(dr->reason.reason, 32),
                              c(dr->reason.origin.offset(), 32), srcAddr});
+        #endif
+
         res = globalConst(drs);
     } else {
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() could not be loaded");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         val->printRef(std::cerr);
         if (auto i = Instruction::Cast(val))
             i->printRecursive(std::cerr, 1);
@@ -683,21 +783,56 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
 
     if (res->getType() == t::SEXP && needed != Rep::SEXP) {
         if (type.isA(PirType::simpleScalarInt())) {
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() simpleScalarInt");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = unboxInt(res);
             assert(res->getType() == t::Int);
         } else if (type.isA(PirType::simpleScalarLogical())) {
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() simpleScalarLogical");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = unboxLgl(res);
             assert(res->getType() == t::Int);
         } else if (type.isA((PirType() | RType::integer | RType::logical)
                                 .simpleScalar())) {
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() type.isA((PirType() | RType::integer | RType::logical).simpleScalar())");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = unboxIntLgl(res);
             assert(res->getType() == t::Int);
         } else if (type.isA(PirType::simpleScalarReal())) {
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() simpleScalarReal");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = unboxReal(res);
             assert(res->getType() == t::Double);
         } else if (type.isA(
                        (PirType(RType::real) | RType::integer | RType::logical)
                            .simpleScalar())) {
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() type.isA((PirType(RType::real) | RType::integer | RType::logical).simpleScalar())");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = unboxRealIntLgl(res, type);
             assert(res->getType() == t::Double);
         } else {
@@ -712,20 +847,62 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
     }
 
     if (res->getType() == t::Int && needed == Rep::f64) {
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() res->getType() == t::Int && needed == Rep::f64");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         // TODO should we deal with na here?
         res = builder.CreateSIToFP(res, t::Double);
     } else if (res->getType() == t::Double && needed == Rep::i32) {
+        #if DEBUG_LOCATIONS == 1
+        if (debugStatements) {
+            auto msg = builder.CreateGlobalString(
+                    "load() res->getType() == t::Double && needed == Rep::i32");
+            addDebugMsg(msg, -1, location++);
+        }
+        #endif
         // TODO should we deal with na here?
         res = builder.CreateFPToSI(res, t::Int);
     } else if ((res->getType() == t::Int || res->getType() == t::Double) &&
                needed == Rep::SEXP) {
         if (type.isA(PirType() | RType::integer)) {
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() type.isA(PirType() | RType::integer)");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = boxInt(res);
         } else if (type.isA(PirType::test())) {
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() type.isA(PirType::test())");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = boxTst(res);
         } else if (type.isA(PirType() | RType::logical)) {
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() type.isA(PirType() | RType::logical");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = boxLgl(res);
         } else if (type.isA(PirType() | RType::real)) {
+            #if DEBUG_LOCATIONS == 1
+            if (debugStatements) {
+                auto msg = builder.CreateGlobalString(
+                        "load() type.isA(PirType() | RType::real)");
+                addDebugMsg(msg, -1, location++);
+            }
+            #endif
             res = boxReal(res);
         } else {
             std::cout << "Failed to convert int/float to " << type << "\n";
@@ -1646,8 +1823,7 @@ void LowerFunctionLLVM::checkUnbound(llvm::Value* v) {
     auto ok = BasicBlock::Create(PirJitLLVM::getContext(), "", fun);
     auto nok = BasicBlock::Create(PirJitLLVM::getContext(), "", fun);
     auto t = builder.CreateICmpEQ(v, constant(R_UnboundValue, t::SEXP));
-    static int i = 0;
-    addDebugMsg(v, 0, i++);
+
     builder.CreateCondBr(t, nok, ok, branchAlwaysFalse);
 
     builder.SetInsertPoint(nok);
@@ -1757,6 +1933,13 @@ llvm::Value* LowerFunctionLLVM::depromise(llvm::Value* arg, const PirType& t) {
 #endif
         return arg;
     }
+    #if DEBUG_LOCATIONS == 1
+    if (debugStatements) {
+        auto msg = builder.CreateGlobalString(
+                "depromise()");
+        addDebugMsg(msg, -1, location++);
+    }
+    #endif
     auto isProm = BasicBlock::Create(PirJitLLVM::getContext(), "isProm", fun);
     auto isVal = BasicBlock::Create(PirJitLLVM::getContext(), "", fun);
     auto ok = BasicBlock::Create(PirJitLLVM::getContext(), "", fun);
@@ -1764,20 +1947,48 @@ llvm::Value* LowerFunctionLLVM::depromise(llvm::Value* arg, const PirType& t) {
     auto res = phiBuilder(t::SEXP);
 
     auto type = sexptype(arg);
+    #if DEBUG_LOCATIONS == 1
+    if (debugStatements) {
+        auto msg = builder.CreateGlobalString(
+                "depromise()");
+        addDebugMsg(msg, -1, location++);
+    }
+    #endif
     auto tt = builder.CreateICmpEQ(type, c(PROMSXP));
     builder.CreateCondBr(tt, isProm, isVal, branchMostlyFalse);
 
     builder.SetInsertPoint(isProm);
+    #if DEBUG_LOCATIONS == 1
+    if (debugStatements) {
+        auto msg = builder.CreateGlobalString(
+                "depromise()");
+        addDebugMsg(msg, -1, location++);
+    }
+    #endif
     auto val = promsxpValue(arg);
     res.addInput(val);
     builder.CreateBr(ok);
 
     builder.SetInsertPoint(isVal);
+    #if DEBUG_LOCATIONS == 1
+    if (debugStatements) {
+        auto msg = builder.CreateGlobalString(
+                "depromise()");
+        addDebugMsg(msg, -1, location++);
+    }
+    #endif
 #ifdef ENABLE_SLOWASSERT
     insn_assert(builder.CreateICmpNE(sexptype(arg), c(PROMSXP)),
                 "Depromise returned promise");
 #endif
     res.addInput(arg);
+    #if DEBUG_LOCATIONS == 1
+    if (debugStatements) {
+        auto msg = builder.CreateGlobalString(
+                "depromise()");
+        addDebugMsg(msg, -1, location++);
+    }
+    #endif
     builder.CreateBr(ok);
 
     builder.SetInsertPoint(ok);
@@ -1808,8 +2019,15 @@ void LowerFunctionLLVM::compileRelop(
         llvm::Value* res;
         if (i->hasEnv()) {
             auto e = loadSxp(i->env());
+            #if PATCH_SRCIDX_ENTRY == 1
+            auto iVal = globalSrcConst(c(i->srcIdx), t::i32);
+            auto iLoad = builder.CreateLoad(iVal);
+            res = call(NativeBuiltins::get(NativeBuiltins::Id::binopEnv),
+                       {a, b, e, iLoad, c((int)kind)});
+            #else
             res = call(NativeBuiltins::get(NativeBuiltins::Id::binopEnv),
                        {a, b, e, c(i->srcIdx), c((int)kind)});
+            #endif
         } else {
             res = call(NativeBuiltins::get(NativeBuiltins::Id::binop),
                        {a, b, c((int)kind)});
@@ -1875,8 +2093,15 @@ void LowerFunctionLLVM::compileBinop(
         llvm::Value* res = nullptr;
         if (i->hasEnv()) {
             auto e = loadSxp(i->env());
+            #if PATCH_SRCIDX_ENTRY == 1
+            auto iVal = globalSrcConst(c(i->srcIdx), t::i32);
+            auto iLoad = builder.CreateLoad(iVal);
+            res = call(NativeBuiltins::get(NativeBuiltins::Id::binopEnv),
+                       {a, b, e, iLoad, c((int)kind)});
+            #else
             res = call(NativeBuiltins::get(NativeBuiltins::Id::binopEnv),
                        {a, b, e, c(i->srcIdx), c((int)kind)});
+            #endif
         } else {
             res = call(NativeBuiltins::get(NativeBuiltins::Id::binop),
                        {a, b, c((int)kind)});
@@ -1952,8 +2177,15 @@ void LowerFunctionLLVM::compileUnop(
         llvm::Value* res = nullptr;
         if (i->hasEnv()) {
             auto e = loadSxp(i->env());
+            #if PATCH_SRCIDX_ENTRY == 1
+            auto iVal = globalSrcConst(c(i->srcIdx), t::i32);
+            auto iLoad = builder.CreateLoad(iVal);
+            res = call(NativeBuiltins::get(NativeBuiltins::Id::unopEnv),
+                       {a, e, iLoad, c((int)kind)});
+            #else
             res = call(NativeBuiltins::get(NativeBuiltins::Id::unopEnv),
                        {a, e, c(i->srcIdx), c((int)kind)});
+            #endif
         } else {
             res = call(NativeBuiltins::get(NativeBuiltins::Id::unop),
                        {a, c((int)kind)});
@@ -2083,6 +2315,29 @@ bool LowerFunctionLLVM::compileDotcall(
     if (calli->isReordered())
         callId = pushArgReordering(calli->getArgOrderOrig());
 
+
+    #if PATCH_CP_ENTRIES == 1
+    auto iVal = globalConst(c(i->srcIdx), t::i32);
+    auto iLoad = builder.CreateLoad(iVal);
+    setVal(i, withCallFrame(
+                args,
+                [&]() -> llvm::Value* {
+                    return call(
+                        NativeBuiltins::get(NativeBuiltins::Id::dotsCall),
+                        {
+                            c(callId),
+                            paramCode(),
+                            iLoad,
+                            callee(),
+                            i->hasEnv() ? loadSxp(i->env())
+                                        : constant(R_BaseEnv, t::SEXP),
+                            c(calli->nCallArgs()),
+                            builder.CreateBitCast(namesStore, t::IntPtr),
+                            c(asmpt.toI()),
+                        });
+                },
+                /* dotCall pops arguments : */ false));
+    #else
     setVal(i, withCallFrame(
                   args,
                   [&]() -> llvm::Value* {
@@ -2101,6 +2356,7 @@ bool LowerFunctionLLVM::compileDotcall(
                           });
                   },
                   /* dotCall pops arguments : */ false));
+    #endif
     return true;
 }
 
@@ -2660,7 +2916,9 @@ void LowerFunctionLLVM::compile() {
                                                     NativeBuiltins::Id::clsEq),
                                                 {ai, bi});
                                 },
-                                [&]() { return builder.getFalse(); });
+                                [&]() {
+                                    return builder.getFalse();
+                                    });
                         });
                 }
                 setVal(i, builder.CreateZExt(res, t::Int));
@@ -3553,16 +3811,27 @@ void LowerFunctionLLVM::compile() {
                 if (b->isReordered())
                     callId = pushArgReordering(b->getArgOrderOrig());
 
+                #if PATCH_CP_ENTRIES == 1
                 auto iVal = globalConst(c(b->srcIdx), t::i32);
                 auto iLoad = builder.CreateLoad(iVal);
-
                 setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
-                           return call(
-                               NativeBuiltins::get(NativeBuiltins::Id::call),
-                               {c(callId), paramCode(), iLoad,
-                                loadSxp(b->cls()), loadSxp(b->env()),
-                                c(b->nCallArgs()), c(asmpt.toI())});
-                       }));
+                    return call(
+                        NativeBuiltins::get(NativeBuiltins::Id::call),
+                        {c(callId), paramCode(), iLoad,
+                        loadSxp(b->cls()), loadSxp(b->env()),
+                        c(b->nCallArgs()), c(asmpt.toI())});
+                }));
+                #else
+                setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
+                    return call(
+                        NativeBuiltins::get(NativeBuiltins::Id::call),
+                        {c(callId), paramCode(), c(b->srcIdx),
+                        loadSxp(b->cls()), loadSxp(b->env()),
+                        c(b->nCallArgs()), c(asmpt.toI())});
+                }));
+                #endif
+
+
                 break;
             }
 
@@ -3588,6 +3857,25 @@ void LowerFunctionLLVM::compile() {
                 if (b->isReordered())
                     callId = pushArgReordering(b->getArgOrderOrig());
 
+                #if PATCH_SRCIDX_ENTRY == 1
+                auto iVal = globalConst(c(b->srcIdx), t::i32);
+                auto iLoad = builder.CreateLoad(iVal);
+                setVal(
+                    i, withCallFrame(args, [&]() -> llvm::Value* {
+                        return call(
+                            NativeBuiltins::get(NativeBuiltins::Id::namedCall),
+                            {
+                                c(callId),
+                                paramCode(),
+                                iLoad,
+                                loadSxp(b->cls()),
+                                loadSxp(b->env()),
+                                c(b->nCallArgs()),
+                                builder.CreateBitCast(namesStore, t::IntPtr),
+                                c(asmpt.toI()),
+                            });
+                    }));
+                #else
                 setVal(
                     i, withCallFrame(args, [&]() -> llvm::Value* {
                         return call(
@@ -3603,11 +3891,11 @@ void LowerFunctionLLVM::compile() {
                                 c(asmpt.toI()),
                             });
                     }));
+                #endif
                 break;
             }
 
             case Tag::StaticCall: {
-                std::cout << "StaticCall" << std::endl;
                 auto calli = StaticCall::Cast(i);
                 calli->eachArg([](Value* v) { assert(!ExpandDots::Cast(v)); });
                 auto target = calli->tryDispatch();
@@ -3622,6 +3910,20 @@ void LowerFunctionLLVM::compile() {
 
                 if (!target->owner()->hasOriginClosure()) {
                     std::cout << "StaticCall: !hasOriginClosure" << std::endl;
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalConst(c(calli->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    setVal(
+                        i, withCallFrame(args, [&]() -> llvm::Value* {
+                            return call(
+                                NativeBuiltins::get(NativeBuiltins::Id::call),
+                                {c(callId), paramCode(), iLoad,
+                                 loadSxp(calli->runtimeClosure()),
+                                 loadSxp(calli->env()), c(calli->nCallArgs()),
+                                 c(asmpt.toI())});
+                        }));
+
+                    #else
                     setVal(
                         i, withCallFrame(args, [&]() -> llvm::Value* {
                             return call(
@@ -3631,6 +3933,7 @@ void LowerFunctionLLVM::compile() {
                                  loadSxp(calli->env()), c(calli->nCallArgs()),
                                  c(asmpt.toI())});
                         }));
+                    #endif
                     break;
                 }
 
@@ -3673,80 +3976,37 @@ void LowerFunctionLLVM::compile() {
                 //     }
                 // }
 
-                std::cout << "StaticCall: hasOriginClosure" << std::endl;
 
                 #if TRY_PATCH_STATIC_CALL3 == 1
-                bool trigger = false;
-                std::stringstream ss;
+                auto iValAST = globalConst(c(calli->srcIdx), t::i32);
+                auto iLoadAST = builder.CreateLoad(iValAST);
 
-                if (DispatchTable::check(BODY(calli->cls()->rirClosure()))) {
-                    // current hast of function that needs to be dispatched
-                    DispatchTable * vtable = DispatchTable::unpack(BODY(calli->cls()->rirClosure()));
-                    size_t currentHast = vtable->baseline()->body()->hast;
+                // Insert the closure into the cPool
+                auto cpIndex = Pool::insert(calli->cls()->rirClosure());
+                auto iVal = globalConst(c(cpIndex), t::i32);
+                auto iLoad = builder.CreateLoad(iVal);
 
-                    // Check for hast in the base library
-                    auto iter = std::find(BaseLibs::libBaseHast.begin(), BaseLibs::libBaseHast.end(), currentHast);
-
-                    if (iter != BaseLibs::libBaseHast.end()) {
-                        auto solIndex = iter - BaseLibs::libBaseHast.begin();
-                        ss << "base_";
-                        ss << solIndex;
-                        ss << "_";
-                        trigger = true;
-                    }
-
-                    #if DEBUG_ERR_MSG == 1
-                    if (!trigger) {
-                        std::cerr << "Static call patch (hasOriginClosure) failed, hast: " << currentHast << std::endl;
-                    }
-                    #endif
-
-                } else {
-
-                    #if DEBUG_ERR_MSG == 1
-                    std::cerr << "Static call patch (hasOriginClosure), failed to unpack dispatch table" << std::endl;
-                    #endif
-
-                }
-
-
-
-                if (trigger) {
-                    ss << asmpt.toI();
-                    assert(asmpt.includes(Assumption::StaticallyArgmatched));
-                    setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
-                            return call(
-                                NativeBuiltins::get(NativeBuiltins::Id::call),
-                                {
-                                    c(callId),
-                                    paramCode(),
-                                    c(calli->srcIdx),
-                                    builder.CreateIntToPtr(convertToExternalSymbol(ss.str(), t::i8), t::SEXP),
-                                    loadSxp(calli->env()),
-                                    c(calli->nCallArgs()),
-                                    c(asmpt.toI()),
-                                });
-                        }));
-                } else {
-                    assert(asmpt.includes(Assumption::StaticallyArgmatched));
-                    setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
+                assert(asmpt.includes(Assumption::StaticallyArgmatched));
+                setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                         return call(
-                            NativeBuiltins::get(NativeBuiltins::Id::call),
+                            NativeBuiltins::get(NativeBuiltins::Id::callStatic),
                             {
                                 c(callId),
                                 paramCode(),
-                                c(calli->srcIdx),
-                                builder.CreateIntToPtr(
-                                    c(calli->cls()->rirClosure()), t::SEXP),
+                                iLoadAST,
+                                iLoad,
                                 loadSxp(calli->env()),
                                 c(calli->nCallArgs()),
                                 c(asmpt.toI()),
                             });
                     }));
-
+                #if DEBUG_LOCATIONS == 1
+                if (debugStatements) {
+                    auto msg = builder.CreateGlobalString(
+                            "Static Call Inst");
+                    addDebugMsg(msg, -1, location++);
                 }
-
-
+                #endif
                 #else
                 assert(asmpt.includes(Assumption::StaticallyArgmatched));
                 setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
@@ -3807,6 +4067,13 @@ void LowerFunctionLLVM::compile() {
                     weight = branchAlwaysFalse;
                 else if (f->isDeopt() || (f->isJmp() && f->next()->isDeopt()))
                     weight = branchAlwaysTrue;
+                #if DEBUG_LOCATIONS == 1
+                if (debugStatements) {
+                    auto msg = builder.CreateGlobalString(
+                            "Branch Inst");
+                    addDebugMsg(msg, -1, location++);
+                }
+                #endif
                 builder.CreateCondBr(cond, getBlock(bb->trueBranch()),
                                      getBlock(bb->falseBranch()), weight);
                 break;
@@ -3846,7 +4113,11 @@ void LowerFunctionLLVM::compile() {
                         args.push_back(fs->env());
 
                         #if TRY_PATCH_DEOPTMETADATA == 1
-                        uintptr_t offset = (uintptr_t)fs->pc - ((uintptr_t)fs->code);
+                        uintptr_t offset = (uintptr_t)fs->pc - (uintptr_t)fs->code->code();
+
+                        std::cout << "TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : " << fs->pc << std::endl;
+                        std::cout << "                        (codeStartInst)           : " << (uintptr_t)fs->code->code() << std::endl;
+                        std::cout << "                        (offset)                  : " << offset << std::endl;
 
                         m->frames[frameNr--] = {offset, fs->code->hast, fs->stackSize,
                                                 fs->inPromise};
@@ -3857,39 +4128,38 @@ void LowerFunctionLLVM::compile() {
                     }
 
                     #if TRY_PATCH_DEOPTMETADATA == 1
-                    if (target->hast == (size_t)-1) {
+                    if (target->hast == 0) {
                         #if DEBUG_ERR_MSG == 1
                         std::cerr << "Failed to create a pointer to extra pool deopt entry" << std::endl;
                         #endif
-                        Rf_error("Failed to patch DeoptMetadata");
+                        target->addExtraPoolEntry(store);
+                        withCallFrame(args, [&]() {
+                            return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
+                                        {paramCode(), paramClosure(),
+                                        convertToPointer(m, t::i8, true), paramArgs(),
+                                        load(deopt->deoptReason()),
+                                        loadSxp(deopt->deoptTrigger())});
+                                        });
                     } else {
-                        auto extraPoolIndex = target->addExtraPoolEntry(store);
-                        ssN << "epe_" << target->hast << "_" << extraPoolIndex << "_" << cls->context().toI();
+                        withCallFrame(args, [&]() {
+                            return call(NativeBuiltins::get(NativeBuiltins::Id::deoptPool),
+                                        {paramCode(), paramClosure(),
+                                        constant(store, Rep::SEXP), paramArgs(),
+                                        load(deopt->deoptReason()),
+                                        loadSxp(deopt->deoptTrigger())});
+                                        });
                     }
                     #else
                     target->addExtraPoolEntry(store);
+                    withCallFrame(args, [&]() {
+                            return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
+                                        {paramCode(), paramClosure(),
+                                        convertToPointer(m, t::i8, true), paramArgs(),
+                                        load(deopt->deoptReason()),
+                                        loadSxp(deopt->deoptTrigger())});
+                                        });
                     #endif
-
-
                 }
-
-                #if TRY_PATCH_DEOPTMETADATA == 1
-                withCallFrame(args, [&]() {
-                    return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
-                                {paramCode(), paramClosure(),
-                                 convertToExternalSymbol(ssN.str(), t::i8), paramArgs(),
-                                 load(deopt->deoptReason()),
-                                 loadSxp(deopt->deoptTrigger())});
-                });
-                #else
-                withCallFrame(args, [&]() {
-                    return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
-                                {paramCode(), paramClosure(),
-                                 convertToPointer(m, t::i8, true), paramArgs(),
-                                 load(deopt->deoptReason()),
-                                 loadSxp(deopt->deoptTrigger())});
-                });
-                #endif
 
                 builder.CreateUnreachable();
                 break;
@@ -4091,9 +4361,17 @@ void LowerFunctionLLVM::compile() {
 
                     llvm::Value* res = nullptr;
                     if (i->hasEnv()) {
+                        #if PATCH_SRCIDX_ENTRY == 1
+                        auto iVal = globalSrcConst(c(i->srcIdx), t::i32);
+                        auto iLoad = builder.CreateLoad(iVal);
+                        res = call(
+                            NativeBuiltins::get(NativeBuiltins::Id::notEnv),
+                            {argumentNative, loadSxp(i->env()), iLoad});
+                        #else
                         res = call(
                             NativeBuiltins::get(NativeBuiltins::Id::notEnv),
                             {argumentNative, loadSxp(i->env()), c(i->srcIdx)});
+                        #endif
                     } else {
                         res =
                             call(NativeBuiltins::get(NativeBuiltins::Id::notOp),
@@ -4439,10 +4717,19 @@ void LowerFunctionLLVM::compile() {
                 llvm::Value* res;
                 if (i->hasEnv()) {
                     auto e = loadSxp(i->env());
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(i->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    res =
+                        call(NativeBuiltins::get(NativeBuiltins::Id::binopEnv),
+                             {loadSxp(a), loadSxp(b), e, iLoad,
+                              c((int)BinopKind::COLON)});
+                    #else
                     res =
                         call(NativeBuiltins::get(NativeBuiltins::Id::binopEnv),
                              {loadSxp(a), loadSxp(b), e, c(i->srcIdx),
                               c((int)BinopKind::COLON)});
+                    #endif
                 } else if (Rep::Of(a) == Rep::i32 && Rep::Of(b) == Rep::i32) {
                     res = call(NativeBuiltins::get(NativeBuiltins::Id::colon),
                                {load(a), load(b)});
@@ -4951,7 +5238,10 @@ void LowerFunctionLLVM::compile() {
                             },
                             [&]() { return res; });
                     }
-                } else if (bindingsCache.count(i->env())) {
+                }
+
+                #if USE_BINDING_CACHE_WHILE_LOWERING == 1
+                else if (bindingsCache.count(i->env())) {
                     auto phi = phiBuilder(t::SEXP);
                     auto offset = bindingsCache.at(i->env()).at(varName);
 
@@ -4996,7 +5286,9 @@ void LowerFunctionLLVM::compile() {
                     builder.CreateBr(done);
                     builder.SetInsertPoint(done);
                     res = phi();
-                } else if (i->env() == Env::global()) {
+                }
+                #endif
+                else if (i->env() == Env::global()) {
                     res = call(
                         NativeBuiltins::get(NativeBuiltins::Id::ldvarGlobal),
                         {constant(varName, t::SEXP)});
@@ -5099,9 +5391,17 @@ void LowerFunctionLLVM::compile() {
                 if (extract->hasEnv())
                     env = loadSxp(extract->env());
                 auto idx = loadSxp(extract->idx());
+                #if PATCH_SRCIDX_ENTRY == 1
+                auto iVal = globalSrcConst(c(extract->srcIdx), t::i32);
+                auto iLoad = builder.CreateLoad(iVal);
+                auto res0 =
+                    call(NativeBuiltins::get(NativeBuiltins::Id::extract11),
+                         {vector, idx, env, iLoad});
+                #else
                 auto res0 =
                     call(NativeBuiltins::get(NativeBuiltins::Id::extract11),
                          {vector, idx, env, c(extract->srcIdx)});
+                #endif
 
                 res.addInput(convert(res0, i->type));
                 if (fastcase) {
@@ -5186,10 +5486,19 @@ void LowerFunctionLLVM::compile() {
                 auto vector = loadSxp(extract->vec());
                 auto idx1 = loadSxp(extract->idx1());
                 auto idx2 = loadSxp(extract->idx2());
+                #if PATCH_SRCIDX_ENTRY == 1
+                auto iVal = globalSrcConst(c(extract->srcIdx), t::i32);
+                auto iLoad = builder.CreateLoad(iVal);
+                auto res0 =
+                    call(NativeBuiltins::get(NativeBuiltins::Id::extract12),
+                         {vector, idx1, idx2, loadSxp(extract->env()),
+                          iLoad});
+                #else
                 auto res0 =
                     call(NativeBuiltins::get(NativeBuiltins::Id::extract12),
                          {vector, idx1, idx2, loadSxp(extract->env()),
                           c(extract->srcIdx)});
+                #endif
 
                 res.addInput(convert(res0, i->type));
                 if (fastcase) {
@@ -5255,16 +5564,34 @@ void LowerFunctionLLVM::compile() {
                             NativeBuiltins::get(NativeBuiltins::Id::extract21r);
                     }
                     auto vector = loadSxp(extract->vec());
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(extract->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    res0 = call(getter,
+                                {vector, load(extract->idx()),
+                                 loadSxp(extract->env()), iLoad});
+                    #else
                     res0 = call(getter,
                                 {vector, load(extract->idx()),
                                  loadSxp(extract->env()), c(extract->srcIdx)});
+                    #endif
                 } else {
                     auto vector = loadSxp(extract->vec());
                     auto idx = loadSxp(extract->idx());
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(extract->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    res0 =
+                        call(NativeBuiltins::get(NativeBuiltins::Id::extract21),
+                             {vector, idx, loadSxp(extract->env()),
+                              iLoad});
+                    #else
                     res0 =
                         call(NativeBuiltins::get(NativeBuiltins::Id::extract21),
                              {vector, idx, loadSxp(extract->env()),
                               c(extract->srcIdx)});
+
+                    #endif
                 }
 
                 res.addInput(convert(res0, i->type));
@@ -5290,9 +5617,17 @@ void LowerFunctionLLVM::compile() {
                 if (extract->hasEnv())
                     env = loadSxp(extract->env());
 
+                #if PATCH_SRCIDX_ENTRY == 1
+                auto iVal = globalSrcConst(c(extract->srcIdx), t::i32);
+                auto iLoad = builder.CreateLoad(iVal);
+                auto res =
+                    call(NativeBuiltins::get(NativeBuiltins::Id::extract13),
+                         {vector, idx1, idx2, idx3, env, iLoad});
+                #else
                 auto res =
                     call(NativeBuiltins::get(NativeBuiltins::Id::extract13),
                          {vector, idx1, idx2, idx3, env, c(extract->srcIdx)});
+                #endif
                 setVal(i, res);
 
                 break;
@@ -5371,19 +5706,39 @@ void LowerFunctionLLVM::compile() {
                     }
 
                     auto vector = loadSxp(extract->vec());
+
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(extract->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    res0 = call(getter,
+                                {vector, load(extract->idx1()),
+                                 load(extract->idx2()), loadSxp(extract->env()),
+                                 iLoad});
+                    #else
                     res0 = call(getter,
                                 {vector, load(extract->idx1()),
                                  load(extract->idx2()), loadSxp(extract->env()),
                                  c(extract->srcIdx)});
+                    #endif
+
                 } else {
 
                     auto vector = loadSxp(extract->vec());
                     auto idx1 = loadSxp(extract->idx1());
                     auto idx2 = loadSxp(extract->idx2());
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(extract->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    res0 =
+                        call(NativeBuiltins::get(NativeBuiltins::Id::extract22),
+                             {vector, idx1, idx2, loadSxp(extract->env()),
+                              iLoad});
+                    #else
                     res0 =
                         call(NativeBuiltins::get(NativeBuiltins::Id::extract22),
                              {vector, idx1, idx2, loadSxp(extract->env()),
                               c(extract->srcIdx)});
+                    #endif
                 }
 
                 res.addInput(convert(res0, i->type));
@@ -5406,10 +5761,19 @@ void LowerFunctionLLVM::compile() {
 
                 // We should implement the fast cases (known and primitive
                 // types) speculatively here
+                #if PATCH_SRCIDX_ENTRY == 1
+                auto iVal = globalSrcConst(c(subAssign->srcIdx), t::i32);
+                auto iLoad = builder.CreateLoad(iVal);
+                auto res =
+                    call(NativeBuiltins::get(NativeBuiltins::Id::subassign13),
+                         {vector, idx1, idx2, idx3, val,
+                          loadSxp(subAssign->env()), iLoad});
+                #else
                 auto res =
                     call(NativeBuiltins::get(NativeBuiltins::Id::subassign13),
                          {vector, idx1, idx2, idx3, val,
                           loadSxp(subAssign->env()), c(subAssign->srcIdx)});
+                #endif
                 setVal(i, res);
                 break;
             }
@@ -5423,10 +5787,19 @@ void LowerFunctionLLVM::compile() {
 
                 // We should implement the fast cases (known and primitive
                 // types) speculatively here
+                #if PATCH_SRCIDX_ENTRY == 1
+                auto iVal = globalSrcConst(c(subAssign->srcIdx), t::i32);
+                auto iLoad = builder.CreateLoad(iVal);
+                auto res =
+                    call(NativeBuiltins::get(NativeBuiltins::Id::subassign12),
+                         {vector, idx1, idx2, val, loadSxp(subAssign->env()),
+                          iLoad});
+                #else
                 auto res =
                     call(NativeBuiltins::get(NativeBuiltins::Id::subassign12),
                          {vector, idx1, idx2, val, loadSxp(subAssign->env()),
                           c(subAssign->srcIdx)});
+                #endif
                 setVal(i, res);
                 break;
             }
@@ -5528,17 +5901,38 @@ void LowerFunctionLLVM::compile() {
                             NativeBuiltins::Id::subassign22rrr);
                     }
 
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(subAssign->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    assign = call(
+                        setter,
+                        {loadSxp(subAssign->vec()), load(subAssign->idx1()),
+                         load(subAssign->idx2()), load(subAssign->val()),
+                         loadSxp(subAssign->env()), iLoad});
+                    #else
                     assign = call(
                         setter,
                         {loadSxp(subAssign->vec()), load(subAssign->idx1()),
                          load(subAssign->idx2()), load(subAssign->val()),
                          loadSxp(subAssign->env()), c(subAssign->srcIdx)});
+                    #endif
+
                 } else {
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(subAssign->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    assign = call(
+                        NativeBuiltins::get(NativeBuiltins::Id::subassign22),
+                        {loadSxp(subAssign->vec()), idx1, idx2,
+                         loadSxp(subAssign->val()), loadSxp(subAssign->env()),
+                         iLoad});
+                    #else
                     assign = call(
                         NativeBuiltins::get(NativeBuiltins::Id::subassign22),
                         {loadSxp(subAssign->vec()), idx1, idx2,
                          loadSxp(subAssign->val()), loadSxp(subAssign->env()),
                          c(subAssign->srcIdx)});
+                    #endif
                 }
 
                 res.addInput(assign);
@@ -5622,11 +6016,21 @@ void LowerFunctionLLVM::compile() {
                     builder.SetInsertPoint(fallback);
                 }
 
+                #if PATCH_SRCIDX_ENTRY == 1
+                auto iVal = globalSrcConst(c(subAssign->srcIdx), t::i32);
+                auto iLoad = builder.CreateLoad(iVal);
+                llvm::Value* res0 =
+                    call(NativeBuiltins::get(NativeBuiltins::Id::subassign11),
+                         {loadSxp(subAssign->vec()), loadSxp(subAssign->idx()),
+                          loadSxp(subAssign->val()), loadSxp(subAssign->env()),
+                          iLoad});
+                #else
                 llvm::Value* res0 =
                     call(NativeBuiltins::get(NativeBuiltins::Id::subassign11),
                          {loadSxp(subAssign->vec()), loadSxp(subAssign->idx()),
                           loadSxp(subAssign->val()), loadSxp(subAssign->env()),
                           c(subAssign->srcIdx)});
+                #endif
 
                 res.addInput(convert(res0, i->type));
                 if (fastcase) {
@@ -5722,17 +6126,38 @@ void LowerFunctionLLVM::compile() {
                             NativeBuiltins::Id::subassign21rr);
                     }
 
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(subAssign->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    res0 =
+                        call(setter,
+                             {loadSxp(subAssign->vec()), load(subAssign->idx()),
+                              load(subAssign->val()), loadSxp(subAssign->env()),
+                              iLoad});
+                    #else
                     res0 =
                         call(setter,
                              {loadSxp(subAssign->vec()), load(subAssign->idx()),
                               load(subAssign->val()), loadSxp(subAssign->env()),
                               c(subAssign->srcIdx)});
+                    #endif
+
                 } else {
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(subAssign->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    res0 = call(
+                        NativeBuiltins::get(NativeBuiltins::Id::subassign21),
+                        {loadSxp(subAssign->vec()), loadSxp(subAssign->idx()),
+                         loadSxp(subAssign->val()), loadSxp(subAssign->env()),
+                         iLoad});
+                    #else
                     res0 = call(
                         NativeBuiltins::get(NativeBuiltins::Id::subassign21),
                         {loadSxp(subAssign->vec()), loadSxp(subAssign->idx()),
                          loadSxp(subAssign->val()), loadSxp(subAssign->env()),
                          c(subAssign->srcIdx)});
+                    #endif
                 }
 
                 res.addInput(convert(res0, i->type));
@@ -5827,6 +6252,7 @@ void LowerFunctionLLVM::compile() {
                 bool unboxed =
                     setter.llvmSignature->getFunctionParamType(1) != t::SEXP;
 
+                #if USE_BINDING_CACHE_WHILE_LOWERING == 1
                 if (bindingsCache.count(environment)) {
                     auto offset = bindingsCache.at(environment).at(st->varName);
                     auto cachePtr =
@@ -5926,7 +6352,9 @@ void LowerFunctionLLVM::compile() {
 
                     builder.SetInsertPoint(done);
 
-                } else {
+                } else
+                #endif
+                {
                     llvm::Value* theValue =
                         unboxed ? load(pirVal) : loadSxp(pirVal);
                     call(setter, {constant(st->varName, t::SEXP), theValue,
@@ -5989,9 +6417,17 @@ void LowerFunctionLLVM::compile() {
                 auto a = i->arg(0).val();
                 auto b = i->arg(1).val();
                 if (Rep::Of(a) == Rep::SEXP || Rep::Of(b) == Rep::SEXP) {
+                    #if PATCH_SRCIDX_ENTRY == 1
+                    auto iVal = globalSrcConst(c(i->srcIdx), t::i32);
+                    auto iLoad = builder.CreateLoad(iVal);
+                    setVal(i, call(NativeBuiltins::get(
+                                       NativeBuiltins::Id::colonInputEffects),
+                                   {loadSxp(a), loadSxp(b), iLoad}));
+                    #else
                     setVal(i, call(NativeBuiltins::get(
                                        NativeBuiltins::Id::colonInputEffects),
                                    {loadSxp(a), loadSxp(b), c(i->srcIdx)}));
+                    #endif
                     break;
                 }
 

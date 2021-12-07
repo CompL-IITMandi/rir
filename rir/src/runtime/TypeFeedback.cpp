@@ -1,7 +1,7 @@
 #include "TypeFeedback.h"
 #include "R/r.h"
 #include "runtime/Code.h"
-
+#include "patches.h"
 #include <cassert>
 
 namespace rir {
@@ -27,7 +27,7 @@ SEXP ObservedCallees::getTarget(const Code* code, size_t pos) const {
 }
 
 FeedbackOrigin::FeedbackOrigin(rir::Code* src, Opcode* p)
-    : offset_((uintptr_t)p - (uintptr_t)src), srcCode_(src) {
+    : offset_((uintptr_t)p - (uintptr_t)src->code()), srcCode_(src) {
     if (p) {
         assert(p >= src->code());
         assert(p < src->endCode());
@@ -55,5 +55,16 @@ DeoptReason::DeoptReason(const FeedbackOrigin& origin,
         break;
     }
 }
+
+Opcode* FeedbackOrigin::pc() const {
+    if (offset_ == 0)
+        return nullptr;
+    #if TRY_PATCH_DEOPTREASON_PC == 1
+    return (Opcode*)((uintptr_t)srcCode()->code() + offset_);
+    #else
+    return (Opcode*)((uintptr_t)srcCode() + offset_);
+    #endif
+}
+
 
 } // namespace rir

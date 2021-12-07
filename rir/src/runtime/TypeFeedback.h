@@ -164,11 +164,7 @@ struct FeedbackOrigin {
     FeedbackOrigin() {}
     FeedbackOrigin(rir::Code* src, Opcode* pc);
 
-    Opcode* pc() const {
-        if (offset_ == 0)
-            return nullptr;
-        return (Opcode*)((uintptr_t)srcCode() + offset_);
-    }
+    Opcode* pc() const;
     uint32_t offset() const { return offset_; }
     Code* srcCode() const { return srcCode_; }
     void srcCode(Code* src) { srcCode_ = src; }

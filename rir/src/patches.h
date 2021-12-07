@@ -20,6 +20,10 @@
 // Prints the old name in the module and the patched name
 #define BACKEND_PRINT_NAME_UPDATES 0
 
+// LOWERING FEATURES
+#define USE_BINDING_CACHE_WHILE_LOWERING 0
+
+
 // Rename globalConstants - Adds a prefix to the CP lookup indices, so we can look them up during serialization
 //
 // Prefix: "copool_"
@@ -79,6 +83,9 @@
 // Patch Constant Pool Entries, needs PATCH_GLOBAL_CONSTANT_NAMES to work
 #define PATCH_CP_ENTRIES 1
 
+// Patch Constant Pool Entries, needs PATCH_GLOBAL_CONSTANT_NAMES to work
+#define PATCH_SRCIDX_ENTRY 1
+
 // Patch callRBuiltin
 #define PATCH_BUILTINCALL 1
 
@@ -87,6 +94,9 @@
 
 // Try patching DeoptReason
 #define TRY_PATCH_DEOPTREASON 1
+
+// Change calculation of PC from start of BC instructions, instead of Code object pointer
+#define TRY_PATCH_DEOPTREASON_PC 1
 
 // Try patching DeoptMetadata
 #define TRY_PATCH_DEOPTMETADATA 1
@@ -99,3 +109,8 @@
 
 // Show error info if something goes wrong
 #define DEBUG_ERR_MSG 1
+
+#define DEBUG_INSTRUMENT_RIR_CALL 0
+
+// Add debug locations in the llvm code
+#define DEBUG_LOCATIONS 1

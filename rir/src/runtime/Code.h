@@ -160,7 +160,7 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
 
     unsigned extraPoolSize; /// Number of elements in the per code constant pool
 
-    size_t hast = -1; /// The calculated HAST from the AST
+    size_t hast = 0; /// The calculated HAST from the AST
 
     std::string mName = ""; /// name of the function in JIT
 

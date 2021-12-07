@@ -97,7 +97,7 @@ class Compiler {
 
         // The hast is inserted into the code object of the bytecode
         // Calculate hast for the given function
-        int hast = 0;
+        size_t hast = 0;
         hash_ast(ast_1, hast);
 
         rirBody->hast = hast;
@@ -143,7 +143,7 @@ class Compiler {
 
         // The hast is inserted into the code object of the bytecode
         // Calculate hast for the given function
-        int hast = 0;
+        size_t hast = 0;
         hash_ast(ast_1, hast);
 
         rirBody->hast = hast;

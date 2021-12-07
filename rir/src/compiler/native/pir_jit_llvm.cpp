@@ -320,25 +320,25 @@ PirJitLLVM::~PirJitLLVM() {
 }
 
 void PirJitLLVM::finalizeAndFixup() {
-    static int count = 0;
+    // static int count = 0;
     // TODO: maybe later have TSM from the start and use locking
     //       to allow concurrent compilation?
-    for (auto& fix : jitFixup) {
-        auto e = JIT->lookup(fix.second.second);
-        if (e.takeError()) {
-            continue;
-        } else {
-            auto firstUnder = fix.second.second.find_first_of('_');
+    // for (auto& fix : jitFixup) {
+    //     auto e = JIT->lookup(fix.second.second);
+    //     if (e.takeError()) {
+    //         continue;
+    //     } else {
+    //         auto firstUnder = fix.second.second.find_first_of('_');
 
-            auto fun = M.get()->getFunction(fix.second.second);
+    //         auto fun = M.get()->getFunction(fix.second.second);
 
-            std::stringstream ss;
-            ss << "f" << ++count << fix.second.second.substr(firstUnder);
-            fix.second.second = ss.str();
+    //         std::stringstream ss;
+    //         ss << "f" << ++count << fix.second.second.substr(firstUnder);
+    //         fix.second.second = ss.str();
 
-            fun->setName(fix.second.second);
-        }
-    }
+    //         fun->setName(fix.second.second);
+    //     }
+    // }
 
     auto TSM = llvm::orc::ThreadSafeModule(std::move(M), TSC);
     ExitOnErr(JIT->addIRModule(std::move(TSM)));
@@ -347,8 +347,8 @@ void PirJitLLVM::finalizeAndFixup() {
     }
 }
 
-void PirJitLLVM::moduleMakeup(std::function<void(llvm::Module*, rir::Code *)> sCallback, rir::Code * code) {
-    sCallback(M.get(), code);
+void PirJitLLVM::moduleMakeup(std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> sCallback, rir::Code * code, std::vector<unsigned> & srcIndices) {
+    sCallback(M.get(), code, srcIndices);
 }
 
 void PirJitLLVM::updateFunctionNameInModule(std::string oldName, std::string newName) {
@@ -367,6 +367,14 @@ void PirJitLLVM::patchFixupHandle(std::string newName, Code * code) {
 void PirJitLLVM::printModule() {
     llvm::raw_os_ostream ro(std::cout);
     ro << *M;
+}
+
+void PirJitLLVM::enableDebugStatements() {
+    debugStatements = true;
+}
+
+void PirJitLLVM::disableDebugStatements() {
+    debugStatements = false;
 }
 
 void PirJitLLVM::compile(
@@ -463,7 +471,7 @@ void PirJitLLVM::compile(
         funCompiler.fun->setSubprogram(SP);
         DI->LexicalBlocks.push_back(SP);
     }
-
+    funCompiler.debugStatements = debugStatements;
     funCompiler.compile();
 
     assert(jitFixup.count(code) == 0);
@@ -633,6 +641,8 @@ void PirJitLLVM::initializeLLVM() {
 
                 auto spef = n.substr(0, 5) == "spef_"; // specialsxp function
 
+                auto func = n.substr(0, 5) == "func_"; // func function
+
                 if (ept || efn) {
                     auto addrStr = n.substr(4);
                     auto addr = std::strtoul(addrStr.c_str(), nullptr, 16);
@@ -790,8 +800,28 @@ void PirJitLLVM::initializeLLVM() {
                 } else if (hast) {
                     auto id = std::stoi(n.substr(5));
                     if (rir::Code::hastMap.count(id) == 0) {
+                        std::cout << "Hast patching failed, hast not found: " << id  << std::endl;
                     }
                     auto addr = ((rir::DispatchTable *)rir::Code::hastMap[id])->baseline()->body();
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(addr)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (func) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto id = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    if (rir::Code::hastMap.count(id) == 0) {
+                        std::cout << "Hasf patching failed, hast not found: " << n  << std::endl;
+                    }
+
+                    DispatchTable * vtable = (DispatchTable *) rir::Code::hastMap[id];
+
+                    auto addr = vtable->baseline()->body()->container();
+
+                    std::cout << "func_patch: " << TYPEOF(addr) << std::endl;
+
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(addr)),
@@ -812,18 +842,29 @@ void PirJitLLVM::initializeLLVM() {
 
                     code = dtable->dispatch(c)->body();
 
-                    // for (size_t i = 1; i < dtable->size(); ++i) {
-                    //     auto e = dtable->get(i);
-                    //     if (e->context() == c) {
-                    //         code = e->body();
-                    //     }
-                    // }
+                    for (size_t i = 1; i < dtable->size(); ++i) {
+                        auto e = dtable->get(i);
+                        if (e->context() == c) {
+                            code = e->body();
+                        }
+                    }
 
                     if (!code) {
                         std::cout << "failed to find the version in dispatch table" << std::endl;
                     }
 
-                    auto res = DATAPTR(code->getExtraPoolEntry(extraPoolOffset));
+
+                    DeoptMetadata * res = (DeoptMetadata *) DATAPTR(code->getExtraPoolEntry(extraPoolOffset));
+                    for (size_t i = 0; i < res->numFrames; i++) {
+                        if (res->frames[i].code == 0) {
+                            rir::DispatchTable * dtable = ((rir::DispatchTable *)rir::Code::hastMap[res->frames[i].hast]);
+                            res->frames[i].code = dtable->baseline()->body();
+                            // std::cout << "deopt patch: " << res->frames[i].code << std::endl;
+                            res->frames[i].pc = (Opcode *)(res->frames[i].offset + ((uintptr_t)res->frames[i].code));
+                            // std::cout << "deopt pc: " << res->frames[i].pc << std::endl;
+                        }
+                    }
+                    // std::cout << "patch: " << res << std::endl;
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(

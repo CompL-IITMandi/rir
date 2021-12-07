@@ -47,6 +47,8 @@ class LowerFunctionLLVM {
     int inPushContext = 0;
     std::unordered_set<Value*> escapesInlineContext;
 
+
+
     struct ContextData {
         llvm::AllocaInst* rcntxt;
         llvm::AllocaInst* result;
@@ -77,6 +79,7 @@ class LowerFunctionLLVM {
     PirTypeFeedback* pirTypeFeedback = nullptr;
     llvm::Function* fun;
     MkEnv* myPromenv = nullptr;
+    bool debugStatements = false;
 
 
 
@@ -323,6 +326,7 @@ class LowerFunctionLLVM {
     }
 
     llvm::Value* globalConst(llvm::Constant* init, llvm::Type* ty = nullptr);
+    llvm::Value* globalSrcConst(llvm::Constant* init, llvm::Type* ty = nullptr);
     llvm::AllocaInst* topAlloca(llvm::Type* t, size_t len = 1);
 
     llvm::Value* argument(int i);

@@ -16,6 +16,9 @@
 #include "utils/Pool.h"
 #include "utils/measuring.h"
 
+#include "api.h"
+#include "patches.h"
+
 #include <assert.h>
 #include <deque>
 #include <libintl.h>
@@ -1923,9 +1926,17 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
     auto native = c->nativeCode();
     assert((!initialPC || !native) && "Cannot jump into native code");
     if (native) {
-        // std::cout << "Executing native code: " << c->getLazyCodeHandle() << ", hast: " << c->hast << std::endl;
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        // std::cout << "Executing native code: " << c->getLazyCodeHandle() << std::endl;
+        auto res = native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
+                      callCtxt ? callCtxt->callee : nullptr);
+        // printAST(0, res);
+        // std::cout << "native call end" << std::endl;
+        return res;
+        #else
         return native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
                       callCtxt ? callCtxt->callee : nullptr);
+        #endif
     }
 
 #ifdef THREADED_CODE

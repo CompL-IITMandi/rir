@@ -14,6 +14,7 @@
 
 #include "R/Protect.h"
 #include "api.h"
+#include "patches.h"
 
 #include "compiler/osr.h"
 #include "compiler/pir/pir_impl.h"
@@ -137,20 +138,8 @@ SEXP ldvarImpl(SEXP n, SEXP env) {
         env = e->getParent();
         e = LazyEnvironment::check(env);
     }
-    // std::cout << "Symbol Lookup: " << std::endl;
-    // printAST(0, n);
-
-    // std::cout << "Lookup Env: " << std::endl;
-    // printAST(0, env);
-
-    // std::cout << "Symbol Lookup: " << std::endl;
-    // printAST(0, n);
-
     auto res = Rf_findVar(n, env);
     ENSURE_NAMED(res);
-
-    // std::cout << "Result: " << std::endl;
-    // printAST(0, res);
     return res;
 }
 
@@ -340,6 +329,24 @@ static SEXP callImpl(ArglistOrder::CallId callId, rir::Code* c, Immediate ast,
     SLOWASSERT(env == symbol::delayedEnv || TYPEOF(env) == ENVSXP ||
                LazyEnvironment::check(env) || env == R_NilValue);
     SLOWASSERT(ctx);
+    return doCall(call, globalContext(), true);
+}
+
+static SEXP callStaticImpl(ArglistOrder::CallId callId, rir::Code* c, Immediate ast,
+                     Immediate calleeCP, SEXP env, size_t nargs,
+                     unsigned long available) {
+    auto ctx = globalContext();
+    auto callee = cp_pool_at(globalContext(), calleeCP);
+    CallContext call(callId, c, callee, nargs, ast,
+                     ostack_cell_at(ctx, (long)nargs - 1), env, R_NilValue,
+                     Context(available), ctx);
+
+    SLOWASSERT(env == symbol::delayedEnv || TYPEOF(env) == ENVSXP ||
+               LazyEnvironment::check(env) || env == R_NilValue);
+    SLOWASSERT(ctx);
+    #if DEBUG_INSTRUMENT_RIR_CALL == 1
+    std::cout << "callStaticImpl" << std::endl;
+    #endif
     return doCall(call, globalContext(), true);
 }
 
@@ -596,7 +603,7 @@ static SEXP binopEnvImpl(SEXP lhs, SEXP rhs, SEXP env, Immediate srcIdx,
     return res;
 }
 
-bool debugBinopImpl = false;
+bool debugBinopImpl = true;
 static SEXP binopImpl(SEXP lhs, SEXP rhs, BinopKind kind) {
     SEXP res = nullptr;
 
@@ -840,16 +847,16 @@ static SEXP deoptSentinelContainer = []() {
 void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                DeoptReason* deoptReason, SEXP deoptTrigger) {
 
-    for (int i = 0; i < m->numFrames; i++) {
+    for (size_t i = 0; i < m->numFrames; i++) {
         if (m->frames[i].code == 0) {
             m->frames[i].code = ((DispatchTable *)rir::Code::hastMap[m->frames[i].hast])->baseline()->body();
-            m->frames[i].pc = (rir::Opcode *) ((uintptr_t)m->frames[i].code + m->frames[i].offset);
-            std::cout << "resolved frame[" << i << "]" << " PC: " << m->frames[i].pc << std::endl;
+            m->frames[i].pc = (rir::Opcode *) ((uintptr_t)m->frames[i].code->code() + m->frames[i].offset);
+            std::cout << "TRY_PATCH_DEOPTMETADATA (patched_pc for inst)     : " << m->frames[i].pc << std::endl;
+            std::cout << "                        (codeStartInst)           : " << (uintptr_t)m->frames[i].code->code() << std::endl;
+            std::cout << "                        (offset)                  : " << m->frames[i].offset << std::endl;
         }
     }
-
-    std::cout << "deoptImpl PC: " << deoptReason->pc() << std::endl;
-
+    std::cout << "deoptImpl" << std::endl;
     recordDeoptReason(deoptTrigger, *deoptReason);
 
     assert(m->numFrames >= 1);
@@ -955,6 +962,12 @@ void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                            m->numFrames - 1, stackHeight,
                            (RCNTXT*)R_GlobalContext);
     assert(false);
+}
+
+void deoptPoolImpl(rir::Code* c, SEXP cls, SEXP metaDataStore, R_bcstack_t* args,
+               DeoptReason* deoptReason, SEXP deoptTrigger) {
+
+    deoptImpl(c,cls,(DeoptMetadata *)DATAPTR(metaDataStore), args, deoptReason, deoptTrigger);
 }
 
 void recordTypefeedbackImpl(Opcode* pos, rir::Code* code, SEXP value) {
@@ -1321,7 +1334,6 @@ static SEXP nativeCallTrampolineImpl(ArglistOrder::CallId callId, rir::Code* c,
                env == R_NilValue || LazyEnvironment::check(env));
 
     auto fun = Function::unpack(Pool::get(target));
-
     auto ctx = globalContext();
     CallContext call(callId, c, callee, nargs, astP,
                      ostack_cell_at(ctx, (long)nargs - 1), env, R_NilValue,
@@ -2102,7 +2114,7 @@ SEXP makeVectorImpl(int mode, size_t len) {
 
 void llDebugMsgImpl(void * ptr, int tag, int location) {
 
-    // std::cout << "At location: " << location;
+    std::cout << "At location: " << location << " (" << (char *) ptr << ")"  << std::endl;
 
     // switch (tag) {
     // case 0:
@@ -2183,6 +2195,8 @@ void nonLocalReturnImpl(SEXP res, SEXP env) {
 
 bool clsEqImpl(SEXP lhs, SEXP rhs) {
     SLOWASSERT(TYPEOF(lhs) == CLOSXP && TYPEOF(rhs) == CLOSXP);
+    std::cout << "clsEqImpl: " << (CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) &&
+        BODY_EXPR(lhs) == BODY_EXPR(rhs)) << std::endl;
     return CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) &&
            BODY_EXPR(lhs) == BODY_EXPR(rhs);
 }
@@ -2275,6 +2289,12 @@ void NativeBuiltins::initializeBuiltins() {
         "callBuiltin", (void*)&callBuiltinImpl,
         llvm::FunctionType::get(
             t::SEXP, {t::voidPtr, t::Int, t::SEXP, t::SEXP, t::i64}, false)};
+    get_(Id::callStatic) = {
+        "callStatic", (void*)&callStaticImpl,
+        llvm::FunctionType::get(
+            t::SEXP,
+            {t::i64, t::voidPtr, t::Int, t::Int, t::SEXP, t::i64, t::i64},
+            false)};
     get_(Id::call) = {
         "call", (void*)&callImpl,
         llvm::FunctionType::get(
@@ -2357,6 +2377,14 @@ void NativeBuiltins::initializeBuiltins() {
         (void*)&deoptImpl,
         llvm::FunctionType::get(t::t_void,
                                 {t::voidPtr, t::SEXP, t::voidPtr,
+                                 t::stackCellPtr, t::DeoptReasonPtr, t::SEXP},
+                                false),
+        {llvm::Attribute::NoReturn}};
+    get_(Id::deoptPool) = {
+        "deoptPool",
+        (void*)&deoptPoolImpl,
+        llvm::FunctionType::get(t::t_void,
+                                {t::voidPtr, t::SEXP, t::SEXP,
                                  t::stackCellPtr, t::DeoptReasonPtr, t::SEXP},
                                 false),
         {llvm::Attribute::NoReturn}};
