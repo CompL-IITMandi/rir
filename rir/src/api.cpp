@@ -15,6 +15,7 @@
 #include "interpreter/interp_incl.h"
 #include "ir/BC.h"
 #include "ir/Compiler.h"
+#include "R/Protect.h"
 
 #include "patches.h"
 
@@ -23,6 +24,7 @@
 #include <list>
 #include <memory>
 #include <string>
+#include "dirent.h"
 
 #include "compiler/native/pir_jit_llvm.h"
 
@@ -32,6 +34,8 @@
 #include "llvm/Support/Error.h"
 #include <llvm/Support/Errno.h>
 
+// #include "utils/VecOpr.h"
+#include "utils/UMap.h"
 
 using namespace rir;
 
@@ -39,7 +43,9 @@ extern "C" Rboolean R_Visible;
 
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
 
-std::unordered_map<int, std::vector<rir::Function *>> DeserializerData::deserializedHastMap;
+// std::unordered_map<size_t, FunctionMeta> DeserializerData::binaryDependencyMap;
+// std::unordered_map<size_t, std::set<size_t>> DeserializerData::hastUnlockMap;
+// std::unordered_map<size_t, void *> DeserializerData::vtableMap;
 
 static size_t oldMaxInput = 0;
 static size_t oldInlinerMax = 0;
@@ -101,7 +107,7 @@ void printHeader(int & space, const char * title) {
 
 void printType(int & space, const char * attr, SEXP ptr) {
     printSpace(space);
-    std::cout << "└■ " << attr << " {" << TYPEOF(ptr);
+    std::cout << "└■ " << attr << " {" << "(" << ptr << ") TYPE-" << TYPEOF(ptr);
 }
 
 void printType(int & space, const char * attr, int val) {
@@ -138,8 +144,7 @@ void printSYMSXP(int space, SEXP symsxp) {
 
     printType(space, "VALUE", value);
     if (symsxp != value) {
-        // printAST(space, value);
-        std::cout << "}" << std::endl;
+        printAST(space, value);
     } else {
         std::cout << "}" << std::endl;
     }
@@ -189,6 +194,16 @@ void printLISTSXP(int space, SEXP listsxp) {
 
 }
 
+void printVECSXP(int space, SEXP vecsxp) {
+    printHeader(space, "VECSXP");
+
+    for (int i = 0; i < Rf_length(vecsxp); i++) {
+        SEXP ele = VECTOR_ELT(vecsxp, i);
+        printType(space, "VEC ITEM", ele);
+        printAST(space, ele);
+    }
+}
+
 void printCLOSXP(int space, SEXP closxp) {
     printHeader(space, "CLOSXP");
 
@@ -212,6 +227,9 @@ void printExternalCodeEntry(int space, SEXP externalsxp) {
     if (Code::check(externalsxp)) {
         Code * code = Code::unpack(externalsxp);
         code->print(std::cout);
+    } else if (DispatchTable::check(externalsxp)) {
+        auto vtable = DispatchTable::unpack(externalsxp);
+        vtable->baseline()->body()->print(std::cout);
     }
 }
 
@@ -238,17 +256,18 @@ void printPROMSXP(int space, SEXP promSXP) {
     printType(space, "ENV", env);
     printAST(space, env);
 
-    printType(space, "VALUE", value);
-    printAST(space, value);
+    if (promSXP != value) {
+        printType(space, "VALUE", value);
+        printAST(space, value);
+    }
 }
+
 
 void printENVSXP(int space, SEXP envSXP) {
     printHeader(space, "ENVSXP");
-
     auto frame = FRAME(envSXP);
     auto encls = FRAME(envSXP);
     auto hashtab = FRAME(envSXP);
-
 
     printType(space, "FRAME", frame);
     printAST(space, frame);
@@ -276,8 +295,19 @@ void printAST(int space, int val) {
     std::cout << val << "}" << std::endl;
 }
 
+std::vector<SEXP> currentStack;
+long unsigned int maxStackSize = 25;
 
 void printAST(int space, SEXP ast) {
+    if (currentStack.size() >= maxStackSize) {
+        std::cout << "}(LIMIT " << maxStackSize << ")" << std::endl;
+        return;
+    }
+    if (std::find(currentStack.begin(), currentStack.end(), ast) != currentStack.end()) {
+        std::cout << "REC...}" << std::endl;
+        return;
+    }
+    currentStack.push_back(ast);
     switch(TYPEOF(ast)) {
         case CLOSXP: printCLOSXP(++space, ast); break;
         case LANGSXP: printLangSXP(++space, ast); break;
@@ -290,20 +320,29 @@ void printAST(int space, SEXP ast) {
         case PROMSXP: printPROMSXP(++space, ast); break;
         case ENVSXP: printENVSXP(++space, ast); break;
         case RAWSXP: printRAWSXP(++space, ast); break;
+        case VECSXP: printVECSXP(++space, ast); break;
         case EXTERNALSXP: printExternalCodeEntry(++space, ast); break;
         default: std::cout << "}" << std::endl; break;
     }
+    currentStack.pop_back();
 }
 
 
-void hash_ast(SEXP ast, int & hast) {
+void hash_ast(SEXP ast, size_t & hast) {
+    if (TYPEOF(ast) == SYMSXP) {
+        const char * pname = CHAR(PRINTNAME(ast));
+        hast = hast * 31;
+        hast += charToInt(pname);
+    }
+    if (TYPEOF(ast) == STRSXP) {
+        const char * pname = CHAR(STRING_ELT(ast, 0));
+        hast = hast * 31;
+        hast += charToInt(pname);
+    }
     if (TYPEOF(ast) == LISTSXP || TYPEOF(ast) == LANGSXP) {
-        if (TYPEOF(CAR(ast)) == SYMSXP) {
-            const char * pname = CHAR(PRINTNAME(CAR(ast)));
-            hast += charToInt(pname);
-            return hash_ast(CDR(ast), ++hast);
-        }
+        hast *= 31;
         hash_ast(CAR(ast), ++hast);
+        hast *= 31;
         hash_ast(CDR(ast), ++hast);
     }
 }
@@ -327,12 +366,16 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
     }
 }
 
-REXPORT SEXP loadBitcode(SEXP metaData) {
-
-    const char * metaDataPath = CHAR(VECTOR_ELT(metaData, 0));
-
+SEXP deserializeFromFile(std::string metaDataPath) {
     std::ifstream metaDataFile (metaDataPath, std::ifstream::binary);
 
+    std::string prefix = "";
+
+    auto lastSlash = metaDataPath.find_last_of("/");
+
+    if (lastSlash != metaDataPath.npos) {
+        prefix = metaDataPath.substr(0, lastSlash + 1);
+    }
 
     if (metaDataFile) {
 
@@ -354,7 +397,7 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
         metaDataFile.read(reinterpret_cast<char *>(&versions),sizeof(int));
 
         #if API_PRINT_DESERIALIZED_VALUES == 1
-        std::cout << "loading bitcode for " << functionName << "(" << hast << ")" << ", found " << versions << " versions." << std::endl;
+        std::cout << "(*) loading bitcode for " << functionName << "(" << hast << ")" << ", found " << versions << " versions." << std::endl;
         #endif
 
         #if API_PRINT_DESERIALIZED_VALUES == 1
@@ -364,27 +407,33 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
         std::cout << "Entry 4(number of contexts): " << versions << std::endl;
         #endif
 
+        Protect p;
+        SEXP meta;
+        p(meta = Rf_allocVector(VECSXP, versions));
+
         int i = 0;
         for (i = 0; i < versions; i++) {
+
+
             // READ 5: CONTEXTNO
-            unsigned long context = 0;
-            metaDataFile.read(reinterpret_cast<char *>(&context),sizeof(unsigned long));
+            unsigned long con = 0;
+            metaDataFile.read(reinterpret_cast<char *>(&con),sizeof(unsigned long));
+
+            std::stringstream conSymStr;
+            conSymStr << con;
+
+            SET_VECTOR_ELT(meta, i, Rf_install(conSymStr.str().c_str()));
 
             // READING CONTEXT
-            Context c(context);
+            Context c(con);
 
             #if API_PRINT_DESERIALIZED_VALUES == 1
-            std::cout << "(" << context << ") : " << c << std::endl;
+            std::cout << "------------(" << con << ") : " << c << std::endl;
             #endif
 
-            #if API_PRINT_DESERIALIZED_VALUES == 1
-            std::cout << "Entry 5 [" << i << "] :" << std::endl;
-            std::cout << "Context: " << context << std::endl;
-            #endif
-
-            // MAIN PREFIX, THIS IS ALSO THE FUNCTION NAME
+            // MAIN PREFIX
             std::stringstream mainPrefix;
-            mainPrefix << hast << "_" << context;
+            mainPrefix << prefix << hast << "_" << con;
 
             // PATH TO BITCODE FILE
             std::stringstream bitcodePath;
@@ -407,6 +456,18 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
 
             size_t mainNameLen = 0;
             char * mainName;
+
+            size_t childrenDataLength = 0;
+            char * childrenData;
+
+            size_t srcDataLength = 0;
+            char * srcData;
+
+            size_t argDataLength = 0;
+            char * argData;
+
+            size_t arglistOrderEntriesLength = 0;
+            size_t reqMapSize = 0;
 
             // READ 6: ENVCREATION
             metaDataFile.read(reinterpret_cast<char *>(&envCreation),sizeof(int));
@@ -441,25 +502,107 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             metaDataFile.read(reinterpret_cast<char *>(&promiseSrcPoolEntriesSize),sizeof(size_t));
 
 
+            // Entry 16 (size_t): childrenDataLength
+            metaDataFile.read(reinterpret_cast<char *>(&childrenDataLength),sizeof(size_t));
+
+            // Entry 17 (bytes...): name
+            childrenData = new char [childrenDataLength + 1];
+            metaDataFile.read(childrenData,childrenDataLength);
+            childrenData[childrenDataLength] = '\0';
+
+            // Entry 18 (size_t): srcDataLength
+            metaDataFile.read(reinterpret_cast<char *>(&srcDataLength),sizeof(size_t));
+
+            // Entry 19 (bytes...): name
+            srcData = new char [srcDataLength + 1];
+            metaDataFile.read(srcData,srcDataLength);
+            srcData[srcDataLength] = '\0';
+
+            // Entry 20 (size_t): argDataLength
+            metaDataFile.read(reinterpret_cast<char *>(&argDataLength),sizeof(size_t));
+
+            // Entry 21 (bytes...): argData
+            argData = new char [argDataLength + 1];
+            metaDataFile.read(argData,argDataLength);
+            argData[argDataLength] = '\0';
+
+            // Entry 22 (size_t): arglistOrderEntriesLength
+            metaDataFile.read(reinterpret_cast<char *>(&arglistOrderEntriesLength),sizeof(size_t));
+
+            std::vector<std::vector<std::vector<size_t>>> argOrderingData;
+
+            for (size_t i = 0; i < arglistOrderEntriesLength; i++) {
+                // Entry 23 (size_t): outerEntriesSize
+                size_t outerEntriesSize = 0;
+                metaDataFile.read(reinterpret_cast<char *>(&outerEntriesSize),sizeof(size_t));
+
+                std::vector<std::vector<size_t>> outerData;
+                for (size_t j = 0; j < outerEntriesSize; j++) {
+                    // Entry 24 (size_t): innerEntriesSize
+                    size_t innerEntriesSize = 0;
+                    metaDataFile.read(reinterpret_cast<char *>(&innerEntriesSize),sizeof(size_t));
+
+                    std::vector<size_t> innerData;
+                    for (size_t k = 0; k < innerEntriesSize; k++) {
+                        size_t currEntry = 0;
+                        // Entry 25 (size_t): currEntry
+                        metaDataFile.read(reinterpret_cast<char *>(&currEntry),sizeof(size_t));
+
+                        innerData.push_back(currEntry);
+                    }
+
+                    outerData.push_back(innerData);
+                }
+
+                argOrderingData.push_back(outerData);
+            }
+
+            // Entry 26 (size_t): reqMapSize
+            metaDataFile.read(reinterpret_cast<char *>(&reqMapSize),sizeof(size_t));
+
+            std::vector<size_t> reqMapForCompilation;
+
+            for (size_t i = 0; i < reqMapSize; i++) {
+                size_t currEntry = 0;
+                // Entry 27 (size_t): currEntry
+                metaDataFile.read(reinterpret_cast<char *>(&currEntry),sizeof(size_t));
+                reqMapForCompilation.push_back(currEntry);
+            }
+
 
             #if API_PRINT_DESERIALIZED_VALUES == 1
-            std::cout << "envCreation: " << envCreation << std::endl;
-            std::cout << "optimization: " << optimization << std::endl;
-            std::cout << "numArguments: " << numArguments << std::endl;
-            std::cout << "dotsPosition: " << dotsPosition << std::endl;
-            std::cout << "mainNameLen: " << mainNameLen << std::endl;
-            std::cout << "name: " << mainName << std::endl;
-            std::cout << "cPoolEntriesSize: " << cPoolEntriesSize << std::endl;
-            std::cout << "srcPoolEntriesSize: " << srcPoolEntriesSize << std::endl;
-            std::cout << "ePoolEntriesSize: " << ePoolEntriesSize << std::endl;
-            std::cout << "promiseSrcPoolEntriesSize: " << promiseSrcPoolEntriesSize << std::endl;
+            std::cout << "   Entry 5(context):" << con << std::endl;
+            std::cout << "   Entry 6(envCreation): " << envCreation << std::endl;
+            std::cout << "   Entry 7(optimization): " << optimization << std::endl;
+            std::cout << "   Entry 8(numArguments): " << numArguments << std::endl;
+            std::cout << "   Entry 9(dotsPosition): " << dotsPosition << std::endl;
+            std::cout << "   Entry 10(mainNameLen): " << mainNameLen << std::endl;
+            std::cout << "   Entry 11(name): " << mainName << std::endl;
+            std::cout << "   Entry 12(cPoolEntriesSize): " << cPoolEntriesSize << std::endl;
+            std::cout << "   Entry 13(srcPoolEntriesSize): " << srcPoolEntriesSize << std::endl;
+            std::cout << "   Entry 14(ePoolEntriesSize): " << ePoolEntriesSize << std::endl;
+            std::cout << "   Entry 15(promiseSrcPoolEntriesSize): " << promiseSrcPoolEntriesSize << std::endl;
+            std::cout << "   Entry 16(childrenDataLength): " << childrenDataLength << std::endl;
+            std::cout << "   Entry 17(childrenData): " << childrenData << std::endl;
+            std::cout << "   Entry 18(srcDataLength): " << srcDataLength << std::endl;
+            std::cout << "   Entry 19(srcData): " << srcData << std::endl;
+            std::cout << "   Entry 20(argDataLength): " << argDataLength << std::endl;
+            std::cout << "   Entry 21(argData): " << argData << std::endl;
+            std::cout << "   Entry 22(arglistOrderEntriesLength): " << arglistOrderEntriesLength << std::endl;
+            for (auto & ele : argOrderingData) {
+                std::cout << "      Entry 23(outerEntriesSize): " << ele.size() << std::endl;
+                for (auto & outer : ele) {
+                    std::cout << "         Entry 24(innerEntriesSize): " << outer.size() << std::endl;
+                    for (auto & ele : outer) {
+                        std::cout << "            Entry 25(currEntry): " << ele << std::endl;
+                    }
+                }
+            }
+            std::cout << "   Entry 26(reqMapSize): " << reqMapSize << std::endl;
+            for (auto & ele : reqMapForCompilation) {
+                std::cout << "      Entry 27(currEntry): " << ele << std::endl;
+            }
             #endif
-
-            // int envCreation = 0;
-            // int optimization = 0;
-            // unsigned int numArguments = 0;
-            // size_t dotsPosition = 0;
-            // size_t promiseSrcPoolEntriesSize = 0;
 
             // CREATE THE META TO RECREATE THE FUNCTION WHEN WE ENCOUNTER ITS RIR CREATION
             FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
@@ -472,14 +615,23 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
             logger.title("Compiling " + std::string(functionName));
             pir::Compiler cmp(m, logger);
             pir::Backend backend(m, logger, functionName);
+
             backend.deserialize(
+                argOrderingData,
                 hast, c,
                 envCreation, optimization, numArguments, dotsPosition,
-                bitcodePath.str(), poolPath.str(), std::string(mainName),
+                bitcodePath.str(), poolPath.str(), std::string(mainName), std::string(childrenData), std::string(srcData), std::string(argData),
                 cPoolEntriesSize, srcPoolEntriesSize, ePoolEntriesSize, promiseSrcPoolEntriesSize); // passing the context and fileName (remove context later)
 
+            SEXP map = Pool::get(1);
+            DeserialDataMap::addDependencies(map, hast, con, reqMapForCompilation);
+
             delete[] mainName;
+            delete[] childrenData;
+            delete[] srcData;
+            delete[] argData;
         }
+
         delete[] functionName;
         return R_TrueValue;
     }
@@ -487,6 +639,42 @@ REXPORT SEXP loadBitcode(SEXP metaData) {
 
 
     return R_FalseValue;
+}
+
+REXPORT SEXP loadBitcode(SEXP metaData) {
+    const char * metaDataPath = CHAR(VECTOR_ELT(metaData, 0));
+    return deserializeFromFile(metaDataPath);
+}
+
+REXPORT SEXP loadBitcodes() {
+    Protect prot;
+    DIR *dir;
+    struct dirent *ent;
+
+    UMap::createMapInCp(1);
+    UMap::createMapInCp(2);
+    UMap::createMapInCp(3);
+    UMap::createMapInCp(4);
+
+    if ((dir = opendir ("./bitcodes/")) != NULL) {
+        while ((ent = readdir (dir)) != NULL) {
+            std::string fName = ent->d_name;
+            if (fName.find(".meta") != std::string::npos) {
+                deserializeFromFile("./bitcodes/" + fName);
+            }
+        }
+
+        closedir (dir);
+
+        DeserialDataMap::printDependencies();
+        DeserialDataMap::printUnlockMap();
+
+    } else {
+        /* could not open directory */
+        perror ("");
+        return R_FalseValue;
+    }
+    return R_TrueValue;
 }
 
 REXPORT SEXP rirMarkFunction(SEXP what, SEXP which, SEXP reopt_,
@@ -988,6 +1176,12 @@ REXPORT SEXP rirCreateSimpleIntContext() {
 
 bool startup() {
     initializeRuntime();
+    std::cout << "making space at: " << Pool::makeSpace() << std::endl;
+    std::cout << "making space at: " << Pool::makeSpace() << std::endl;
+    std::cout << "making space at: " << Pool::makeSpace() << std::endl;
+    std::cout << "making space at: " << Pool::makeSpace() << std::endl;
+    std::cout << "startup complete(cp_size): " << cp_pool_length(globalContext()) << std::endl;
+    std::cout << "startup complete(sp_size): " << src_pool_length(globalContext()) << std::endl;
     return true;
 }
 

@@ -113,6 +113,13 @@
     "csignal": "cpp",
     "__functional_base_03": "cpp",
     "__memory": "cpp",
-    "__bits": "cpp"
+    "__bits": "cpp",
+    "any": "cpp",
+    "charconv": "cpp",
+    "scoped_allocator": "cpp",
+    "typeindex": "cpp",
+    "valarray": "cpp",
+    "variant": "cpp",
+    "cuchar": "cpp"
   }
 }

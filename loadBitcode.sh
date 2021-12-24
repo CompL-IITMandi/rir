@@ -9,14 +9,14 @@ do
     a=($(echo "$eachfile" | tr '/' '\n'))
     file=${a[-1]}
     plain_name=${file%.*}
-    cp $eachfile .
+    cp $eachfile ./bitcodes
 done
 for eachfile in $poolFiles
 do
     a=($(echo "$eachfile" | tr '/' '\n'))
     file=${a[-1]}
     plain_name=${file%.*}
-    cp $eachfile .
+    cp $eachfile ./bitcodes
 done
 
 for eachfile in $metaFiles
@@ -24,6 +24,6 @@ do
     a=($(echo "$eachfile" | tr '/' '\n'))
     file=${a[-1]}
     plain_name=${file%.*}
-    cp $eachfile .
-    echo "f.loadBitcode(\"$file\")"
+    cp $eachfile ./bitcodes
+    echo "f.loadBitcode(\"./bitcodes/$file\")"
 done

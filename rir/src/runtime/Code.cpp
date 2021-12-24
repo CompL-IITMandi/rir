@@ -160,8 +160,9 @@ void Code::serialize(SEXP refTable, R_outpstream_t out) const {
     }
 }
 
-std::unordered_map<int, void*> Code::hastMap;
-std::unordered_map<int, BC::PoolIdx> Code::cpHastPatch;
+// std::unordered_map<size_t, BC::PoolIdx> Code::cpHastPatch;
+// std::unordered_map<size_t, void*> Code::hastClosMap;
+// std::unordered_map<size_t, void*> Code::hastCodeMap;
 
 void Code::disassemble(std::ostream& out, const std::string& prefix) const {
     if (auto map = pirTypeFeedback()) {

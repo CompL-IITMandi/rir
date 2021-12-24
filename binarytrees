@@ -1,0 +1,739 @@
+making space at: 1
+making space at: 2
+making space at: 3
+making space at: 4
+startup complete(cp_size): 5
+startup complete(sp_size): 1
+(*) loading bitcode for stdout(804108566156), found 1 versions.
+Entry 1(nameLen): 6
+Entry 2(name): stdout
+Entry 3(hast): 804108566156
+Entry 4(number of contexts): 1
+------------(15) : !ExpMi,CorrOrd,!TMany,Argmatch
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 0
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 20
+   Entry 11(name): f_661_BB389AFE8C_F_0
+   Entry 12(cPoolEntriesSize): 1
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 22
+   Entry 19(srcData): f_661_BB389AFE8C_F_0,0
+   Entry 20(argDataLength): 22
+   Entry 21(argData): f_661_BB389AFE8C_F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(*) Loading pool file: ./bitcodes/804108566156_15.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/804108566156_15.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+(*) loading bitcode for simplify2array(18088773091856515372), found 1 versions.
+Entry 1(nameLen): 14
+Entry 2(name): simplify2array
+Entry 3(hast): 18088773091856515372
+Entry 4(number of contexts): 1
+------------(1064975) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0
+   Entry 5(context):1064975
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 31
+   Entry 11(name): f_877_FB083B49E2C0812C_10400F_2
+   Entry 12(cPoolEntriesSize): 15
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 3
+   Entry 16(childrenDataLength): 99
+   Entry 17(childrenData): f_877_FB083B49E2C0812C_10400F_2,f_877_FB083B49E2C0812C_10400F_1,f_877_FB083B49E2C0812C_10400F_0,|,|
+   Entry 18(srcDataLength): 101
+   Entry 19(srcData): f_877_FB083B49E2C0812C_10400F_0,0,f_877_FB083B49E2C0812C_10400F_1,1,f_877_FB083B49E2C0812C_10400F_2,2
+   Entry 20(argDataLength): 101
+   Entry 21(argData): f_877_FB083B49E2C0812C_10400F_0,|,f_877_FB083B49E2C0812C_10400F_1,|,f_877_FB083B49E2C0812C_10400F_2,0
+   Entry 22(arglistOrderEntriesLength): 1
+      Entry 23(outerEntriesSize): 3
+         Entry 24(innerEntriesSize): 1
+            Entry 25(currEntry): 0
+         Entry 24(innerEntriesSize): 1
+            Entry 25(currEntry): 0
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 9223372036854775809
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 869084567
+      Entry 27(currEntry): 12673107526621455925
+(*) Loading pool file: ./bitcodes/18088773091856515372_1064975.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/18088773091856515372_1064975.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+(*) loading bitcode for execute(4072617230905613), found 1 versions.
+Entry 1(nameLen): 7
+Entry 2(name): execute
+Entry 3(hast): 4072617230905613
+Entry 4(number of contexts): 1
+------------(4296032527) : !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,NonRefl0,!Obj0,SimpleReal0
+   Entry 5(context):4296032527
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 31
+   Entry 11(name): f_533_E7806175AB10D_10010410F_1
+   Entry 12(cPoolEntriesSize): 87
+   Entry 13(srcPoolEntriesSize): 8
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 67
+   Entry 17(childrenData): f_533_E7806175AB10D_10010410F_1,f_533_E7806175AB10D_10010410F_0,|,|
+   Entry 18(srcDataLength): 67
+   Entry 19(srcData): f_533_E7806175AB10D_10010410F_0,0,f_533_E7806175AB10D_10010410F_1,1
+   Entry 20(argDataLength): 67
+   Entry 21(argData): f_533_E7806175AB10D_10010410F_0,|,f_533_E7806175AB10D_10010410F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 5
+      Entry 27(currEntry): 1908987474114541448
+      Entry 27(currEntry): 3313242791199771977
+      Entry 27(currEntry): 3776994048501548314
+      Entry 27(currEntry): 4579779723696747005
+      Entry 27(currEntry): 8667094939504755069
+(*) Loading pool file: ./bitcodes/4072617230905613_4296032527.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/4072617230905613_4296032527.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+(*) loading bitcode for check(12825932220714214008), found 1 versions.
+Entry 1(nameLen): 5
+Entry 2(name): check
+Entry 3(hast): 12825932220714214008
+Entry 4(number of contexts): 1
+------------(15) : !ExpMi,CorrOrd,!TMany,Argmatch
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_923_B1FEDD6668E86278_F_2
+   Entry 12(cPoolEntriesSize): 4
+   Entry 13(srcPoolEntriesSize): 6
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 3
+   Entry 16(childrenDataLength): 84
+   Entry 17(childrenData): f_923_B1FEDD6668E86278_F_2,f_923_B1FEDD6668E86278_F_1,f_923_B1FEDD6668E86278_F_0,|,|
+   Entry 18(srcDataLength): 86
+   Entry 19(srcData): f_923_B1FEDD6668E86278_F_0,0,f_923_B1FEDD6668E86278_F_1,1,f_923_B1FEDD6668E86278_F_2,2
+   Entry 20(argDataLength): 86
+   Entry 21(argData): f_923_B1FEDD6668E86278_F_0,|,f_923_B1FEDD6668E86278_F_1,|,f_923_B1FEDD6668E86278_F_2,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 12825932220714214008
+(*) Loading pool file: ./bitcodes/12825932220714214008_15.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/12825932220714214008_15.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+dont add yourself as dependency
+(*) loading bitcode for is.logint(7363362875334417181), found 1 versions.
+Entry 1(nameLen): 9
+Entry 2(name): is.logint
+Entry 3(hast): 7363362875334417181
+Entry 4(number of contexts): 1
+------------(68173839) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0,SimpleInt0
+   Entry 5(context):68173839
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 32
+   Entry 11(name): f_256_662FEB85B89B5B1D_410400F_0
+   Entry 12(cPoolEntriesSize): 1
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 34
+   Entry 19(srcData): f_256_662FEB85B89B5B1D_410400F_0,0
+   Entry 20(argDataLength): 34
+   Entry 21(argData): f_256_662FEB85B89B5B1D_410400F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(*) Loading pool file: ./bitcodes/7363362875334417181_68173839.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/7363362875334417181_68173839.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+(*) loading bitcode for match.fun(8667094939504755069), found 1 versions.
+Entry 1(nameLen): 9
+Entry 2(name): match.fun
+Entry 3(hast): 8667094939504755069
+Entry 4(number of contexts): 1
+------------(1099511627791) : !ExpMi,CorrOrd,!TMany,Argmatch miss: 1
+   Entry 5(context):1099511627791
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 36
+   Entry 11(name): f_828_7847B4ED5FC4417D_1000000000F_0
+   Entry 12(cPoolEntriesSize): 2
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 38
+   Entry 19(srcData): f_828_7847B4ED5FC4417D_1000000000F_0,0
+   Entry 20(argDataLength): 38
+   Entry 21(argData): f_828_7847B4ED5FC4417D_1000000000F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(*) Loading pool file: ./bitcodes/8667094939504755069_1099511627791.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/8667094939504755069_1099511627791.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+(*) loading bitcode for FUN(9970150942587885918), found 1 versions.
+Entry 1(nameLen): 3
+Entry 2(name): FUN
+Entry 3(hast): 9970150942587885918
+Entry 4(number of contexts): 1
+------------(15) : !ExpMi,CorrOrd,!TMany,Argmatch
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 27
+   Entry 11(name): f_531_8A5D177549FA195E_F_10
+   Entry 12(cPoolEntriesSize): 9
+   Entry 13(srcPoolEntriesSize): 7
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 11
+   Entry 16(childrenDataLength): 359
+   Entry 17(childrenData): f_531_8A5D177549FA195E_F_5,f_531_8A5D177549FA195E_F_2,f_531_8A5D177549FA195E_F_1,|,f_531_8A5D177549FA195E_F_9,f_531_8A5D177549FA195E_F_7,f_531_8A5D177549FA195E_F_8,|,f_531_8A5D177549FA195E_F_10,f_531_8A5D177549FA195E_F_9,f_531_8A5D177549FA195E_F_6,f_531_8A5D177549FA195E_F_3,f_531_8A5D177549FA195E_F_5,f_531_8A5D177549FA195E_F_4,f_531_8A5D177549FA195E_F_0,|,|
+   Entry 18(srcDataLength): 320
+   Entry 19(srcData): f_531_8A5D177549FA195E_F_0,0,f_531_8A5D177549FA195E_F_1,1,f_531_8A5D177549FA195E_F_2,2,f_531_8A5D177549FA195E_F_3,3,f_531_8A5D177549FA195E_F_4,4,f_531_8A5D177549FA195E_F_5,5,f_531_8A5D177549FA195E_F_6,6,f_531_8A5D177549FA195E_F_7,7,f_531_8A5D177549FA195E_F_8,8,f_531_8A5D177549FA195E_F_9,9,f_531_8A5D177549FA195E_F_10,10
+   Entry 20(argDataLength): 319
+   Entry 21(argData): f_531_8A5D177549FA195E_F_0,|,f_531_8A5D177549FA195E_F_1,|,f_531_8A5D177549FA195E_F_2,|,f_531_8A5D177549FA195E_F_3,|,f_531_8A5D177549FA195E_F_4,|,f_531_8A5D177549FA195E_F_5,|,f_531_8A5D177549FA195E_F_6,|,f_531_8A5D177549FA195E_F_7,|,f_531_8A5D177549FA195E_F_8,|,f_531_8A5D177549FA195E_F_9,|,f_531_8A5D177549FA195E_F_10,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 12825932220714214008
+(*) Loading pool file: ./bitcodes/9970150942587885918_15.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/9970150942587885918_15.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+(*) loading bitcode for tree(1908987474114541448), found 3 versions.
+Entry 1(nameLen): 4
+Entry 2(name): tree
+Entry 3(hast): 1908987474114541448
+Entry 4(number of contexts): 3
+------------(204521487) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,NonRefl1,!Obj0,!Obj1,SimpleInt0,SimpleInt1
+   Entry 5(context):204521487
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 32
+   Entry 11(name): f_985_1A7E15FE53447788_C30C00F_4
+   Entry 12(cPoolEntriesSize): 6
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 5
+   Entry 16(childrenDataLength): 168
+   Entry 17(childrenData): f_985_1A7E15FE53447788_C30C00F_4,f_985_1A7E15FE53447788_C30C00F_3,f_985_1A7E15FE53447788_C30C00F_2,f_985_1A7E15FE53447788_C30C00F_1,f_985_1A7E15FE53447788_C30C00F_0,|,|
+   Entry 18(srcDataLength): 174
+   Entry 19(srcData): f_985_1A7E15FE53447788_C30C00F_0,0,f_985_1A7E15FE53447788_C30C00F_1,1,f_985_1A7E15FE53447788_C30C00F_2,2,f_985_1A7E15FE53447788_C30C00F_3,3,f_985_1A7E15FE53447788_C30C00F_4,4
+   Entry 20(argDataLength): 174
+   Entry 21(argData): f_985_1A7E15FE53447788_C30C00F_0,|,f_985_1A7E15FE53447788_C30C00F_1,|,f_985_1A7E15FE53447788_C30C00F_2,|,f_985_1A7E15FE53447788_C30C00F_3,|,f_985_1A7E15FE53447788_C30C00F_4,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 1908987474114541448
+(*) Loading pool file: ./bitcodes/1908987474114541448_204521487.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/1908987474114541448_204521487.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+dont add yourself as dependency
+------------(49167) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,NonRefl1
+   Entry 5(context):49167
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 29
+   Entry 11(name): f_885_1A7E15FE53447788_C00F_4
+   Entry 12(cPoolEntriesSize): 7
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 5
+   Entry 16(childrenDataLength): 153
+   Entry 17(childrenData): f_885_1A7E15FE53447788_C00F_4,f_885_1A7E15FE53447788_C00F_3,f_885_1A7E15FE53447788_C00F_2,f_885_1A7E15FE53447788_C00F_1,f_885_1A7E15FE53447788_C00F_0,|,|
+   Entry 18(srcDataLength): 159
+   Entry 19(srcData): f_885_1A7E15FE53447788_C00F_0,0,f_885_1A7E15FE53447788_C00F_1,1,f_885_1A7E15FE53447788_C00F_2,2,f_885_1A7E15FE53447788_C00F_3,3,f_885_1A7E15FE53447788_C00F_4,4
+   Entry 20(argDataLength): 159
+   Entry 21(argData): f_885_1A7E15FE53447788_C00F_0,|,f_885_1A7E15FE53447788_C00F_1,|,f_885_1A7E15FE53447788_C00F_2,|,f_885_1A7E15FE53447788_C00F_3,|,f_885_1A7E15FE53447788_C00F_4,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 1908987474114541448
+(*) Loading pool file: ./bitcodes/1908987474114541448_49167.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/1908987474114541448_49167.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+dont add yourself as dependency
+------------(15) : !ExpMi,CorrOrd,!TMany,Argmatch
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_162_1A7E15FE53447788_F_4
+   Entry 12(cPoolEntriesSize): 7
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 5
+   Entry 16(childrenDataLength): 138
+   Entry 17(childrenData): f_162_1A7E15FE53447788_F_4,f_162_1A7E15FE53447788_F_3,f_162_1A7E15FE53447788_F_2,f_162_1A7E15FE53447788_F_1,f_162_1A7E15FE53447788_F_0,|,|
+   Entry 18(srcDataLength): 144
+   Entry 19(srcData): f_162_1A7E15FE53447788_F_0,0,f_162_1A7E15FE53447788_F_1,1,f_162_1A7E15FE53447788_F_2,2,f_162_1A7E15FE53447788_F_3,3,f_162_1A7E15FE53447788_F_4,4
+   Entry 20(argDataLength): 144
+   Entry 21(argData): f_162_1A7E15FE53447788_F_0,|,f_162_1A7E15FE53447788_F_1,|,f_162_1A7E15FE53447788_F_2,|,f_162_1A7E15FE53447788_F_3,|,f_162_1A7E15FE53447788_F_4,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 1908987474114541448
+(*) Loading pool file: ./bitcodes/1908987474114541448_15.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/1908987474114541448_15.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+dont add yourself as dependency
+(*) loading bitcode for seq(4579779723696747005), found 2 versions.
+Entry 1(nameLen): 3
+Entry 2(name): seq
+Entry 3(hast): 4579779723696747005
+Entry 4(number of contexts): 2
+------------(3299012101391) : !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,Eager2,NonRefl0,NonRefl1,NonRefl2,!Obj0,!Obj1,!Obj2,SimpleInt0,SimpleInt1,SimpleInt2 miss: 3
+   Entry 5(context):3299012101391
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 6
+   Entry 9(dotsPosition): 5
+   Entry 10(mainNameLen): 37
+   Entry 11(name): f_558_3F8EA564DC7B31FD_3001C71C50F_12
+   Entry 12(cPoolEntriesSize): 65
+   Entry 13(srcPoolEntriesSize): 41
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 13
+   Entry 16(childrenDataLength): 565
+   Entry 17(childrenData): f_558_3F8EA564DC7B31FD_3001C71C50F_1,f_558_3F8EA564DC7B31FD_3001C71C50F_0,|,f_558_3F8EA564DC7B31FD_3001C71C50F_4,f_558_3F8EA564DC7B31FD_3001C71C50F_2,f_558_3F8EA564DC7B31FD_3001C71C50F_5,|,f_558_3F8EA564DC7B31FD_3001C71C50F_12,f_558_3F8EA564DC7B31FD_3001C71C50F_9,f_558_3F8EA564DC7B31FD_3001C71C50F_8,f_558_3F8EA564DC7B31FD_3001C71C50F_7,f_558_3F8EA564DC7B31FD_3001C71C50F_6,f_558_3F8EA564DC7B31FD_3001C71C50F_3,f_558_3F8EA564DC7B31FD_3001C71C50F_11,f_558_3F8EA564DC7B31FD_3001C71C50F_10,f_558_3F8EA564DC7B31FD_3001C71C50F_4,f_558_3F8EA564DC7B31FD_3001C71C50F_1,|,|
+   Entry 18(srcDataLength): 512
+   Entry 19(srcData): f_558_3F8EA564DC7B31FD_3001C71C50F_0,0,f_558_3F8EA564DC7B31FD_3001C71C50F_1,1,f_558_3F8EA564DC7B31FD_3001C71C50F_2,2,f_558_3F8EA564DC7B31FD_3001C71C50F_3,3,f_558_3F8EA564DC7B31FD_3001C71C50F_4,4,f_558_3F8EA564DC7B31FD_3001C71C50F_5,5,f_558_3F8EA564DC7B31FD_3001C71C50F_6,6,f_558_3F8EA564DC7B31FD_3001C71C50F_7,7,f_558_3F8EA564DC7B31FD_3001C71C50F_8,8,f_558_3F8EA564DC7B31FD_3001C71C50F_9,9,f_558_3F8EA564DC7B31FD_3001C71C50F_10,10,f_558_3F8EA564DC7B31FD_3001C71C50F_11,11,f_558_3F8EA564DC7B31FD_3001C71C50F_12,12
+   Entry 20(argDataLength): 509
+   Entry 21(argData): f_558_3F8EA564DC7B31FD_3001C71C50F_0,|,f_558_3F8EA564DC7B31FD_3001C71C50F_1,|,f_558_3F8EA564DC7B31FD_3001C71C50F_2,|,f_558_3F8EA564DC7B31FD_3001C71C50F_3,|,f_558_3F8EA564DC7B31FD_3001C71C50F_4,|,f_558_3F8EA564DC7B31FD_3001C71C50F_5,|,f_558_3F8EA564DC7B31FD_3001C71C50F_6,|,f_558_3F8EA564DC7B31FD_3001C71C50F_7,|,f_558_3F8EA564DC7B31FD_3001C71C50F_8,|,f_558_3F8EA564DC7B31FD_3001C71C50F_9,|,f_558_3F8EA564DC7B31FD_3001C71C50F_10,|,f_558_3F8EA564DC7B31FD_3001C71C50F_11,|,f_558_3F8EA564DC7B31FD_3001C71C50F_12,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(*) Loading pool file: ./bitcodes/4579779723696747005_3299012101391.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/4579779723696747005_3299012101391.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+------------(3298875753743) : !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,Eager2,NonRefl0,NonRefl2,!Obj0,!Obj2,SimpleInt0,SimpleInt2 miss: 3
+   Entry 5(context):3298875753743
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 6
+   Entry 9(dotsPosition): 5
+   Entry 10(mainNameLen): 37
+   Entry 11(name): f_361_3F8EA564DC7B31FD_3001451450F_12
+   Entry 12(cPoolEntriesSize): 65
+   Entry 13(srcPoolEntriesSize): 41
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 13
+   Entry 16(childrenDataLength): 566
+   Entry 17(childrenData): f_361_3F8EA564DC7B31FD_3001451450F_0,f_361_3F8EA564DC7B31FD_3001451450F_1,|,f_361_3F8EA564DC7B31FD_3001451450F_10,f_361_3F8EA564DC7B31FD_3001451450F_3,f_361_3F8EA564DC7B31FD_3001451450F_2,|,f_361_3F8EA564DC7B31FD_3001451450F_12,f_361_3F8EA564DC7B31FD_3001451450F_9,f_361_3F8EA564DC7B31FD_3001451450F_8,f_361_3F8EA564DC7B31FD_3001451450F_11,f_361_3F8EA564DC7B31FD_3001451450F_6,f_361_3F8EA564DC7B31FD_3001451450F_7,f_361_3F8EA564DC7B31FD_3001451450F_5,f_361_3F8EA564DC7B31FD_3001451450F_4,f_361_3F8EA564DC7B31FD_3001451450F_10,f_361_3F8EA564DC7B31FD_3001451450F_0,|,|
+   Entry 18(srcDataLength): 512
+   Entry 19(srcData): f_361_3F8EA564DC7B31FD_3001451450F_0,0,f_361_3F8EA564DC7B31FD_3001451450F_1,1,f_361_3F8EA564DC7B31FD_3001451450F_2,2,f_361_3F8EA564DC7B31FD_3001451450F_3,3,f_361_3F8EA564DC7B31FD_3001451450F_4,4,f_361_3F8EA564DC7B31FD_3001451450F_5,5,f_361_3F8EA564DC7B31FD_3001451450F_6,6,f_361_3F8EA564DC7B31FD_3001451450F_7,7,f_361_3F8EA564DC7B31FD_3001451450F_8,8,f_361_3F8EA564DC7B31FD_3001451450F_9,9,f_361_3F8EA564DC7B31FD_3001451450F_10,10,f_361_3F8EA564DC7B31FD_3001451450F_11,11,f_361_3F8EA564DC7B31FD_3001451450F_12,12
+   Entry 20(argDataLength): 509
+   Entry 21(argData): f_361_3F8EA564DC7B31FD_3001451450F_0,|,f_361_3F8EA564DC7B31FD_3001451450F_1,|,f_361_3F8EA564DC7B31FD_3001451450F_2,|,f_361_3F8EA564DC7B31FD_3001451450F_3,|,f_361_3F8EA564DC7B31FD_3001451450F_4,|,f_361_3F8EA564DC7B31FD_3001451450F_5,|,f_361_3F8EA564DC7B31FD_3001451450F_6,|,f_361_3F8EA564DC7B31FD_3001451450F_7,|,f_361_3F8EA564DC7B31FD_3001451450F_8,|,f_361_3F8EA564DC7B31FD_3001451450F_9,|,f_361_3F8EA564DC7B31FD_3001451450F_10,|,f_361_3F8EA564DC7B31FD_3001451450F_11,|,f_361_3F8EA564DC7B31FD_3001451450F_12,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(*) Loading pool file: ./bitcodes/4579779723696747005_3298875753743.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/4579779723696747005_3298875753743.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+(*) loading bitcode for chkDots(16583889934462934127), found 1 versions.
+Entry 1(nameLen): 7
+Entry 2(name): chkDots
+Entry 3(hast): 16583889934462934127
+Entry 4(number of contexts): 1
+------------(3298534883343) : !ExpMi,CorrOrd,!TMany,Argmatch miss: 3
+   Entry 5(context):3298534883343
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 3
+   Entry 9(dotsPosition): 0
+   Entry 10(mainNameLen): 36
+   Entry 11(name): f_929_E625D007B9D6DC6F_3000000000F_2
+   Entry 12(cPoolEntriesSize): 7
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 3
+   Entry 16(childrenDataLength): 114
+   Entry 17(childrenData): f_929_E625D007B9D6DC6F_3000000000F_2,f_929_E625D007B9D6DC6F_3000000000F_1,f_929_E625D007B9D6DC6F_3000000000F_0,|,|
+   Entry 18(srcDataLength): 116
+   Entry 19(srcData): f_929_E625D007B9D6DC6F_3000000000F_0,0,f_929_E625D007B9D6DC6F_3000000000F_1,1,f_929_E625D007B9D6DC6F_3000000000F_2,2
+   Entry 20(argDataLength): 116
+   Entry 21(argData): f_929_E625D007B9D6DC6F_3000000000F_0,|,f_929_E625D007B9D6DC6F_3000000000F_1,|,f_929_E625D007B9D6DC6F_3000000000F_2,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(*) Loading pool file: ./bitcodes/16583889934462934127_3298534883343.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/16583889934462934127_3298534883343.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+(*) loading bitcode for binarytrees(3776994048501548314), found 1 versions.
+Entry 1(nameLen): 11
+Entry 2(name): binarytrees
+Entry 3(hast): 3776994048501548314
+Entry 4(number of contexts): 1
+------------(4296032271) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0,SimpleReal0
+   Entry 5(context):4296032271
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 35
+   Entry 11(name): f_467_346A941363B3051A_10010400F_18
+   Entry 12(cPoolEntriesSize): 88
+   Entry 13(srcPoolEntriesSize): 8
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 30
+   Entry 16(childrenDataLength): 1186
+   Entry 17(childrenData): f_467_346A941363B3051A_10010400F_6,f_467_346A941363B3051A_10010400F_3,|,f_467_346A941363B3051A_10010400F_18,f_467_346A941363B3051A_10010400F_1,f_467_346A941363B3051A_10010400F_19,f_467_346A941363B3051A_10010400F_2,f_467_346A941363B3051A_10010400F_0,f_467_346A941363B3051A_10010400F_4,f_467_346A941363B3051A_10010400F_9,f_467_346A941363B3051A_10010400F_10,f_467_346A941363B3051A_10010400F_20,f_467_346A941363B3051A_10010400F_8,f_467_346A941363B3051A_10010400F_5,f_467_346A941363B3051A_10010400F_14,f_467_346A941363B3051A_10010400F_17,f_467_346A941363B3051A_10010400F_15,f_467_346A941363B3051A_10010400F_12,f_467_346A941363B3051A_10010400F_21,f_467_346A941363B3051A_10010400F_22,f_467_346A941363B3051A_10010400F_23,f_467_346A941363B3051A_10010400F_24,f_467_346A941363B3051A_10010400F_25,f_467_346A941363B3051A_10010400F_26,f_467_346A941363B3051A_10010400F_27,f_467_346A941363B3051A_10010400F_11,f_467_346A941363B3051A_10010400F_7,f_467_346A941363B3051A_10010400F_28,f_467_346A941363B3051A_10010400F_29,f_467_346A941363B3051A_10010400F_16,|,f_467_346A941363B3051A_10010400F_21,f_467_346A941363B3051A_10010400F_13,|,f_467_346A941363B3051A_10010400F_19,f_467_346A941363B3051A_10010400F_6,|,|
+   Entry 18(srcDataLength): 1149
+   Entry 19(srcData): f_467_346A941363B3051A_10010400F_0,0,f_467_346A941363B3051A_10010400F_1,1,f_467_346A941363B3051A_10010400F_2,2,f_467_346A941363B3051A_10010400F_3,3,f_467_346A941363B3051A_10010400F_4,4,f_467_346A941363B3051A_10010400F_5,5,f_467_346A941363B3051A_10010400F_6,6,f_467_346A941363B3051A_10010400F_7,7,f_467_346A941363B3051A_10010400F_8,8,f_467_346A941363B3051A_10010400F_9,9,f_467_346A941363B3051A_10010400F_10,10,f_467_346A941363B3051A_10010400F_11,11,f_467_346A941363B3051A_10010400F_12,12,f_467_346A941363B3051A_10010400F_13,13,f_467_346A941363B3051A_10010400F_14,14,f_467_346A941363B3051A_10010400F_15,15,f_467_346A941363B3051A_10010400F_16,16,f_467_346A941363B3051A_10010400F_17,17,f_467_346A941363B3051A_10010400F_18,18,f_467_346A941363B3051A_10010400F_19,19,f_467_346A941363B3051A_10010400F_20,20,f_467_346A941363B3051A_10010400F_21,21,f_467_346A941363B3051A_10010400F_22,22,f_467_346A941363B3051A_10010400F_23,23,f_467_346A941363B3051A_10010400F_24,24,f_467_346A941363B3051A_10010400F_25,25,f_467_346A941363B3051A_10010400F_26,26,f_467_346A941363B3051A_10010400F_27,27,f_467_346A941363B3051A_10010400F_28,28,f_467_346A941363B3051A_10010400F_29,29
+   Entry 20(argDataLength): 1129
+   Entry 21(argData): f_467_346A941363B3051A_10010400F_0,|,f_467_346A941363B3051A_10010400F_1,|,f_467_346A941363B3051A_10010400F_2,|,f_467_346A941363B3051A_10010400F_3,|,f_467_346A941363B3051A_10010400F_4,|,f_467_346A941363B3051A_10010400F_5,|,f_467_346A941363B3051A_10010400F_6,|,f_467_346A941363B3051A_10010400F_7,|,f_467_346A941363B3051A_10010400F_8,|,f_467_346A941363B3051A_10010400F_9,|,f_467_346A941363B3051A_10010400F_10,|,f_467_346A941363B3051A_10010400F_11,|,f_467_346A941363B3051A_10010400F_12,|,f_467_346A941363B3051A_10010400F_13,|,f_467_346A941363B3051A_10010400F_14,|,f_467_346A941363B3051A_10010400F_15,|,f_467_346A941363B3051A_10010400F_16,|,f_467_346A941363B3051A_10010400F_17,|,f_467_346A941363B3051A_10010400F_18,0,f_467_346A941363B3051A_10010400F_19,|,f_467_346A941363B3051A_10010400F_20,|,f_467_346A941363B3051A_10010400F_21,|,f_467_346A941363B3051A_10010400F_22,|,f_467_346A941363B3051A_10010400F_23,|,f_467_346A941363B3051A_10010400F_24,|,f_467_346A941363B3051A_10010400F_25,|,f_467_346A941363B3051A_10010400F_26,|,f_467_346A941363B3051A_10010400F_27,|,f_467_346A941363B3051A_10010400F_28,|,f_467_346A941363B3051A_10010400F_29,|
+   Entry 22(arglistOrderEntriesLength): 1
+      Entry 23(outerEntriesSize): 4
+         Entry 24(innerEntriesSize): 3
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 1
+            Entry 25(currEntry): 2
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 1
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 1
+         Entry 24(innerEntriesSize): 7
+            Entry 25(currEntry): 9223372036854775815
+            Entry 25(currEntry): 4611686018427387904
+            Entry 25(currEntry): 4611686018427387905
+            Entry 25(currEntry): 4611686018427387906
+            Entry 25(currEntry): 4611686018427387907
+            Entry 25(currEntry): 4611686018427387908
+            Entry 25(currEntry): 4611686018427387909
+   Entry 26(reqMapSize): 5
+      Entry 27(currEntry): 1908987474114541448
+      Entry 27(currEntry): 3313242791199771977
+      Entry 27(currEntry): 4579779723696747005
+      Entry 27(currEntry): 4639679292400908031
+      Entry 27(currEntry): 8667094939504755069
+(*) Loading pool file: ./bitcodes/3776994048501548314_4296032271.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/3776994048501548314_4296032271.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+(*) loading bitcode for sapply(3313242791199771977), found 1 versions.
+Entry 1(nameLen): 6
+Entry 2(name): sapply
+Entry 3(hast): 3313242791199771977
+Entry 4(number of contexts): 1
+------------(3298534883343) : !ExpMi,CorrOrd,!TMany,Argmatch miss: 3
+   Entry 5(context):3298534883343
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 5
+   Entry 9(dotsPosition): 2
+   Entry 10(mainNameLen): 36
+   Entry 11(name): f_797_2DFB00C3A8160D49_3000000000F_6
+   Entry 12(cPoolEntriesSize): 15
+   Entry 13(srcPoolEntriesSize): 1
+   Entry 14(ePoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 7
+   Entry 16(childrenDataLength): 262
+   Entry 17(childrenData): f_797_2DFB00C3A8160D49_3000000000F_6,f_797_2DFB00C3A8160D49_3000000000F_5,f_797_2DFB00C3A8160D49_3000000000F_4,f_797_2DFB00C3A8160D49_3000000000F_3,f_797_2DFB00C3A8160D49_3000000000F_2,f_797_2DFB00C3A8160D49_3000000000F_1,f_797_2DFB00C3A8160D49_3000000000F_0,|,|
+   Entry 18(srcDataLength): 272
+   Entry 19(srcData): f_797_2DFB00C3A8160D49_3000000000F_0,0,f_797_2DFB00C3A8160D49_3000000000F_1,1,f_797_2DFB00C3A8160D49_3000000000F_2,2,f_797_2DFB00C3A8160D49_3000000000F_3,3,f_797_2DFB00C3A8160D49_3000000000F_4,4,f_797_2DFB00C3A8160D49_3000000000F_5,5,f_797_2DFB00C3A8160D49_3000000000F_6,6
+   Entry 20(argDataLength): 272
+   Entry 21(argData): f_797_2DFB00C3A8160D49_3000000000F_0,|,f_797_2DFB00C3A8160D49_3000000000F_1,|,f_797_2DFB00C3A8160D49_3000000000F_2,|,f_797_2DFB00C3A8160D49_3000000000F_3,|,f_797_2DFB00C3A8160D49_3000000000F_4,|,f_797_2DFB00C3A8160D49_3000000000F_5,|,f_797_2DFB00C3A8160D49_3000000000F_6,0
+   Entry 22(arglistOrderEntriesLength): 1
+      Entry 23(outerEntriesSize): 1
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 9223372036854775808
+            Entry 25(currEntry): 9223372036854775809
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 4639679292400908031
+      Entry 27(currEntry): 8667094939504755069
+(*) Loading pool file: ./bitcodes/3313242791199771977_3298534883343.pool
+(*) Pool deserialized
+(*) Pool patches prepared
+(*) Loading bc file: ./bitcodes/3313242791199771977_3298534883343.bc
+(*) bitcode successfully loaded
+(*) Pool deserialized
+(*) Pool patches applied
+(*) Inserting native code into jit
+(*) native code added to JIT
+(*) Linking code objects
+Dependency Map
+Hast(0): 804108566156
+    (0) 15: [ Type(26) ]
+Hast(1): 18088773091856515372
+    (0) 1064975: [ Type(26) 869084567 12673107526621455925 ]
+Hast(2): 4072617230905613
+    (0) 4296032527: [ Type(26) 1908987474114541448 3313242791199771977 3776994048501548314 4579779723696747005 8667094939504755069 ]
+Hast(3): 12825932220714214008
+    (0) 15: [ Type(26) Type(0) ]
+Hast(4): 7363362875334417181
+    (0) 68173839: [ Type(26) ]
+Hast(5): 8667094939504755069
+    (0) 1099511627791: [ Type(26) ]
+Hast(6): 9970150942587885918
+    (0) 15: [ Type(26) 12825932220714214008 ]
+Hast(7): 1908987474114541448
+    (0) 204521487: [ Type(26) Type(0) ]
+    (1) 49167: [ Type(26) Type(0) ]
+    (2) 15: [ Type(26) Type(0) ]
+Hast(8): 4579779723696747005
+    (0) 3299012101391: [ Type(26) ]
+    (1) 3298875753743: [ Type(26) ]
+Hast(9): 16583889934462934127
+    (0) 3298534883343: [ Type(26) ]
+Hast(10): 3776994048501548314
+    (0) 4296032271: [ Type(26) 1908987474114541448 3313242791199771977 4579779723696747005 4639679292400908031 8667094939504755069 ]
+Hast(11): 3313242791199771977
+    (0) 3298534883343: [ Type(26) 4639679292400908031 8667094939504755069 ]
+Unlock Map
+Hast(0): 869084567 [ 18088773091856515372 ]
+Hast(1): 12673107526621455925 [ 18088773091856515372 ]
+Hast(2): 1908987474114541448 [ 4072617230905613 3776994048501548314 ]
+Hast(3): 3313242791199771977 [ 4072617230905613 3776994048501548314 ]
+Hast(4): 3776994048501548314 [ 4072617230905613 ]
+Hast(5): 4579779723696747005 [ 4072617230905613 3776994048501548314 ]
+Hast(6): 8667094939504755069 [ 4072617230905613 3776994048501548314 3313242791199771977 ]
+Hast(7): 12825932220714214008 [ 9970150942587885918 ]
+Hast(8): 4639679292400908031 [ 3776994048501548314 3313242791199771977 ]
+[1] TRUE
+symbolExistsInMap: 9970150942587885918
+contextSym: 15
+symbolExistsInMap: 9970150942587885918
+contextSym: 15
+symbolExistsInMap: 9970150942587885918
+contextSym: 15
+symbolExistsInMap: 9970150942587885918
+contextSym: 15
+symbolExistsInMap: 3776994048501548314
+contextSym: 4296032271
+cannot link symbol yet: 4072617230905613
+symbolExistsInMap: 804108566156
+contextSym: 15
+linking successful 15
+noMoreContexts for 804108566156
+symbolExistsInMap: 12825932220714214008
+contextSym: 15
+linking successful 15
+noMoreContexts for 12825932220714214008
+trying to link symbol: 9970150942587885918
+symbolExistsInMap: 9970150942587885918
+contextSym: 15
+linking successful 15
+noMoreContexts for 9970150942587885918
+symbolExistsInMap: 1908987474114541448
+contextSym: 204521487
+linking successful 204521487
+contextSym: 49167
+linking successful 49167
+contextSym: 15
+linking successful 15
+noMoreContexts for 1908987474114541448
+cannot link symbol yet: 4072617230905613
+trying to link symbol: 3776994048501548314
+symbolExistsInMap: 3776994048501548314
+contextSym: 4296032271
+stretch tree of depth 8	 check: -1
+symbolExistsInMap: 3313242791199771977
+contextSym: 3298534883343
+cannot link symbol yet: 4072617230905613
+trying to link symbol: 3776994048501548314
+symbolExistsInMap: 3776994048501548314
+contextSym: 4296032271
+symbolExistsInMap: 8667094939504755069
+contextSym: 1099511627791
+linking successful 1099511627791
+noMoreContexts for 8667094939504755069
+cannot link symbol yet: 4072617230905613
+trying to link symbol: 3776994048501548314
+symbolExistsInMap: 3776994048501548314
+contextSym: 4296032271
+trying to link symbol: 3313242791199771977
+symbolExistsInMap: 3313242791199771977
+contextSym: 3298534883343
+symbolExistsInMap: 18088773091856515372
+contextSym: 1064975
+256	 trees of depth 4	 check: -256
+64	 trees of depth 6	 check: -64
+long lived tree of depth 7	 check: -1
+symbolExistsInMap: 4072617230905613
+contextSym: 4296032527
+stretch tree of depth 7	 check: -1
+symbolExistsInMap: 7363362875334417181
+contextSym: 68173839
+linking successful 68173839
+noMoreContexts for 7363362875334417181
+symbolExistsInMap: 4579779723696747005
+contextSym: 3299012101391
+linking successful 3299012101391
+contextSym: 3298875753743
+linking successful 3298875753743
+noMoreContexts for 4579779723696747005
+trying to link symbol: 4072617230905613
+symbolExistsInMap: 4072617230905613
+contextSym: 4296032527
+linking successful 4296032527
+noMoreContexts for 4072617230905613
+trying to link symbol: 3776994048501548314
+symbolExistsInMap: 3776994048501548314
+contextSym: 4296032271
+linking successful 4296032271
+noMoreContexts for 3776994048501548314
+symbolExistsInMap: 16583889934462934127
+contextSym: 3298534883343
+linking successful 3298534883343
+noMoreContexts for 16583889934462934127
+128	 trees of depth 4	 check: -128
+32	 trees of depth 6	 check: -32
+long lived tree of depth 6	 check: -1
+stretch tree of depth 7	 check: -1
+symbolExistsInMap: 7363362875334417181
+noMoreContexts for 7363362875334417181
+symbolExistsInMap: 9970150942587885918
+noMoreContexts for 9970150942587885918
+128	 trees of depth 4	 check: -128
+symbolExistsInMap: 9970150942587885918
+noMoreContexts for 9970150942587885918
+32	 trees of depth 6	 check: -32
+long lived tree of depth 6	 check: -1
+stretch tree of depth 7	 check: -1
+symbolExistsInMap: 7363362875334417181
+noMoreContexts for 7363362875334417181
+symbolExistsInMap: 9970150942587885918
+noMoreContexts for 9970150942587885918
+128	 trees of depth 4	 check: -128
+symbolExistsInMap: 9970150942587885918
+noMoreContexts for 9970150942587885918
+32	 trees of depth 6	 check: -32
+long lived tree of depth 6	 check: -1
+stretch tree of depth 7	 check: -1
+symbolExistsInMap: 7363362875334417181
+noMoreContexts for 7363362875334417181
+symbolExistsInMap: 9970150942587885918
+noMoreContexts for 9970150942587885918
+128	 trees of depth 4	 check: -128
+symbolExistsInMap: 9970150942587885918
+noMoreContexts for 9970150942587885918
+32	 trees of depth 6	 check: -32
+long lived tree of depth 6	 check: -1
+stretch tree of depth 7	 check: -1
+symbolExistsInMap: 7363362875334417181
+noMoreContexts for 7363362875334417181
+symbolExistsInMap: 9970150942587885918
+noMoreContexts for 9970150942587885918
+128	 trees of depth 4	 check: -128
+symbolExistsInMap: 9970150942587885918
+noMoreContexts for 9970150942587885918
+32	 trees of depth 6	 check: -32
+long lived tree of depth 6	 check: -1
+total runtime:  3958ms

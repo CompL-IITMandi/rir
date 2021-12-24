@@ -160,9 +160,9 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
 
     unsigned extraPoolSize; /// Number of elements in the per code constant pool
 
-    static std::unordered_map<int, void*> hastMap; // HAST to code map
-    static std::unordered_map<int, BC::PoolIdx> cpHastPatch; // duplicate code entries, need to be patched at runtime
-
+    // static std::unordered_map<size_t, BC::PoolIdx> cpHastPatch; // duplicate code entries, need to be patched at runtime
+    // static std::unordered_map<size_t, void*> hastClosMap; // HAST to closureObj
+    // static std::unordered_map<size_t, void*> hastCodeMap; // HAST to codeObj
     uint8_t data[]; /// the instructions
 
     /*

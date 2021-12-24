@@ -67,29 +67,41 @@ mandelbrot <- function(size) {
     return (sum);
 }
 
-# mandelbrot becomes a static site, how to handle that?
-
 execute <- function(n = 3000L) {
     mandelbrot(n)
 }
 
+verifyResult <- function(result, innerIterations) {
+    if (innerIterations == 500) { return (result == 191) }
+    if (innerIterations == 750) { return (result == 50)  }
+    if (innerIterations ==   1) { return (result == 128) }
 
+    write(paste(paste("No verification result for", innerIterations), "found\n"), stdout())
+    write(paste(paste("Result is:", result), " \n"), stdout())
+    return (FALSE);
+  }
 
-start.time <- Sys.time()
-f.loadBitcode("bitwShiftL_2433.meta")
-f.loadBitcode("bitwXor_2148.meta")
-f.loadBitcode("execute_1302.meta")
-f.loadBitcode("mandelbrot_38962.meta")
+innerBenchmarkLoop.mandelbrot <- function(class, iterations) {
+  if (!verifyResult(execute(iterations), iterations)) {
+      return(FALSE)
+  }
+  return(TRUE)
+}
 
-invisible(rir.compile(mandelbrot))
-invisible(rir.compile(execute))
-invisible(rir.compile(bitwShiftL))
-invisible(rir.compile(bitwXor))
-execute(100)
-execute(100)
-execute(100)
-execute(100)
-execute(100)
-end.time <- Sys.time()
-time.taken <- end.time - start.time
-print(paste("execution time: ",time.taken))
+f.loadBitcodes()
+
+startTime =  Sys.time()
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(10)
+execute(1000)
+execute(1000)
+execute(1000)
+execute(1000)
+execute(1000)
+endTime <- Sys.time()
+runTime = endTime - startTime
+
+print(paste("runtime: ", runTime))

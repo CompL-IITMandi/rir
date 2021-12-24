@@ -1172,6 +1172,9 @@ fallbackToLegacyCall:
 
     SEXP res;
     if (TYPEOF(call.callee) == BUILTINSXP) {
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "calling BUILTIN" << std::endl;
+        #endif
         // get the ccode
         CCODE f = getBuiltin(call.callee);
         int flag = getFlag(call.callee);
@@ -1185,6 +1188,9 @@ fallbackToLegacyCall:
     } else {
         assert(TYPEOF(call.callee) == CLOSXP &&
                TYPEOF(BODY(call.callee)) != EXTERNALSXP);
+        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        std::cout << "applying Rf_applyClosure" << std::endl;
+        #endif
         res = Rf_applyClosure(call.ast, call.callee, arglist,
                               materializeCallerEnv(call, ctx), R_NilValue);
     }
@@ -1977,11 +1983,11 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
     auto native = c->nativeCode();
     assert((!initialPC || !native) && "Cannot jump into native code");
     if (native) {
-        #if DEBUG_INSTRUMENT_RIR_CALL == 1
+        #if DEBUG_INSTRUMENT_NATIVE_CALL_HANDLES == 1
         std::cout << "Executing native code: " << c->getLazyCodeHandle() << std::endl;
         auto res = native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
                       callCtxt ? callCtxt->callee : nullptr);
-        printAST(0, res);
+        // printAST(0, res);
         return res;
         #else
         return native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,

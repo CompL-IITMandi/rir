@@ -29,7 +29,13 @@ SEXP ObservedCallees::getTarget(const Code* code, size_t pos) const {
 }
 
 FeedbackOrigin::FeedbackOrigin(rir::Code* src, Opcode* p)
-    : offset_((uintptr_t)p - (uintptr_t)src->code()), srcCode_(src) {
+    : offset_(
+        #if TRY_PATCH_DEOPTREASON_PC == 1
+        (uintptr_t)p - (uintptr_t)src->code()
+        #else
+        (uintptr_t)p - (uintptr_t)src
+        #endif
+        ), srcCode_(src) {
     if (p) {
         assert(p >= src->code());
         assert(p < src->endCode());

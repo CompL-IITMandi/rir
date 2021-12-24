@@ -6,9 +6,11 @@
 #include "compiler/native/types_llvm.h"
 #include "utils/filesystem.h"
 #include "utils/FunctionWriter.h"
+#include "utils/UMap.h"
+
 #include "R/Funtab.h"
 
-
+#include <bits/stdc++.h>
 #include "runtime/DispatchTable.h"
 
 #include "llvm/ExecutionEngine/JITSymbol.h"
@@ -335,14 +337,15 @@ void PirJitLLVM::finalizeAndFixup() {
 }
 
 void PirJitLLVM::deserializeAndAddModule(
+    std::vector<std::vector<std::vector<size_t>>> & argOrderingData,
     size_t hast, Context context,
     int & envCreation, int & optimization, unsigned int & numArguments, size_t & dotsPosition,
-    std::string bcPath, std::string poolPath, std::string startingHandle,
+    std::string bcPath, std::string poolPath, std::string startingHandle, std::string promiseData, std::string srcData, std::string argData,
     size_t & cPoolEntriesSize, size_t & srcPoolEntriesSize, size_t & ePoolEntriesSize, size_t & promiseSrcPoolEntriesSize
     ) {
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "Loading pool file: " << poolPath << std::endl;
+    std::cout << "(*) Loading pool file: " << poolPath << std::endl;
     #endif
 
     // Load the serialized pool from the .pool file
@@ -357,7 +360,7 @@ void PirJitLLVM::deserializeAndAddModule(
     SEXP result = R_Unserialize(&inputStream);
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "Pool deserialized" << std::endl;
+    std::cout << "(*) Pool deserialized" << std::endl;
     #endif
 
     // size_t totalEntriesInSerializedPool = (size_t)Rf_length(result);
@@ -367,46 +370,18 @@ void PirJitLLVM::deserializeAndAddModule(
     std::unordered_map<int64_t, int64_t> poolPatch;
     size_t cpIndex = 0;
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
-    std::cout << "ConstantPool: [ ";
+    std::cout << "(*) ConstantPool: [ ";
     #endif
     while (streamIndex < cPoolEntriesSize) {
         // Load element from the serialized pool
         auto ele = VECTOR_ELT(result, streamIndex);
 
-        if (TYPEOF(ele) == CLOSXP) {
-            int h = 0;
-            hash_ast(BODY(ele), h);
+        auto runtimeCpIndex = Pool::insert(ele);
+        poolPatch[cpIndex] = runtimeCpIndex;
 
-            // If closure with the same hast has been added to the CP already, just use that index
-            if (rir::Code::cpHastPatch.count(h)) {
-                poolPatch[cpIndex] = rir::Code::cpHastPatch[h];
-
-                #if DESERIALIZED_PRINT_POOL_PATCHES == 1
-                std::cout << "{ " << streamIndex << " to " << rir::Code::cpHastPatch[h] << ", TYPE: " << TYPEOF(ele) << " } ";
-                #endif
-            } else {
-                // copool_x streamIndex ---becomes---> runtime_constant_pool_index
-                auto runtimeCpIndex = Pool::insert(ele);
-                poolPatch[cpIndex] = runtimeCpIndex;
-
-                #if DESERIALIZED_PRINT_POOL_PATCHES == 1
-                std::cout << "{ " << streamIndex << " to " << runtimeCpIndex << ", TYPE: " << TYPEOF(ele) << " } ";
-                #endif
-
-                // Store this in a map, so that we can prevent duplicate insertions into the pool
-                rir::Code::cpHastPatch[h] = runtimeCpIndex;
-            }
-
-        } else {
-            // copool_x streamIndex ---becomes---> runtime_constant_pool_index
-            auto runtimeCpIndex = Pool::insert(ele);
-            poolPatch[cpIndex] = runtimeCpIndex;
-
-            #if DESERIALIZED_PRINT_POOL_PATCHES == 1
-            std::cout << "{ " << streamIndex << " to " << runtimeCpIndex << ", TYPE: " << TYPEOF(ele) << " } ";
-            #endif
-
-        }
+        #if DESERIALIZED_PRINT_POOL_PATCHES == 1
+        std::cout << "{ " << streamIndex << " to " << runtimeCpIndex << ", TYPE: " << TYPEOF(ele) << " } ";
+        #endif
         streamIndex++;
         cpIndex++;
     }
@@ -418,7 +393,7 @@ void PirJitLLVM::deserializeAndAddModule(
     std::unordered_map<int64_t, int64_t> sPoolPatch;
     size_t srcIndex = 0;
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
-    std::cout << "SourcePool: [ ";
+    std::cout << "(*) SourcePool: [ ";
     #endif
     while (streamIndex < cPoolEntriesSize + srcPoolEntriesSize) {
         auto ele = VECTOR_ELT(result, streamIndex);
@@ -441,7 +416,7 @@ void PirJitLLVM::deserializeAndAddModule(
     // Extra Pool patches
     size_t epIndex = 0;
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
-    std::cout << "ExtraPool: [ ";
+    std::cout << "(*) ExtraPool: [ ";
     #endif
     while (streamIndex < cPoolEntriesSize + srcPoolEntriesSize + ePoolEntriesSize) {
         auto ele = VECTOR_ELT(result, streamIndex);
@@ -463,10 +438,10 @@ void PirJitLLVM::deserializeAndAddModule(
 
     // Promise src entries, ordered in depth first manner
     std::vector<unsigned> srcEntriesForCode;
-    int pIndex = 0;
 
     #if DESERIALIZED_PRINT_POOL_PATCHES == 1
-    std::cout << "Promise Src Entries: [ ";
+    int pIndex = 0;
+    std::cout << "(*) Promise Src Entries: [ ";
     #endif
 
     while (streamIndex  < cPoolEntriesSize + srcPoolEntriesSize + ePoolEntriesSize + promiseSrcPoolEntriesSize) {
@@ -492,12 +467,12 @@ void PirJitLLVM::deserializeAndAddModule(
     fclose(reader);
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "Pool patches prepared" << std::endl;
+    std::cout << "(*) Pool patches prepared" << std::endl;
     #endif
 
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "Loading bc file: " << bcPath << std::endl;
+    std::cout << "(*) Loading bc file: " << bcPath << std::endl;
     #endif
 
     // Load the bc file into a memory buffer
@@ -514,7 +489,7 @@ void PirJitLLVM::deserializeAndAddModule(
     }
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "bitcode successfully loaded" << std::endl;
+    std::cout << "(*) bitcode successfully loaded" << std::endl;
     #endif
 
     std::set<std::string> existingFunctionHandles;
@@ -533,7 +508,7 @@ void PirJitLLVM::deserializeAndAddModule(
 
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "Pool deserialized" << std::endl;
+    std::cout << "(*) Pool deserialized" << std::endl;
     #endif
 
     // Apply pool patches
@@ -607,7 +582,7 @@ void PirJitLLVM::deserializeAndAddModule(
     }
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "Pool patches applied" << std::endl;
+    std::cout << "(*) Pool patches applied" << std::endl;
     #endif
 
     #if API_PRINT_DESERIALIZED_MODULE_AFTER_PATCH == 1
@@ -616,7 +591,7 @@ void PirJitLLVM::deserializeAndAddModule(
     #endif
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "Inserting native code into jit" << std::endl;
+    std::cout << "(*) Inserting native code into jit" << std::endl;
     #endif
 
     // Insert native code into the JIT
@@ -624,13 +599,101 @@ void PirJitLLVM::deserializeAndAddModule(
     ExitOnErr(JIT->addIRModule(std::move(TSM)));
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "JIT loaded with native code" << std::endl;
+    std::cout << "(*) native code added to JIT" << std::endl;
     #endif
 
     #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "Linking code objects" << std::endl;
+    std::cout << "(*) Linking code objects" << std::endl;
     #endif
-    // Link code and promises
+
+    // Function Signature
+    FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
+    fs.numArguments = numArguments;
+    fs.dotsPosition = dotsPosition;
+
+
+    auto separateUsingCommas = [&](std::string cSep) {
+        std::vector<std::string> res;
+
+        std::stringstream ss(cSep);
+
+        while (ss.good()) {
+            std::string substr;
+            getline(ss, substr, ',');
+            res.push_back(substr);
+        }
+
+        return res;
+    };
+
+    // Shows the linking of promises and their owners
+    std::unordered_map<std::string, std::vector<std::string>> promMap;
+    // Gives the relative index to srcAst from the const pool
+    std::unordered_map<std::string, int> srcMap;
+    // Gives the index of argData if it exists, otherwise -1
+    std::unordered_map<std::string, int> argMap;
+
+    auto promiseVector = separateUsingCommas(promiseData);
+
+    int i = 0;
+    std::string parent;
+    for (auto & ele : promiseVector) {
+        if (ele.compare("|") == 0) {
+            i = 0;
+            continue;
+        }
+        if (i == 0) {
+            parent = ele;
+        } else {
+            promMap[parent].push_back(ele);
+        }
+        i++;
+    }
+
+    #if PRINT_PROMISE_MAP == 1
+    std::cout << "(*) promMap: " << std::endl;
+    for (auto & ele : promMap) {
+        std::cout << "    " << ele.first << ": [ ";
+        for (auto & prom : ele.second) {
+            std::cout << prom  << " ";
+        }
+        std::cout << " ]" << std::endl;
+    }
+    #endif
+
+    auto srcDataVec = separateUsingCommas(srcData);
+
+    for (long unsigned int j = 0; j < srcDataVec.size() - 1; j+=2) {
+        auto ele1 = srcDataVec.at(j);
+        auto ele2 = srcDataVec.at(j + 1);
+        srcMap[ele1] = std::stoi(ele2);
+    }
+
+    #if PRINT_SRC_MAP == 1
+    std::cout << "(*) srcMap: " << std::endl;
+    for (auto & ele : srcMap) {
+        std::cout << "    " << ele.first << " : " << ele.second << std::endl;
+    }
+    #endif
+
+    auto argDataVec = separateUsingCommas(argData);
+
+    for (long unsigned int j = 0; j < argDataVec.size() - 1; j+=2) {
+        auto ele1 = argDataVec.at(j);
+        auto ele2 = argDataVec.at(j + 1);
+        if (ele2.compare("|") == 0) {
+            argMap[ele1] = -1;
+        } else {
+            argMap[ele1] = std::stoi(ele2);
+        }
+    }
+
+    #if PRINT_SRC_MAP == 1
+    std::cout << "(*) argMap: " << std::endl;
+    for (auto & ele : argMap) {
+        std::cout << "    " << ele.first << " : " << ele.second << std::endl;
+    }
+    #endif
 
     FunctionWriter function;
     Preserve preserve;
@@ -638,60 +701,60 @@ void PirJitLLVM::deserializeAndAddModule(
         function.addArgWithoutDefault();
     }
 
-    // ExtraIndex
-    int eIndex = 0;
+    std::unordered_map<std::string, rir::Code *> codeMap;
+    auto getCodeObj = [&](std::string handle) {
+        if (codeMap.find(handle) == codeMap.end()) {
+            unsigned patchedSrcIdx = srcEntriesForCode[srcMap[handle]];
+            auto p = rir::Code::New(patchedSrcIdx);
+            preserve(p->container());
+            // Add the handle to the promise
+            p->lazyCodeHandle(handle);
+            codeMap[handle] = p;
 
-    auto res = rir::Code::New(srcEntriesForCode[eIndex++]);
-    preserve(res->container());
-
-    FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
-    fs.numArguments = numArguments;
-    fs.dotsPosition = dotsPosition;
-
-    function.finalize(res, fs, context);
-
-    res->lazyCodeHandle(startingHandle);
-
-    // insert the promises into the extra pools recursively
-    std::function<void(std::string, rir::Code*)> updateExtrasRecursively = [&](std::string startingPrefix, rir::Code * code) {
-        int i = 0;
-        while (true) {
-            std::stringstream pName;
-            pName << startingPrefix << "_" << i;
-            if (existingFunctionHandles.count(pName.str())) {
-                // Store the srcIndex of the resolved data here, instead of runtime data (maybe improve?)
-                unsigned patchedSrcIdx = srcEntriesForCode[eIndex++];
-
-                // This handle does exists inside for the code, so add this
-                // to the code objects extraPool
-                auto p = rir::Code::New(patchedSrcIdx);
-                preserve(p->container());
-                // Add the handle to the promise
-                p->lazyCodeHandle(pName.str());
-
-                #if COMPILER_PRINT_PORMISE_LINK == 1
-                std::cout << "Adding " << pName.str() << " to " << startingPrefix << std::endl;
-                #endif
-
-
-                // Add this created promise into the code's extra pool entry
-                code->addExtraPoolEntry(p->container());
-
-                // Check if there are any promises, inside this promise
-                updateExtrasRecursively(pName.str(), p);
-                // Process next promises
-                i++;
-                continue;
+            if (argMap[handle] != -1) {
+                p->arglistOrder(ArglistOrder::New(argOrderingData[argMap[handle]]));
             }
-            break;
         }
+        return codeMap[handle];
     };
-    updateExtrasRecursively(startingHandle, res);
-    #if PRINT_DESERIALIZER_PROGRESS == 1
-    std::cout << "Deserialization done" << std::endl;
+
+    #if PRINT_PROMISE_MAP == 1
+    std::cout << "(*) promiseLinkage: " << std::endl;
+    for (auto & ele : promMap) {
+        std::cout << "    " << ele.first << ": [ ";
+        for (auto & prom : ele.second) {
+            std::cout << prom  << " ";
+        }
+        std::cout << " ]" << std::endl;
+    }
     #endif
 
-    DeserializerData::deserializedHastMap[hast].push_back(function.function());
+    #if PRINT_PROMISE_LINKAGE_MAP == 1
+    std::cout << "(*) Linking promises to code objs" << std::endl;
+    #endif
+    for (auto & ele : promMap) {
+        auto currCodeElement = getCodeObj(ele.first);
+        #if PRINT_PROMISE_LINKAGE_MAP == 1
+        std::cout << "    " << ele.first << "(" << currCodeElement << ")" << " : [ ";
+        #endif
+        for (auto & prom : ele.second) {
+            auto promObj = getCodeObj(prom);
+            currCodeElement->addExtraPoolEntry(promObj->container());
+
+            #if PRINT_PROMISE_LINKAGE_MAP == 1
+            std::cout << prom << "(" << promObj << "), ";
+            #endif
+        }
+        #if PRINT_PROMISE_LINKAGE_MAP == 1
+        std::cout << " ]";
+        #endif
+    }
+
+    auto res = getCodeObj(startingHandle);
+    function.finalize(res, fs, context);
+
+    auto map = Pool::get(1);
+    DeserialDataMap::addFunctionPtr(map, hast, context.toI(), function.function()->container());
 }
 
 void PirJitLLVM::compile(
@@ -944,18 +1007,14 @@ void PirJitLLVM::initializeLLVM() {
 
                 auto msg = n.substr(0, 4) == "msg_"; // Message ptr
 
-                auto real = n.substr(0, 7) ==  "cpreal_"; // constant pool real
-                // auto lang = n.substr(0, 4) ==  "lan_"; // constant pool langsxp
-
                 auto gcode = n.substr(0, 4) == "cod_"; // callable pointer to builtin
 
-                auto hast = n.substr(0, 5) == "hast_"; // replace this symbol with the start of the corresponding Code *
+                auto spef = n.substr(0, 5) == "spef_"; // PP_FUNCTION
+                auto spe1 = n.substr(0, 5) == "spe1_"; // PP_ASSIGN
 
-                auto epe = n.substr(0, 4) == "epe_"; // extra pool entry
-
-                // auto base = n.substr(0, 5) == "base_"; // baseLibraryEntry
-
-                auto spef = n.substr(0, 5) == "spef_"; // specialsxp function
+                // auto clso = n.substr(0, 5) == "clso_"; // closure objs for staticCalls
+                auto code = n.substr(0, 5) == "code_"; // code objs for DeoptReason
+                auto clso = n.substr(0, 5) == "clso_"; // closure objs for staticCalls
 
                 if (ept || efn) {
                     auto addrStr = n.substr(4);
@@ -1063,41 +1122,7 @@ void PirJitLLVM::initializeLLVM() {
                         static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(p)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
-                } else if (real) {
-                    auto real_num = n.substr(7);
-                    double real = std::stod(real_num);
-                    SEXP ptr;
-                    PROTECT(ptr = Rf_ScalarReal(real));
-
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(ptr)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
-
-                }
-                else
-
-                // if (lang) {
-                //     auto hastAndPath = n.substr(4);
-                //     int start = 0;
-                //     int end = hastAndPath.find("_");
-
-                //     auto hast = std::stoi(hastAndPath.substr(start, end - start));
-                //     start = end + 1;
-                //     end = hastAndPath.find("_", start);
-                //     auto path = std::stoi(hastAndPath.substr(start, end - start));
-
-                //     auto found_ast = rir::Code::hastMap[hast];
-
-                //     SEXP el = VECTOR_ELT(globalContext()->src.list, found_ast->src);
-
-                //     NewSymbols[Name] = JITEvaluatedSymbol(
-                //         static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(get_from_path(path, el))),
-                //         JITSymbolFlags::Exported | (JITSymbolFlags::None));
-
-
-                // } else
-
-                if (gcode) {
+                } else if (gcode) {
                     auto id = std::stoi(n.substr(4));
                     SEXP ptr;
                     assert(R_FunTab[id].eval % 10 == 1 && "Only use for BUILTINSXP");
@@ -1111,82 +1136,46 @@ void PirJitLLVM::initializeLLVM() {
                             reinterpret_cast<uintptr_t>(getBuiltin(ptr))),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
-                } else if (hast) {
-                    auto id = std::stoi(n.substr(5));
-                    if (rir::Code::hastMap.count(id) == 0) {
-                        std::cout << "hast symbol not found: " << id << std::endl;
-                    }
-                    auto addr = ((rir::DispatchTable *)rir::Code::hastMap[id])->baseline()->body();
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(
-                            reinterpret_cast<uintptr_t>(addr)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
-                } else if (epe) {
-                    auto firstDel = n.find('_');
-                    auto secondDel = n.find('_', firstDel + 1);
-                    auto thirdDel = n.find('_', secondDel + 1);
-
-                    auto hast = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
-                    auto extraPoolOffset = std::stoi(n.substr(secondDel + 1, thirdDel - secondDel - 1));
-                    auto context = std::stoul(n.substr(thirdDel + 1));
-
-                    Context c(context);
-
-                    if (rir::Code::hastMap.count(hast) == 0) {
-                        std::cout << "hast symbol not found: " << hast << std::endl;
-                    }
-
-                    rir::DispatchTable * dtable = ((rir::DispatchTable *)rir::Code::hastMap[hast]);
-
-                    rir::Code * code = rir::Code::New(0);
-
-                    for (size_t i = 1; i < dtable->size(); ++i) {
-                        auto e = dtable->get(i);
-                        if (e->context() == c) {
-                            code = e->body();
-                        }
-                    }
-
-                    if (code) {
-                        auto res = DATAPTR(code->getExtraPoolEntry(extraPoolOffset));
-
-                        NewSymbols[Name] = JITEvaluatedSymbol(
-                            static_cast<JITTargetAddress>(
-                                reinterpret_cast<uintptr_t>(res)),
-                            JITSymbolFlags::Exported | (JITSymbolFlags::None));
-                    }
-
-                }
-                // else if (base) {
-                //     auto firstDel = n.find('_');
-                //     auto secondDel = n.find('_', firstDel + 1);
-
-                //     auto baseIndex = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
-                //     auto funName = BaseLibs::libBaseName.at(baseIndex);
-                //     auto sym = Rf_install(funName.c_str());
-                //     auto fun = Rf_findFun(sym, R_GlobalEnv);
-
-                //     NewSymbols[Name] = JITEvaluatedSymbol(
-                //         static_cast<JITTargetAddress>(
-                //             reinterpret_cast<uintptr_t>(fun)),
-                //         JITSymbolFlags::Exported | (JITSymbolFlags::None));
-
-
-                // }
-
-                else if (spef) {
+                } else if (spef) {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 
                     auto index = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
                     auto sym = Rf_install(R_FunTab[index].name);
-                    // std::cout << "patching spef" << std::endl;
-                    // printAST(0,sym);
                     auto fun = Rf_findFun(sym,R_GlobalEnv);
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(fun)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (spe1) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto index = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    auto sym = Rf_install(R_FunTab[index].name);
+                    auto spe1 = Rf_findFun(sym,R_GlobalEnv);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(spe1)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (code) {
+                    // auto hast = std::stoull(n.substr(5));
+                    // auto addr = rir::Code::hastCodeMap[hast];
+                    auto addr = nullptr;
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(addr)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (clso) {
+                    SEXP map = Pool::get(4);
+                    auto addr = UMap::get(map, Rf_install(n.substr(5).c_str()));
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(addr)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
                 } else {
