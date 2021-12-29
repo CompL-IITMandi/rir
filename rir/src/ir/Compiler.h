@@ -59,14 +59,14 @@ static void tryLinking(DispatchTable* vtable, SEXP hSym) {
 
 
     if (UMap::symbolExistsInMap(hSym, serMap)) {
-        std::cout << "symbolExistsInMap: " << CHAR(PRINTNAME(hSym)) << std::endl;
+        // std::cout << "symbolExistsInMap: " << CHAR(PRINTNAME(hSym)) << std::endl;
         SEXP hMap = DeserialDataMap::getHastEnv(serMap, hSym);
         SEXP contexts = VECTOR_ELT(hMap, 0);
         bool noMoreContexts = true;
         for (int i = 0; i < Rf_length(contexts); i++) {
             SEXP contextSym = VECTOR_ELT(contexts, i);
             if (contextSym == R_NilValue) continue;
-            std::cout << "contextSym: " << CHAR(PRINTNAME(contextSym)) << std::endl;
+            // std::cout << "contextSym: " << CHAR(PRINTNAME(contextSym)) << std::endl;
             SEXP vec = UMap::get(hMap, contextSym);
             bool dependenciesSatisfied = true;
             for (int j = 1; j < Rf_length(vec); j++) {
@@ -85,7 +85,7 @@ static void tryLinking(DispatchTable* vtable, SEXP hSym) {
                 function->inheritFlags(vtable->baseline());
                 vtable->insert(function);
 
-                std::cout << "linking successful " << CHAR(PRINTNAME(contextSym)) << std::endl;
+                // std::cout << "linking successful " << CHAR(PRINTNAME(contextSym)) << std::endl;
 
                 UMap::remove(hMap, contextSym);
             } else {
@@ -94,7 +94,7 @@ static void tryLinking(DispatchTable* vtable, SEXP hSym) {
         }
 
         if (noMoreContexts) {
-            std::cout << "noMoreContexts for " << CHAR(PRINTNAME(hSym)) << std::endl;
+            // std::cout << "noMoreContexts for " << CHAR(PRINTNAME(hSym)) << std::endl;
             UMap::remove(serMap, hSym);
         }
 
@@ -103,12 +103,12 @@ static void tryLinking(DispatchTable* vtable, SEXP hSym) {
             for (int i = 0; i < Rf_length(unlockVec); i++) {
                 SEXP unlSym = VECTOR_ELT(unlockVec, i);
                 if (UMap::symbolExistsInMap(unlSym, tabMap)) {
-                    std::cout << "trying to link symbol: " << CHAR(PRINTNAME(unlSym)) << std::endl;
+                    // std::cout << "trying to link symbol: " << CHAR(PRINTNAME(unlSym)) << std::endl;
                     SEXP tableContainer = UMap::get(tabMap, unlSym);
                     DispatchTable * vtable = DispatchTable::unpack(tableContainer);
                     tryLinking(vtable, unlSym);
                 } else {
-                    std::cout << "cannot link symbol yet: " << CHAR(PRINTNAME(unlSym)) << std::endl ;
+                    // std::cout << "cannot link symbol yet: " << CHAR(PRINTNAME(unlSym)) << std::endl ;
                 }
             }
             UMap::remove(unlMap, hSym);

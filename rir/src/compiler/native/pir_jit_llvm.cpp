@@ -459,7 +459,7 @@ void PirJitLLVM::deserializeAndAddModule(
     std::cout << " ]" << std::endl;
     #endif
 
-    #if API_PRINT_DESERIALIZED_MODULE_BEFORE_PATCH == 1
+    #if PRINT_DESERIALIZED_MODULE_BEFORE_PATCH == 1
     llvm::raw_os_ostream dbg1(std::cout);
     dbg1 << *llModuleHolder.get();
     #endif
@@ -585,7 +585,7 @@ void PirJitLLVM::deserializeAndAddModule(
     std::cout << "(*) Pool patches applied" << std::endl;
     #endif
 
-    #if API_PRINT_DESERIALIZED_MODULE_AFTER_PATCH == 1
+    #if PRINT_DESERIALIZED_MODULE_AFTER_PATCH == 1
     llvm::raw_os_ostream dbg2(std::cout);
     dbg2 << *llModuleHolder.get();
     #endif
@@ -1162,9 +1162,21 @@ void PirJitLLVM::initializeLLVM() {
                             reinterpret_cast<uintptr_t>(spe1)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
                 } else if (code) {
-                    // auto hast = std::stoull(n.substr(5));
-                    // auto addr = rir::Code::hastCodeMap[hast];
-                    auto addr = nullptr;
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    size_t hast = std::stoull(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    int index = std::stoi(n.substr(secondDel + 1));
+
+                    SEXP map = Pool::get(3);
+
+                    DispatchTable * vtable = DispatchTable::unpack(UMap::get(map, Rf_install(n.substr(firstDel + 1, secondDel - firstDel - 1).c_str())));
+
+
+                    auto addr = vtable->baseline()->body();
+                    addr = addr->getSrcAtOffset(index);
+                    std::cout << "code patch: " << n << ", hast: " << hast << ", index: " << index << ", dec: " << (uintptr_t)addr << std::endl;
+
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(addr)),

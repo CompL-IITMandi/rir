@@ -4,211 +4,24 @@ making space at: 3
 making space at: 4
 startup complete(cp_size): 5
 startup complete(sp_size): 1
-(*) loading bitcode for execute(4072613566374285), found 1 versions.
-Entry 1(nameLen): 7
-Entry 2(name): execute
-Entry 3(hast): 4072613566374285
-Entry 4(number of contexts): 1
-------------(4296032527) : !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,NonRefl0,!Obj0,SimpleReal0
-   Entry 5(context):4296032527
-   Entry 6(envCreation): 1
-   Entry 7(optimization): 1
-   Entry 8(numArguments): 1
-   Entry 9(dotsPosition): 18446744073709551615
-   Entry 10(mainNameLen): 31
-   Entry 11(name): f_985_E78053CEE618D_10010410F_1
-   Entry 12(cPoolEntriesSize): 3
-   Entry 13(srcPoolEntriesSize): 0
-   Entry 14(ePoolEntriesSize): 0
-   Entry 15(promiseSrcPoolEntriesSize): 2
-   Entry 16(childrenDataLength): 67
-   Entry 17(childrenData): f_985_E78053CEE618D_10010410F_1,f_985_E78053CEE618D_10010410F_0,|,|
-   Entry 18(srcDataLength): 67
-   Entry 19(srcData): f_985_E78053CEE618D_10010410F_0,0,f_985_E78053CEE618D_10010410F_1,1
-   Entry 20(argDataLength): 67
-   Entry 21(argData): f_985_E78053CEE618D_10010410F_0,|,f_985_E78053CEE618D_10010410F_1,|
-   Entry 22(arglistOrderEntriesLength): 0
-   Entry 26(reqMapSize): 1
-      Entry 27(currEntry): 250144078105040217
-(*) Loading pool file: ./bitcodes/4072613566374285_4296032527.pool
-(*) Pool deserialized
-(*) Pool patches prepared
-(*) Loading bc file: ./bitcodes/4072613566374285_4296032527.bc
-(*) bitcode successfully loaded
-(*) Pool deserialized
-(*) Pool patches applied
-(*) Inserting native code into jit
-(*) native code added to JIT
-(*) Linking code objects
-(*) loading bitcode for bitwShiftL(12673609025892230999), found 2 versions.
-Entry 1(nameLen): 10
-Entry 2(name): bitwShiftL
-Entry 3(hast): 12673609025892230999
-Entry 4(number of contexts): 2
-------------(12888097295) : !ExpMi,CorrOrd,!TMany,Argmatch;Eager1,NonRefl0,NonRefl1,!Obj0,!Obj1,SimpleReal0,SimpleReal1
-   Entry 5(context):12888097295
-   Entry 6(envCreation): 1
-   Entry 7(optimization): 1
-   Entry 8(numArguments): 2
-   Entry 9(dotsPosition): 18446744073709551615
-   Entry 10(mainNameLen): 34
-   Entry 11(name): f_900_AFE1B442EA7DA757_30030C20F_0
-   Entry 12(cPoolEntriesSize): 0
-   Entry 13(srcPoolEntriesSize): 0
-   Entry 14(ePoolEntriesSize): 0
-   Entry 15(promiseSrcPoolEntriesSize): 1
-   Entry 16(childrenDataLength): 1
-   Entry 17(childrenData): |
-   Entry 18(srcDataLength): 36
-   Entry 19(srcData): f_900_AFE1B442EA7DA757_30030C20F_0,0
-   Entry 20(argDataLength): 36
-   Entry 21(argData): f_900_AFE1B442EA7DA757_30030C20F_0,|
-   Entry 22(arglistOrderEntriesLength): 0
-   Entry 26(reqMapSize): 0
-(*) Loading pool file: ./bitcodes/12673609025892230999_12888097295.pool
-(*) Pool deserialized
-(*) Pool patches prepared
-(*) Loading bc file: ./bitcodes/12673609025892230999_12888097295.bc
-(*) bitcode successfully loaded
-(*) Pool deserialized
-(*) Pool patches applied
-(*) Inserting native code into jit
-(*) native code added to JIT
-(*) Linking code objects
-------------(4296032271) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0,SimpleReal0
-   Entry 5(context):4296032271
-   Entry 6(envCreation): 1
-   Entry 7(optimization): 1
-   Entry 8(numArguments): 2
-   Entry 9(dotsPosition): 18446744073709551615
-   Entry 10(mainNameLen): 34
-   Entry 11(name): f_178_AFE1B442EA7DA757_10010400F_0
-   Entry 12(cPoolEntriesSize): 2
-   Entry 13(srcPoolEntriesSize): 0
-   Entry 14(ePoolEntriesSize): 0
-   Entry 15(promiseSrcPoolEntriesSize): 1
-   Entry 16(childrenDataLength): 1
-   Entry 17(childrenData): |
-   Entry 18(srcDataLength): 36
-   Entry 19(srcData): f_178_AFE1B442EA7DA757_10010400F_0,0
-   Entry 20(argDataLength): 36
-   Entry 21(argData): f_178_AFE1B442EA7DA757_10010400F_0,|
-   Entry 22(arglistOrderEntriesLength): 0
-   Entry 26(reqMapSize): 0
-(*) Loading pool file: ./bitcodes/12673609025892230999_4296032271.pool
-(*) Pool deserialized
-(*) Pool patches prepared
-(*) Loading bc file: ./bitcodes/12673609025892230999_4296032271.bc
-(*) bitcode successfully loaded
-(*) Pool deserialized
-(*) Pool patches applied
-(*) Inserting native code into jit
-(*) native code added to JIT
-(*) Linking code objects
-(*) loading bitcode for mandelbrot(250144078105040217), found 1 versions.
-Entry 1(nameLen): 10
-Entry 2(name): mandelbrot
-Entry 3(hast): 250144078105040217
-Entry 4(number of contexts): 1
-------------(4296032271) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,!Obj0,SimpleReal0
-   Entry 5(context):4296032271
-   Entry 6(envCreation): 1
-   Entry 7(optimization): 1
-   Entry 8(numArguments): 1
-   Entry 9(dotsPosition): 18446744073709551615
-   Entry 10(mainNameLen): 33
-   Entry 11(name): f_276_378B0B6B61E5559_10010400F_0
-   Entry 12(cPoolEntriesSize): 29
-   Entry 13(srcPoolEntriesSize): 0
-   Entry 14(ePoolEntriesSize): 0
-   Entry 15(promiseSrcPoolEntriesSize): 1
-   Entry 16(childrenDataLength): 1
-   Entry 17(childrenData): |
-   Entry 18(srcDataLength): 35
-   Entry 19(srcData): f_276_378B0B6B61E5559_10010400F_0,0
-   Entry 20(argDataLength): 35
-   Entry 21(argData): f_276_378B0B6B61E5559_10010400F_0,|
-   Entry 22(arglistOrderEntriesLength): 0
-   Entry 26(reqMapSize): 0
-(*) Loading pool file: ./bitcodes/250144078105040217_4296032271.pool
-(*) Pool deserialized
-(*) Pool patches prepared
-(*) Loading bc file: ./bitcodes/250144078105040217_4296032271.bc
-(*) bitcode successfully loaded
-(*) Pool deserialized
-(*) Pool patches applied
-(*) Inserting native code into jit
-(*) native code added to JIT
-(*) Linking code objects
-(*) loading bitcode for bitwXor(12673376186638998074), found 2 versions.
-Entry 1(nameLen): 7
-Entry 2(name): bitwXor
-Entry 3(hast): 12673376186638998074
-Entry 4(number of contexts): 2
-------------(8660238351) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,NonRefl1,!Obj0,!Obj1,SimpleInt0,SimpleReal1
-   Entry 5(context):8660238351
-   Entry 6(envCreation): 1
-   Entry 7(optimization): 1
-   Entry 8(numArguments): 2
-   Entry 9(dotsPosition): 18446744073709551615
-   Entry 10(mainNameLen): 34
-   Entry 11(name): f_233_AFE0E07ECD831A3A_20430C00F_0
-   Entry 12(cPoolEntriesSize): 0
-   Entry 13(srcPoolEntriesSize): 0
-   Entry 14(ePoolEntriesSize): 0
-   Entry 15(promiseSrcPoolEntriesSize): 1
-   Entry 16(childrenDataLength): 1
-   Entry 17(childrenData): |
-   Entry 18(srcDataLength): 36
-   Entry 19(srcData): f_233_AFE0E07ECD831A3A_20430C00F_0,0
-   Entry 20(argDataLength): 36
-   Entry 21(argData): f_233_AFE0E07ECD831A3A_20430C00F_0,|
-   Entry 22(arglistOrderEntriesLength): 0
-   Entry 26(reqMapSize): 0
-(*) Loading pool file: ./bitcodes/12673376186638998074_8660238351.pool
-(*) Pool deserialized
-(*) Pool patches prepared
-(*) Loading bc file: ./bitcodes/12673376186638998074_8660238351.bc
-(*) bitcode successfully loaded
-(*) Pool deserialized
-(*) Pool patches applied
-(*) Inserting native code into jit
-(*) native code added to JIT
-(*) Linking code objects
-------------(204521487) : !ExpMi,CorrOrd,!TMany,Argmatch;NonRefl0,NonRefl1,!Obj0,!Obj1,SimpleInt0,SimpleInt1
-   Entry 5(context):204521487
-   Entry 6(envCreation): 1
-   Entry 7(optimization): 1
-   Entry 8(numArguments): 2
-   Entry 9(dotsPosition): 18446744073709551615
-   Entry 10(mainNameLen): 32
-   Entry 11(name): f_548_AFE0E07ECD831A3A_C30C00F_0
-   Entry 12(cPoolEntriesSize): 0
-   Entry 13(srcPoolEntriesSize): 0
-   Entry 14(ePoolEntriesSize): 0
-   Entry 15(promiseSrcPoolEntriesSize): 1
-   Entry 16(childrenDataLength): 1
-   Entry 17(childrenData): |
-   Entry 18(srcDataLength): 34
-   Entry 19(srcData): f_548_AFE0E07ECD831A3A_C30C00F_0,0
-   Entry 20(argDataLength): 34
-   Entry 21(argData): f_548_AFE0E07ECD831A3A_C30C00F_0,|
-   Entry 22(arglistOrderEntriesLength): 0
-   Entry 26(reqMapSize): 0
-(*) Loading pool file: ./bitcodes/12673376186638998074_204521487.pool
-(*) Pool deserialized
-(*) Pool patches prepared
-(*) Loading bc file: ./bitcodes/12673376186638998074_204521487.bc
-(*) bitcode successfully loaded
-(*) Pool deserialized
-(*) Pool patches applied
-(*) Inserting native code into jit
-(*) native code added to JIT
-(*) Linking code objects
+Dependency Map
+Hast(0): 4072613566374285
+    (0) 4296032527: [ Type(26) ]
+Hast(1): 12673609025892230999
+    (0) 12888097295: [ Type(26) ]
+    (1) 4296032271: [ Type(26) ]
+Hast(2): 250144078105040217
+    (0) 4296032271: [ Type(26) ]
+Hast(3): 12673376186638998074
+    (0) 8660238351: [ Type(26) ]
+    (1) 204521487: [ Type(26) ]
+Unlock Map
 [1] TRUE
-cannot link symbol yet: 4072613566374285
+code patch: code_12673609025892230999_0, hast: 12673609025892230999, index: 0, dec: 94441335583184
 [1] 127
 [1] 127
+code patch: code_4072613566374285_0, hast: 4072613566374285, index: 0, dec: 94441335571776
+code patch: code_250144078105040217_0, hast: 250144078105040217, index: 0, dec: 94441336313824
 [1] 127
 [1] 127
 [1] 127
@@ -217,4 +30,4 @@ cannot link symbol yet: 4072613566374285
 [1] 101
 [1] 101
 [1] 101
-[1] "runtime:  1.77963519096375"
+[1] "runtime:  1.58589696884155"

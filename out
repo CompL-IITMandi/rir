@@ -1,0 +1,13 @@
+[1/13] cd /home/meetesh06/compL/rir_deserializer/rir && /home/meetesh06/compL/rir_deserializer/rir/tools/setup-build-dir /home/meetesh06/compL/rir_deserializer/rir /home/meetesh06/compL/rir_deserializer/rir/external/custom-r
+[2/13] Building CXX object CMakeFiles/rir.dir/rir/src/compiler/compiler.cpp.o
+[3/13] Building CXX object CMakeFiles/rir.dir/rir/src/compiler/native/builtins.cpp.o
+[4/13] Building CXX object CMakeFiles/rir.dir/rir/src/compiler/opt/match_call_args.cpp.o
+[5/13] Building CXX object CMakeFiles/rir.dir/rir/src/api.cpp.o
+[6/13] Building CXX object CMakeFiles/rir.dir/rir/src/compiler/test/PirCheck.cpp.o
+[7/13] Building CXX object CMakeFiles/rir.dir/rir/src/compiler/native/pir_jit_llvm.cpp.o
+[8/13] Building CXX object CMakeFiles/rir.dir/rir/src/compiler/rir2pir/rir2pir.cpp.o
+[9/13] Building CXX object CMakeFiles/rir.dir/rir/src/interpreter/interp.cpp.o
+[10/13] Building CXX object CMakeFiles/rir.dir/rir/src/runtime/TypeFeedback.cpp.o
+[11/13] Building CXX object CMakeFiles/rir.dir/rir/src/compiler/test/PirTests.cpp.o
+[12/13] Building CXX object CMakeFiles/rir.dir/rir/src/ir/Compiler.cpp.o
+[13/13] Linking CXX shared library librir.so

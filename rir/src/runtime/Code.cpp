@@ -160,6 +160,32 @@ void Code::serialize(SEXP refTable, R_outpstream_t out) const {
     }
 }
 
+Code * Code::getSrcAtOffset(int & index) {
+    Opcode* pc = code();
+    if (index == 0) {
+        return this;
+    }
+
+    index--;
+
+    std::vector<BC::FunIdx> promises;
+    while (pc < endCode()) {
+        BC bc = BC::decode(pc, this);
+        bc.addMyPromArgsTo(promises);
+
+        pc = BC::next(pc);
+    }
+
+    Code * res;
+
+    for (auto i : promises) {
+        auto c = getPromise(i);
+        res = c->getSrcAtOffset(index);
+        if (res != nullptr) return res;
+    }
+    return nullptr;
+}
+
 // std::unordered_map<size_t, BC::PoolIdx> Code::cpHastPatch;
 // std::unordered_map<size_t, void*> Code::hastClosMap;
 // std::unordered_map<size_t, void*> Code::hastCodeMap;

@@ -511,3 +511,5 @@ execute <- function(n) {
   checksum = flexclust(n)
   cat("Flexclust::kcca ", n, " " , checksum, "\n")
 }
+
+execute(3)

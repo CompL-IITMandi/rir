@@ -236,6 +236,8 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
     void disassemble(std::ostream& out) const { disassemble(out, ""); }
     void print(std::ostream&) const;
 
+    Code * getSrcAtOffset(int & index);
+
     static size_t extraPtrOffset() {
         static Code* c = (Code*)malloc(sizeof(Code));
         assert(c);

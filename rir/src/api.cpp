@@ -43,10 +43,6 @@ extern "C" Rboolean R_Visible;
 
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
 
-// std::unordered_map<size_t, FunctionMeta> DeserializerData::binaryDependencyMap;
-// std::unordered_map<size_t, std::set<size_t>> DeserializerData::hastUnlockMap;
-// std::unordered_map<size_t, void *> DeserializerData::vtableMap;
-
 static size_t oldMaxInput = 0;
 static size_t oldInlinerMax = 0;
 static bool oldPreserve = false;
@@ -378,62 +374,32 @@ SEXP deserializeFromFile(std::string metaDataPath) {
     }
 
     if (metaDataFile) {
+        hastMeta hMeta = hastMeta::readHastMeta(metaDataFile);
 
-        // READ 1: (int) nameLength
-        int nameLen = 0;
-        metaDataFile.read(reinterpret_cast<char *>(&nameLen),sizeof(int));
-
-        // READ 2: (bytes...) functionName
-        char * functionName = new char [nameLen + 1];
-        metaDataFile.read(functionName,sizeof(char) * nameLen);
-        functionName[nameLen] = '\0';
-
-        // READ 3: (size_t) hast
-        size_t hast = 0;
-        metaDataFile.read(reinterpret_cast<char *>(&hast),sizeof(size_t));
-
-        // READ 4: (int) versions
-        int versions = 0;
-        metaDataFile.read(reinterpret_cast<char *>(&versions),sizeof(int));
-
-        #if API_PRINT_DESERIALIZED_VALUES == 1
-        std::cout << "(*) loading bitcode for " << functionName << "(" << hast << ")" << ", found " << versions << " versions." << std::endl;
+        #if PRINT_DESERIALIZER_PROGRESS == 1
+        std::cout << "(>) Deserializer Start" << std::endl;
+        hMeta.print(std::cout);
         #endif
-
-        #if API_PRINT_DESERIALIZED_VALUES == 1
-        std::cout << "Entry 1(nameLen): " << nameLen << std::endl;
-        std::cout << "Entry 2(name): " << functionName << std::endl;
-        std::cout << "Entry 3(hast): " << hast << std::endl;
-        std::cout << "Entry 4(number of contexts): " << versions << std::endl;
-        #endif
-
-        Protect p;
-        SEXP meta;
-        p(meta = Rf_allocVector(VECSXP, versions));
 
         int i = 0;
-        for (i = 0; i < versions; i++) {
+        for (i = 0; i < hMeta.numVersions; i++) {
 
-
-            // READ 5: CONTEXTNO
-            unsigned long con = 0;
-            metaDataFile.read(reinterpret_cast<char *>(&con),sizeof(unsigned long));
-
-            std::stringstream conSymStr;
-            conSymStr << con;
-
-            SET_VECTOR_ELT(meta, i, Rf_install(conSymStr.str().c_str()));
-
-            // READING CONTEXT
-            Context c(con);
-
-            #if API_PRINT_DESERIALIZED_VALUES == 1
-            std::cout << "------------(" << con << ") : " << c << std::endl;
+            contextMeta cMeta = contextMeta::readContextMeta(metaDataFile);
+            #if PRINT_DESERIALIZER_PROGRESS == 1
+            std::cout << "============ ============ ============" << std::endl;
+            cMeta.print(std::cout);
             #endif
+
+            // INSERT THE FUNCTION INTO THE JIT
+            pir::Module* m = new pir::Module;
+            pir::StreamLogger logger(pir::DebugOptions::DefaultDebugOptions);
+            logger.title("Compiling " + hMeta.name);
+            pir::Compiler cmp(m, logger);
+            pir::Backend backend(m, logger, hMeta.name);
 
             // MAIN PREFIX
             std::stringstream mainPrefix;
-            mainPrefix << prefix << hast << "_" << con;
+            mainPrefix << prefix << hMeta.hast << "_" << cMeta.con;
 
             // PATH TO BITCODE FILE
             std::stringstream bitcodePath;
@@ -443,196 +409,21 @@ SEXP deserializeFromFile(std::string metaDataPath) {
             std::stringstream poolPath;
             poolPath << mainPrefix.str() << ".pool";
 
-            // CREATING THE FUNCTION SIGNATURE
-
-            int envCreation = 0;
-            int optimization = 0;
-            unsigned int numArguments = 0;
-            size_t dotsPosition = 0;
-            size_t cPoolEntriesSize = 0;
-            size_t srcPoolEntriesSize = 0;
             size_t ePoolEntriesSize = 0;
-            size_t promiseSrcPoolEntriesSize = 0;
-
-            size_t mainNameLen = 0;
-            char * mainName;
-
-            size_t childrenDataLength = 0;
-            char * childrenData;
-
-            size_t srcDataLength = 0;
-            char * srcData;
-
-            size_t argDataLength = 0;
-            char * argData;
-
-            size_t arglistOrderEntriesLength = 0;
-            size_t reqMapSize = 0;
-
-            // READ 6: ENVCREATION
-            metaDataFile.read(reinterpret_cast<char *>(&envCreation),sizeof(int));
-
-            // READ 7: OPTIMIZATION
-            metaDataFile.read(reinterpret_cast<char *>(&optimization),sizeof(int));
-
-            // READ 8: NUM ARGS
-            metaDataFile.read(reinterpret_cast<char *>(&numArguments),sizeof(unsigned int));
-
-            // READ 9: DOTS POS
-            metaDataFile.read(reinterpret_cast<char *>(&dotsPosition),sizeof(size_t));
-
-            // READ 10: MAIN FUNCTION LENGTH
-            metaDataFile.read(reinterpret_cast<char *>(&mainNameLen),sizeof(size_t));
-
-            // READ 11: MAIN FUNCTION NAME
-            mainName = new char [mainNameLen + 1];
-            metaDataFile.read(mainName,mainNameLen);
-            mainName[mainNameLen] = '\0';
-
-            // READ 12: ConstantPoolEntries
-            metaDataFile.read(reinterpret_cast<char *>(&cPoolEntriesSize),sizeof(size_t));
-
-            // READ 13: SourcePoolEntries
-            metaDataFile.read(reinterpret_cast<char *>(&srcPoolEntriesSize),sizeof(size_t));
-
-            // READ 14: ExtraPoolEntries
-            metaDataFile.read(reinterpret_cast<char *>(&ePoolEntriesSize),sizeof(size_t));
-
-            // READ 15: ExtraPoolEntries
-            metaDataFile.read(reinterpret_cast<char *>(&promiseSrcPoolEntriesSize),sizeof(size_t));
-
-
-            // Entry 16 (size_t): childrenDataLength
-            metaDataFile.read(reinterpret_cast<char *>(&childrenDataLength),sizeof(size_t));
-
-            // Entry 17 (bytes...): name
-            childrenData = new char [childrenDataLength + 1];
-            metaDataFile.read(childrenData,childrenDataLength);
-            childrenData[childrenDataLength] = '\0';
-
-            // Entry 18 (size_t): srcDataLength
-            metaDataFile.read(reinterpret_cast<char *>(&srcDataLength),sizeof(size_t));
-
-            // Entry 19 (bytes...): name
-            srcData = new char [srcDataLength + 1];
-            metaDataFile.read(srcData,srcDataLength);
-            srcData[srcDataLength] = '\0';
-
-            // Entry 20 (size_t): argDataLength
-            metaDataFile.read(reinterpret_cast<char *>(&argDataLength),sizeof(size_t));
-
-            // Entry 21 (bytes...): argData
-            argData = new char [argDataLength + 1];
-            metaDataFile.read(argData,argDataLength);
-            argData[argDataLength] = '\0';
-
-            // Entry 22 (size_t): arglistOrderEntriesLength
-            metaDataFile.read(reinterpret_cast<char *>(&arglistOrderEntriesLength),sizeof(size_t));
-
-            std::vector<std::vector<std::vector<size_t>>> argOrderingData;
-
-            for (size_t i = 0; i < arglistOrderEntriesLength; i++) {
-                // Entry 23 (size_t): outerEntriesSize
-                size_t outerEntriesSize = 0;
-                metaDataFile.read(reinterpret_cast<char *>(&outerEntriesSize),sizeof(size_t));
-
-                std::vector<std::vector<size_t>> outerData;
-                for (size_t j = 0; j < outerEntriesSize; j++) {
-                    // Entry 24 (size_t): innerEntriesSize
-                    size_t innerEntriesSize = 0;
-                    metaDataFile.read(reinterpret_cast<char *>(&innerEntriesSize),sizeof(size_t));
-
-                    std::vector<size_t> innerData;
-                    for (size_t k = 0; k < innerEntriesSize; k++) {
-                        size_t currEntry = 0;
-                        // Entry 25 (size_t): currEntry
-                        metaDataFile.read(reinterpret_cast<char *>(&currEntry),sizeof(size_t));
-
-                        innerData.push_back(currEntry);
-                    }
-
-                    outerData.push_back(innerData);
-                }
-
-                argOrderingData.push_back(outerData);
-            }
-
-            // Entry 26 (size_t): reqMapSize
-            metaDataFile.read(reinterpret_cast<char *>(&reqMapSize),sizeof(size_t));
-
-            std::vector<size_t> reqMapForCompilation;
-
-            for (size_t i = 0; i < reqMapSize; i++) {
-                size_t currEntry = 0;
-                // Entry 27 (size_t): currEntry
-                metaDataFile.read(reinterpret_cast<char *>(&currEntry),sizeof(size_t));
-                reqMapForCompilation.push_back(currEntry);
-            }
-
-
-            #if API_PRINT_DESERIALIZED_VALUES == 1
-            std::cout << "   Entry 5(context):" << con << std::endl;
-            std::cout << "   Entry 6(envCreation): " << envCreation << std::endl;
-            std::cout << "   Entry 7(optimization): " << optimization << std::endl;
-            std::cout << "   Entry 8(numArguments): " << numArguments << std::endl;
-            std::cout << "   Entry 9(dotsPosition): " << dotsPosition << std::endl;
-            std::cout << "   Entry 10(mainNameLen): " << mainNameLen << std::endl;
-            std::cout << "   Entry 11(name): " << mainName << std::endl;
-            std::cout << "   Entry 12(cPoolEntriesSize): " << cPoolEntriesSize << std::endl;
-            std::cout << "   Entry 13(srcPoolEntriesSize): " << srcPoolEntriesSize << std::endl;
-            std::cout << "   Entry 14(ePoolEntriesSize): " << ePoolEntriesSize << std::endl;
-            std::cout << "   Entry 15(promiseSrcPoolEntriesSize): " << promiseSrcPoolEntriesSize << std::endl;
-            std::cout << "   Entry 16(childrenDataLength): " << childrenDataLength << std::endl;
-            std::cout << "   Entry 17(childrenData): " << childrenData << std::endl;
-            std::cout << "   Entry 18(srcDataLength): " << srcDataLength << std::endl;
-            std::cout << "   Entry 19(srcData): " << srcData << std::endl;
-            std::cout << "   Entry 20(argDataLength): " << argDataLength << std::endl;
-            std::cout << "   Entry 21(argData): " << argData << std::endl;
-            std::cout << "   Entry 22(arglistOrderEntriesLength): " << arglistOrderEntriesLength << std::endl;
-            for (auto & ele : argOrderingData) {
-                std::cout << "      Entry 23(outerEntriesSize): " << ele.size() << std::endl;
-                for (auto & outer : ele) {
-                    std::cout << "         Entry 24(innerEntriesSize): " << outer.size() << std::endl;
-                    for (auto & ele : outer) {
-                        std::cout << "            Entry 25(currEntry): " << ele << std::endl;
-                    }
-                }
-            }
-            std::cout << "   Entry 26(reqMapSize): " << reqMapSize << std::endl;
-            for (auto & ele : reqMapForCompilation) {
-                std::cout << "      Entry 27(currEntry): " << ele << std::endl;
-            }
-            #endif
-
-            // CREATE THE META TO RECREATE THE FUNCTION WHEN WE ENCOUNTER ITS RIR CREATION
-            FunctionSignature fs((FunctionSignature::Environment) envCreation, (FunctionSignature::OptimizationLevel) optimization);
-            fs.numArguments = numArguments;
-            fs.dotsPosition = dotsPosition;
-
-            // INSERT THE FUNCTION INTO THE JIT
-            pir::Module* m = new pir::Module;
-            pir::StreamLogger logger(pir::DebugOptions::DefaultDebugOptions);
-            logger.title("Compiling " + std::string(functionName));
-            pir::Compiler cmp(m, logger);
-            pir::Backend backend(m, logger, functionName);
 
             backend.deserialize(
-                argOrderingData,
-                hast, c,
-                envCreation, optimization, numArguments, dotsPosition,
-                bitcodePath.str(), poolPath.str(), std::string(mainName), std::string(childrenData), std::string(srcData), std::string(argData),
-                cPoolEntriesSize, srcPoolEntriesSize, ePoolEntriesSize, promiseSrcPoolEntriesSize); // passing the context and fileName (remove context later)
+                cMeta.argOrderingData,
+                hMeta.hast, Context(cMeta.con),
+                cMeta.envCreation, cMeta.optimization, cMeta.numArguments, cMeta.dotsPosition,
+                bitcodePath.str(), poolPath.str(), cMeta.mainName, cMeta.childrenData, cMeta.srcData, cMeta.argData,
+                cMeta.cPoolEntriesSize, cMeta.srcPoolEntriesSize, ePoolEntriesSize, cMeta.promiseSrcPoolEntriesSize); // passing the context and fileName (remove context later)
 
-            SEXP map = Pool::get(1);
-            DeserialDataMap::addDependencies(map, hast, con, reqMapForCompilation);
+            // SEXP map = Pool::get(1);
+            // DeserialDataMap::addDependencies(map, hast, con, reqMapForCompilation);
 
-            delete[] mainName;
-            delete[] childrenData;
-            delete[] srcData;
-            delete[] argData;
         }
 
-        delete[] functionName;
+        // delete[] functionName;
         return R_TrueValue;
     }
 
@@ -665,10 +456,12 @@ REXPORT SEXP loadBitcodes() {
         }
 
         closedir (dir);
-
+        #if PRINT_DEPENDENCY_MAP == 1
         DeserialDataMap::printDependencies();
+        #endif
+        #if PRINT_UNLOCK_MAP == 1
         DeserialDataMap::printUnlockMap();
-
+        #endif
     } else {
         /* could not open directory */
         perror ("");
