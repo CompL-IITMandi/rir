@@ -21,7 +21,7 @@
 #include "utils/measuring.h"
 
 #include "patches.h"
-
+#include "api.h"
 #include "llvm/Support/raw_os_ostream.h"
 #include <random>
 
@@ -30,6 +30,7 @@
 #include <iomanip>
 #include <list>
 #include <sstream>
+#include <set>
 #include <unordered_set>
 
 namespace rir {
@@ -305,32 +306,6 @@ static void toCSSA(Module* m, Code* code) {
     });
 }
 
-static void updateModuleNames(std::string name,  Code* c, PirJitLLVM * jit, Code * mainFunCodeObj,
-    std::unordered_map<Code*,
-        std::unordered_map<Code*, std::pair<unsigned, MkArg*>>> & promMap,
-        std::unordered_map<Code*, rir::Code*> & done, std::vector<unsigned> & srcIndices
-        ) {
-    #if BACKEND_PRINT_NAME_UPDATES == 1
-    std::cout << "Updating name: " << done[c]->mName << " -> " << name << "{" << done[c]->container() << "}" << std::endl;
-    #endif
-    srcIndices.push_back(c->rirSrc()->src);
-    jit->updateFunctionNameInModule(done[c]->mName, name);
-    jit->patchFixupHandle(name, c);
-    for (auto & promise : promMap[c]) {
-        std::stringstream ss;
-        ss << name;
-        ss << "_";
-        for (size_t i = 0; i < done[c]->extraPoolSize; i++) {
-            if (done[c]->getExtraPoolEntry(i) == done[promise.first]->container()) {
-                ss << i;
-                break;
-            }
-        }
-
-        updateModuleNames(ss.str(), promise.first, jit, mainFunCodeObj, promMap, done, srcIndices);
-    }
-}
-
 bool MEASURE_COMPILER_BACKEND_PERF =
     getenv("PIR_MEASURE_COMPILER_BACKEND") ? true : false;
 
@@ -401,9 +376,10 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         hast = dt->baseline()->body()->hast;
     }
 
-    if (sCallback != NULL) {
-        std::cout << "Enabled debug statements" << std::endl;
+    if (cMeta != nullptr) {
+        #if ADD_EXTRA_DEBUGGING_DATA == 1
         jit.enableDebugStatements();
+        #endif
     }
 
     std::unordered_map<Code*, rir::Code*> done;
@@ -436,12 +412,9 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
 
     auto body = compile(cls);
 
-    // sCallback is non null if we are trying to serialize the function
-    if (sCallback != NULL) {
-        std::cout << "Disabled debug statements" << std::endl;
+    if (cMeta != nullptr) {
+        #if ADD_EXTRA_DEBUGGING_DATA == 1
         jit.disableDebugStatements();
-        #if BACKEND_INITIAL_COMPILATION_SUCCESS_MSG == 1
-        std::cout << "Initial compilation successful, name patching begins now" << std::endl;
         #endif
 
         #if BACKEND_PRINT_INITIAL_LLVM == 1
@@ -511,18 +484,158 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         }
 
         std::vector<unsigned> srcIndices;
+        std::vector<rir::Code*> argDataCodes;
+
+        #if PRINT_DONE_MAP == 1
+        std::cout << "(*) DONE MAP" << std::endl;
+        for (auto & ele : done) {
+            std::cout << "    " << ele.first << " -> " << ele.second << std::endl;
+        }
+        #endif
+
+        #if PRINT_PROM_MAP == 1
+        std::cout << "(*) PROMISE MAP" << std::endl;
+        std::cout << "    ROOT: " << mainFunCodeObj << std::endl;
+        for (auto & ele : promMap) {
+            std::cout << "    " << ele.first << " - [ ";
+            for (auto & p : ele.second) {
+                std::cout << p.first << " ";
+            }
+            std::cout << "]" << std::endl;
+        }
+        #endif
+
+        int uid = 0;
+        std::unordered_map<Code *, std::string> processedName;
+
+        std::stringstream childrenData;
+        std::stringstream srcData;
+        std::stringstream argData;
+
+        int sid = 0;
+        int argId = 0;
+
+        auto getProcessedName = [&](Code * c) {
+            if (processedName.find(c) == processedName.end()) {
+                std::stringstream nn;
+                nn << startingUID << "_" << uid++;
+                std::string name = nn.str();
+                // Update the name in module to the new one
+                jit.updateFunctionNameInModule(done[c]->mName, name);
+                // Update the name for the handle
+                jit.patchFixupHandle(name, c);
+                processedName[c] = name;
+
+                srcData << name << "," << sid++ << ",";
+                srcIndices.push_back(c->rirSrc()->src);
+
+                argData << name << ",";
+
+                if (done[c]->arglistOrder() != nullptr) {
+                    argData << argId++ << ",";
+                    argDataCodes.push_back(done[c]);
+                } else {
+                    argData << "|" << ",";
+                }
+
+                #if BACKEND_PRINT_NAME_UPDATES == 1
+                std::cout << "(*) Updating name: " << done[c]->mName << " -> " << name << std::endl;
+                #endif
+
+                return name;
+            } else {
+                return processedName[c];
+            }
+        };
+
+        std::function<void(Code* c)>
+            updateModuleNames = [&](Code* c) {
+
+            std::string name = getProcessedName(c);
+
+            // Traverse over all the promises for the current code object
+            auto & promisesForThisObj = promMap[c];
+            // If there are promises, then work on this
+            if (promisesForThisObj.size() > 0) {
+                childrenData << name << ",";
+                for (size_t i = 0; i < promisesForThisObj.size(); i++) {
+                    // get i'th promise
+                    auto curr = done[c]->getExtraPoolEntry(i);
+                    for (auto & promise : promisesForThisObj) {
+                        if (curr == done[promise.first]->container()) {
+                            childrenData << getProcessedName(promise.first) << ",";
+                            // childrenData << ",";
+                            // if (i != promisesForThisObj.size() - 1) {
+                            // }
+                            break;
+                        }
+                    }
 
 
-        // Updates the names in a scheme that allows it to be read by the deserializer
-        updateModuleNames(startingUID, mainFunCodeObj, &jit, mainFunCodeObj, promMap, done, srcIndices);
+                }
+                childrenData << "|,";
 
-        // Callback to patch the symbols and serialize the to bc
-        jit.moduleMakeup(sCallback, done[mainFunCodeObj], srcIndices);
+            }
 
-        std::cout << "serializing: " << hast << ", numArgs: " << signature.numArguments << std::endl;
+        };
 
-        // The JIT handle and function signature to recreate the function upon deserializing
-        signatureCallback(signature, startingUID);
+        for (auto & ele : promMap) {
+            updateModuleNames(ele.first);
+        }
+        childrenData << "|";
+
+        jit.serializeModule(done[mainFunCodeObj], srcIndices, cMeta);
+
+        std::string mainName = getProcessedName(mainFunCodeObj);
+
+        cMeta->envCreation = (int)signature.envCreation; // 6
+        cMeta->optimization = (int)signature.optimization; // 7
+        cMeta->numArguments = signature.numArguments; // 8
+        cMeta->dotsPosition = signature.dotsPosition; // 9
+
+        cMeta->mainNameLen = strlen(mainName.c_str()); // 10
+        cMeta->mainName = mainName; // 11
+
+        // 12-cPoolEntriesSize
+        // 13-srcPoolEntriesSize
+        // 14-ePoolEntriesSize
+        // 15-promiseSrcPoolEntriesSize
+
+        cMeta->childrenDataLength = strlen(childrenData.str().c_str()); // 16
+        cMeta->childrenData = childrenData.str(); // 17
+
+        cMeta->srcDataLength = strlen(srcData.str().substr(0,srcData.str().size() - 1).c_str()); // 18
+        cMeta->srcData = srcData.str().substr(0,srcData.str().size() - 1); // 19
+
+        cMeta->argDataLength = strlen(argData.str().substr(0,argData.str().size() - 1).c_str()); // 20
+        cMeta->argData = argData.str().substr(0,argData.str().size() - 1); // 21
+
+        cMeta->arglistOrderEntriesLength = argDataCodes.size(); // 22
+
+        std::vector<std::vector<std::vector<size_t>>> argOrderingData;
+        for (auto & codeObj : argDataCodes) {
+            std::vector<std::vector<size_t>> outerData;
+
+            for (auto & outer : codeObj->argOrderingVec) {
+                std::vector<size_t> innerData;
+
+                for (auto & inner : outer) {
+                    innerData.push_back(inner);
+                }
+                outerData.push_back(innerData);
+            }
+            argOrderingData.push_back(outerData);
+        }
+
+        cMeta->argOrderingData = argOrderingData; // 23, 24, 25
+
+        cMeta->reqMapSize = jit.reqMapForCompilation.size(); // 26
+
+        for (auto & ele : jit.reqMapForCompilation) {
+            cMeta->reqMapForCompilation.push_back(ele); // 27
+
+        }
+
         #if BACKEND_PRINT_FINAL_LLVM == 1
         std::cout << "BACKEND_INITIAL_LLVM" << std::endl;
         jit.printModule();
@@ -556,16 +669,6 @@ Backend::LastDestructor::LastDestructor() {
     if (MEASURE_COMPILER_BACKEND_PERF) {
         Measuring::startTimer("backend.cpp: overal");
     }
-}
-
-void Backend::addSerializer(std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> call, std::function<void(FunctionSignature &, std::string)> signCall) {
-    sCallback = call;
-    signatureCallback = signCall;
-}
-
-void Backend::clearSerializer() {
-    sCallback = nullptr;
-    signatureCallback = nullptr;
 }
 
 rir::Function* Backend::getOrCompile(ClosureVersion* cls) {

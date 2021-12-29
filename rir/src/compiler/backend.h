@@ -7,9 +7,11 @@
 #include "compiler/pir/module.h"
 #include "compiler/pir/pir.h"
 #include "runtime/Function.h"
+#include "api.h"
 
 #include <sstream>
 #include <unordered_set>
+#include <set>
 
 namespace rir {
 namespace pir {
@@ -18,15 +20,15 @@ class Backend {
   public:
     Backend(Module* m, StreamLogger& logger, const std::string& name)
         : module(m), jit(name), logger(logger) {
-          sCallback = NULL;
+
         }
     Backend(const Backend&) = delete;
     Backend& operator=(const Backend&) = delete;
 
     rir::Function* getOrCompile(ClosureVersion* cls);
 
-    void addSerializer(std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)>, std::function<void(FunctionSignature &, std::string)>);
-    void clearSerializer();
+    contextMeta* cMeta = nullptr;
+
   private:
     struct LastDestructor {
         LastDestructor();
@@ -34,8 +36,6 @@ class Backend {
     };
     LastDestructor firstMember_;
     Preserve preserve;
-    std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> sCallback;
-    std::function<void(FunctionSignature &, std::string)> signatureCallback;
     Module* module;
     PirJitLLVM jit;
     std::unordered_map<ClosureVersion*, Function*> done;

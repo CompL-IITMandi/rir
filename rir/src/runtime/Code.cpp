@@ -5,7 +5,7 @@
 #include "compiler/native/pir_jit_llvm.h"
 #include "ir/BC.h"
 #include "utils/Pool.h"
-
+#include "utils/UMap.h"
 
 #include <llvm/ExecutionEngine/JITSymbol.h>
 #include <llvm/Support/Errno.h>
@@ -161,9 +161,110 @@ void Code::serialize(SEXP refTable, R_outpstream_t out) const {
     }
 }
 
-std::unordered_map<int, void*> Code::hastMap;
+Code * Code::getSrcAtOffset(int & index) {
+    Opcode* pc = code();
+    if (index == 0) {
+        return this;
+    }
+
+    index--;
+
+    std::vector<BC::FunIdx> promises;
+    while (pc < endCode()) {
+        BC bc = BC::decode(pc, this);
+        bc.addMyPromArgsTo(promises);
+
+        pc = BC::next(pc);
+    }
+
+    Code * res;
+
+    for (auto i : promises) {
+        auto c = getPromise(i);
+        res = c->getSrcAtOffset(index);
+        if (res != nullptr) return res;
+    }
+    return nullptr;
+}
+
+
+void Code::populateSrcData(size_t parentHast, SEXP map, bool mainSrc, int & index) {
+    Opcode* pc = code();
+    size_t label = 0;
+    std::map<Opcode*, size_t> targets;
+    targets[pc] = label++;
+    while (pc < endCode()) {
+        if (BC::decodeShallow(pc).isJmp()) {
+            auto t = BC::jmpTarget(pc);
+            if (!targets.count(t))
+                targets[t] = label++;
+        }
+        pc = BC::next(pc);
+    }
+
+    // sort labels ascending
+    label = 0;
+    for (auto& t : targets)
+        t.second = label++;
+
+    pc = code();
+    std::vector<BC::FunIdx> promises;
+
+    Protect p;
+    if (mainSrc) {
+        #if PRINT_POPULATED_SRC_DATA == 1
+        std::cout << "hast(" << parentHast << ", " <<src << "): [ ";
+        #endif
+        SEXP srcSym = Rf_install(std::to_string(src).c_str());
+
+        SEXP hastSym = Rf_install(std::to_string(parentHast).c_str());
+        SEXP indexSym = Rf_install(std::to_string(index).c_str());
+        SEXP resVec;
+        p(resVec = Rf_allocVector(VECSXP, 2));
+        SET_VECTOR_ELT(resVec, 0, hastSym);
+        SET_VECTOR_ELT(resVec, 1, indexSym);
+        UMap::insert(map, srcSym, resVec);
+    } else {
+        #if PRINT_POPULATED_SRC_DATA == 1
+        std::cout << "(" << ++index << ", " << src << ") ";
+        #endif
+        SEXP srcSym = Rf_install(std::to_string(src).c_str());
+
+        SEXP hastSym = Rf_install(std::to_string(parentHast).c_str());
+        SEXP indexSym = Rf_install(std::to_string(index).c_str());
+        SEXP resVec;
+        p(resVec = Rf_allocVector(VECSXP, 2));
+        SET_VECTOR_ELT(resVec, 0, hastSym);
+        SET_VECTOR_ELT(resVec, 1, indexSym);
+        UMap::insert(map, srcSym, resVec);
+    }
+
+    while (pc < endCode()) {
+        BC bc = BC::decode(pc, this);
+        bc.addMyPromArgsTo(promises);
+
+        pc = BC::next(pc);
+    }
+
+
+    for (auto i : promises) {
+        auto c = getPromise(i);
+        c->populateSrcData(parentHast, map, false, index);
+    }
+
+    #if PRINT_POPULATED_SRC_DATA == 1
+    if (mainSrc) {
+        std::cout << "]" << std::endl;
+    }
+    #endif
+
+}
+
+std::unordered_map<size_t, void*> Code::hastClosMap;
+std::unordered_map<size_t, void*> Code::hastCodeMap;
 
 void Code::disassemble(std::ostream& out, const std::string& prefix) const {
+    out << "code src: " << src << std::endl;
     if (auto map = pirTypeFeedback()) {
         map->forEachSlot([&](size_t i,
                              const PirTypeFeedback::MDEntry& mdEntry) {

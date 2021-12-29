@@ -18,6 +18,7 @@
 #include "runtime/LazyArglist.h"
 #include "runtime/LazyEnvironment.h"
 #include "utils/Pool.h"
+#include "utils/UMap.h"
 
 #include "llvm/IR/Intrinsics.h"
 #include <llvm/IR/Constants.h>
@@ -48,7 +49,28 @@ using namespace llvm;
 extern "C" size_t R_NSize;
 extern "C" size_t R_NodesInUse;
 
+#if DEBUG_LOCATIONS == 1
 static int location = 0;
+#endif
+
+static bool inIdentical = false;
+static bool inai = false;
+static bool inbi = false;
+static bool aiLocal = false;
+static bool biLocal = false;
+static bool aiasRVal = false;
+static bool biasRVal = false;
+#if DEBUG_PRINT_Identical_Inst == 1
+static llvm::Value * lastCPEntry = 0;
+#endif
+struct LdVarOrigin {
+    std::string varName;
+    SEXP lookupSymbol;
+    bool globalEnv;
+    rir::pir::Value * envCreatedAt;
+};
+static std::unordered_map<rir::pir::Value *, LdVarOrigin> ldVarData;
+static std::unordered_map<rir::pir::Value *, LdVarOrigin> mkEnvData;
 
 static_assert(sizeof(unsigned long) == sizeof(uint64_t),
               "sizeof(unsigned long) and sizeof(uint64_t) should match");
@@ -425,11 +447,15 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
             ss << "spef_";
             ss << co->u.primsxp.offset;
             return convertToExternalSymbol(ss.str());
+        } else if (R_FunTab[co->u.primsxp.offset].gram.kind == PP_ASSIGN) {
+            std::stringstream ss;
+            ss << "spe1_";
+            ss << co->u.primsxp.offset;
+            return convertToExternalSymbol(ss.str());
         } else {
             #if DEBUG_ERR_MSG == 1
             std::cerr << "PATCH_SPECIALSXP: non-function type, offset: " << co->u.primsxp.offset << ", kind: " << R_FunTab[co->u.primsxp.offset].gram.kind << std::endl;
             #endif
-            return convertToPointer(co, true);
         }
 
         #else
@@ -441,6 +467,9 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     auto cpIndex = Pool::insert(co);
     auto iVal = globalConst(c(cpIndex), t::i32);
     auto iLoad = builder.CreateLoad(iVal);
+    // if (inIdentical) {
+    //     lastCPEntry = iVal;
+    // }
 
     llvm::Value* pos = builder.CreateLoad(constantpool);
     pos = builder.CreateBitCast(dataPtr(pos, false),
@@ -618,13 +647,18 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
     auto vali = Instruction::Cast(val);
 
     if (auto ct = CastType::Cast(val)) {
-        // std::cout << "CastType" << std::endl;
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() CastType" << std::endl;
+        #endif
         if (Const::Cast(ct->arg(0).val())) {
             return load(ct->arg(0).val(), type, needed);
         }
     }
 
     if (auto a = LdArg::Cast(val)) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() LdArg" << std::endl;
+        #endif
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
             auto msg = builder.CreateGlobalString(
@@ -634,6 +668,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         #endif
         res = argument(a->pos);
     } else if (vali && variables_.count(vali)) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() variable" << std::endl;
+        #endif
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
             auto msg = builder.CreateGlobalString(
@@ -641,8 +678,17 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             addDebugMsg(msg, -1, location++);
         }
         #endif
+        if (inai) {
+            aiLocal = true;
+        }
+        if (inbi) {
+            biLocal = true;
+        }
         res = getVariable(vali);
     } else if (val == Env::elided()) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() env_elided" << std::endl;
+        #endif
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
             auto msg = builder.CreateGlobalString(
@@ -652,7 +698,13 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         #endif
         res = constant(R_NilValue, needed);
     } else if (auto e = Env::Cast(val)) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() env" << std::endl;
+        #endif
         if (e == Env::notClosed()) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() env_not_closed" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -662,6 +714,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             #endif
             res = closxpEnv(paramClosure());
         } else if (e == Env::nil()) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() env_nil" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -671,6 +726,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             #endif
             res = constant(R_NilValue, needed);
         } else if (Env::isStaticEnv(e)) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() env_static" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -683,6 +741,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             assert(false);
         }
     } else if (val->asRValue()) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() asRVal" << std::endl;
+        #endif
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
             auto msg = builder.CreateGlobalString(
@@ -690,8 +751,17 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             addDebugMsg(msg, -1, location++);
         }
         #endif
+        if (inai) {
+            aiasRVal = true;
+        }
+        if (inbi) {
+            biasRVal = true;
+        }
         res = constant(val->asRValue(), needed);
     } else if (val == OpaqueTrue::instance()) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() opaqueTrue" << std::endl;
+        #endif
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
             auto msg = builder.CreateGlobalString(
@@ -708,6 +778,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         res = builder.CreateLoad(convertToPointer(&one, t::Int, true));
         #endif
     } else if (auto ld = Const::Cast(val)) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() const" << std::endl;
+        #endif
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
             auto msg = builder.CreateGlobalString(
@@ -717,6 +790,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         #endif
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() deoptReason" << std::endl;
+        #endif
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
             auto msg = builder.CreateGlobalString(
@@ -724,45 +800,51 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             addDebugMsg(msg, -1, location++);
         }
         #endif
-        auto dr = (DeoptReasonWrapper*)val;
+
+
+
 
         #if TRY_PATCH_DEOPTREASON == 1
+        auto dr = (DeoptReasonWrapper*)val;
         auto realOffset = dr->reason.origin.pc() - dr->reason.origin.srcCode()->code();
         Constant * srcAddr;
-        if (dr->reason.srcCode()->hast != 0) {
-            std::stringstream ss;
-            ss << "hast_" << dr->reason.srcCode()->hast;
-            srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
-        } else {
-            #if DEBUG_ERR_MSG == 1
-            std::cerr << "Failed to patch DeoptReason: " << dr->reason.srcCode()->hast << std::endl;
-            // dr->reason.srcCode()->disassemble(std::cout);
-            #endif
-            srcAddr = (Constant*)builder.CreateIntToPtr(
-                llvm::ConstantInt::get(
-                    PirJitLLVM::getContext(),
-                    llvm::APInt(64,
-                                reinterpret_cast<uint64_t>(dr->reason.srcCode()),
-                                false)),
-                t::voidPtr);
-        }
+        SEXP map = Pool::get(1);
+        SEXP srcSym = Rf_install(std::to_string(((DeoptReasonWrapper*)val)->reason.srcCode()->src).c_str());
+
+        SEXP r = UMap::get(map, srcSym);
+        SEXP hastS = VECTOR_ELT(r, 0);
+        size_t hast = std::stoull(CHAR(PRINTNAME(hastS)));
+        SEXP indexS = VECTOR_ELT(r, 1);
+        int index = std::stoi(CHAR(PRINTNAME(indexS)));
+
+        reqMap.insert(hast);
+        std::stringstream ss;
+        ss << "code_" << hast << "_" << index;
+
+        #if DEBUG_PRINT_DeoptReason_Load == 1
+        std::cout << "DEBUG_PRINT_DeoptReason_Load(" << ss.str() << "): " << CHAR(PRINTNAME(hastS)) << "|" << CHAR(PRINTNAME(indexS)) << "{" << (uintptr_t)dr->reason.srcCode() << "}" << std::endl;
+        #endif
+
+        srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
+
         auto drs = llvm::ConstantStruct::get(
             t::DeoptReason, {c(dr->reason.reason, 32),
                              c(realOffset, 32), srcAddr});
+        res = globalConst(drs);
         #else
+        auto dr = (DeoptReasonWrapper*)val;
         auto srcAddr = (Constant*)builder.CreateIntToPtr(
-        llvm::ConstantInt::get(
-            PirJitLLVM::getContext(),
-            llvm::APInt(64,
-                        reinterpret_cast<uint64_t>(dr->reason.srcCode()),
-                        false)),
-        t::voidPtr);
+            llvm::ConstantInt::get(
+                PirJitLLVM::getContext(),
+                llvm::APInt(64,
+                            reinterpret_cast<uint64_t>(dr->reason.srcCode()),
+                            false)),
+            t::voidPtr);
         auto drs = llvm::ConstantStruct::get(
             t::DeoptReason, {c(dr->reason.reason, 32),
                              c(dr->reason.origin.offset(), 32), srcAddr});
-        #endif
-
         res = globalConst(drs);
+        #endif
     } else {
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
@@ -783,6 +865,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
 
     if (res->getType() == t::SEXP && needed != Rep::SEXP) {
         if (type.isA(PirType::simpleScalarInt())) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() simpleScalarInt" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -793,6 +878,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             res = unboxInt(res);
             assert(res->getType() == t::Int);
         } else if (type.isA(PirType::simpleScalarLogical())) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() simpleScalarLogical" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -804,6 +892,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             assert(res->getType() == t::Int);
         } else if (type.isA((PirType() | RType::integer | RType::logical)
                                 .simpleScalar())) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() type.isA((PirType() | RType::integer | RType::logical).simpleScalar())" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -814,6 +905,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             res = unboxIntLgl(res);
             assert(res->getType() == t::Int);
         } else if (type.isA(PirType::simpleScalarReal())) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() simpleScalarReal" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -826,6 +920,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         } else if (type.isA(
                        (PirType(RType::real) | RType::integer | RType::logical)
                            .simpleScalar())) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() type.isA((PirType(RType::real) | RType::integer | RType::logical).simpleScalar())" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -847,6 +944,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
     }
 
     if (res->getType() == t::Int && needed == Rep::f64) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() res->getType() == t::Int && needed == Rep::f64" << std::endl;
+        #endif
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
             auto msg = builder.CreateGlobalString(
@@ -857,6 +957,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         // TODO should we deal with na here?
         res = builder.CreateSIToFP(res, t::Double);
     } else if (res->getType() == t::Double && needed == Rep::i32) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() res->getType() == t::Double && needed == Rep::i32" << std::endl;
+        #endif
         #if DEBUG_LOCATIONS == 1
         if (debugStatements) {
             auto msg = builder.CreateGlobalString(
@@ -868,6 +971,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         res = builder.CreateFPToSI(res, t::Int);
     } else if ((res->getType() == t::Int || res->getType() == t::Double) &&
                needed == Rep::SEXP) {
+        #if DEBUG_PRINT_LOAD_FUN == 1
+        std::cout << "load() type.isA(PirType() | RType::integer)" << std::endl;
+        #endif
         if (type.isA(PirType() | RType::integer)) {
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
@@ -878,6 +984,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             #endif
             res = boxInt(res);
         } else if (type.isA(PirType::test())) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() type.isA(PirType::test())" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -887,6 +996,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             #endif
             res = boxTst(res);
         } else if (type.isA(PirType() | RType::logical)) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() type.isA(PirType() | RType::logical" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -896,6 +1008,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             #endif
             res = boxLgl(res);
         } else if (type.isA(PirType() | RType::real)) {
+            #if DEBUG_PRINT_LOAD_FUN == 1
+            std::cout << "load() type.isA(PirType() | RType::real)" << std::endl;
+            #endif
             #if DEBUG_LOCATIONS == 1
             if (debugStatements) {
                 auto msg = builder.CreateGlobalString(
@@ -1936,59 +2051,70 @@ llvm::Value* LowerFunctionLLVM::depromise(llvm::Value* arg, const PirType& t) {
     #if DEBUG_LOCATIONS == 1
     if (debugStatements) {
         auto msg = builder.CreateGlobalString(
-                "depromise()");
+                "Depromise: START");
         addDebugMsg(msg, -1, location++);
     }
     #endif
     auto isProm = BasicBlock::Create(PirJitLLVM::getContext(), "isProm", fun);
-    auto isVal = BasicBlock::Create(PirJitLLVM::getContext(), "", fun);
+    auto isVal = BasicBlock::Create(PirJitLLVM::getContext(), "isVal", fun);
     auto ok = BasicBlock::Create(PirJitLLVM::getContext(), "", fun);
 
     auto res = phiBuilder(t::SEXP);
 
     auto type = sexptype(arg);
+    auto tt = builder.CreateICmpEQ(type, c(PROMSXP));
     #if DEBUG_LOCATIONS == 1
     if (debugStatements) {
         auto msg = builder.CreateGlobalString(
-                "depromise()");
+                "Depromise: TYPE == PROMSXP ? isProm : isVal");
         addDebugMsg(msg, -1, location++);
     }
     #endif
-    auto tt = builder.CreateICmpEQ(type, c(PROMSXP));
     builder.CreateCondBr(tt, isProm, isVal, branchMostlyFalse);
 
     builder.SetInsertPoint(isProm);
     #if DEBUG_LOCATIONS == 1
     if (debugStatements) {
         auto msg = builder.CreateGlobalString(
-                "depromise()");
+                "Depromise(isProm)");
         addDebugMsg(msg, -1, location++);
     }
     #endif
     auto val = promsxpValue(arg);
+    #if DEBUG_LOCATIONS == 1
+    if (debugStatements) {
+        auto msg = builder.CreateGlobalString(
+                "Depromise(isProm): VALUE");
+        addDebugMsg(msg, -1, location++);
+        addDebugMsg(val, 1, location++);
+    }
+    #endif
     res.addInput(val);
     builder.CreateBr(ok);
 
     builder.SetInsertPoint(isVal);
+
     #if DEBUG_LOCATIONS == 1
     if (debugStatements) {
         auto msg = builder.CreateGlobalString(
-                "depromise()");
+                "Depromise(isVal)");
         addDebugMsg(msg, -1, location++);
     }
     #endif
+
 #ifdef ENABLE_SLOWASSERT
     insn_assert(builder.CreateICmpNE(sexptype(arg), c(PROMSXP)),
                 "Depromise returned promise");
 #endif
-    res.addInput(arg);
     #if DEBUG_LOCATIONS == 1
     if (debugStatements) {
         auto msg = builder.CreateGlobalString(
-                "depromise()");
+                "Depromise(isVal): VALUE");
         addDebugMsg(msg, -1, location++);
+        addDebugMsg(arg, 1, location++);
     }
     #endif
+    res.addInput(arg);
     builder.CreateBr(ok);
 
     builder.SetInsertPoint(ok);
@@ -2843,6 +2969,7 @@ void LowerFunctionLLVM::compile() {
                 if (!variables_.count(i))
                     break;
                 setVal(i, load(in, i->type, Rep::Of(i)));
+                ldVarData[i] = ldVarData[in];
                 break;
             }
 
@@ -2873,13 +3000,88 @@ void LowerFunctionLLVM::compile() {
                 auto a = i->arg(0).val();
                 auto b = i->arg(1).val();
 
+                #if DEBUG_PRINT_Identical_Inst == 1
+                std::cout << "(Identical) START" << std::endl;
+                std::cout << "(Identical) a at (Value *): " << a << std::endl;
+                std::cout << "(Identical) b at (Value *): " << b << std::endl;
+                #endif
+
                 auto rep = Rep::Of(a) < Rep::Of(b) ? Rep::Of(b) : Rep::Of(a);
+                // true
+                inIdentical = true;
+                inai = true;
+                #if DEBUG_LOCATIONS == 1
+                if (debugStatements) {
+                    auto msg = builder.CreateGlobalString(
+                            "Identical load a");
+                    addDebugMsg(msg, -1, location++);
+                }
+                #endif
                 auto ai = load(a, rep);
+                inai = false;
+                inbi = true;
+                #if DEBUG_LOCATIONS == 1
+                if (debugStatements) {
+                    auto msg = builder.CreateGlobalString(
+                            "Identical load b");
+                    addDebugMsg(msg, -1, location++);
+                }
+                #endif
                 auto bi = load(b, rep);
-                if (Rep::Of(a) == Rep::SEXP && a->type.maybePromiseWrapped())
+                inbi = false;
+                #if DEBUG_PRINT_Identical_Inst == 1
+                bool toPatchPoolValueFromEnv = false;
+                llvm::Value * cpEntry = lastCPEntry;
+                rir::pir::Value * loadFrom;
+                if (aiLocal && biasRVal) {
+                    std::cout << "(Identical)[b] 'ai' is local && 'bi' is an RVal from CP" << std::endl;
+                    loadFrom = a;
+                    toPatchPoolValueFromEnv = true;
+                }
+                if (aiasRVal && biLocal) {
+                    std::cout << "(Identical)[b] 'ai' is an RVal from CP && 'bi' is local" << std::endl;
+                    loadFrom = b;
+                    toPatchPoolValueFromEnv = true;
+                }
+
+                if (toPatchPoolValueFromEnv) {
+                    std::cout << "(Identical)[b] loaded value from CP should be patched" << std::endl;
+                    if (cpEntry) {
+                        if (auto v = llvm::dyn_cast<llvm::GlobalVariable>(cpEntry)) {
+                            std::cout << "(Identical)[p] global: '" << v->getName().str() << "' should be loaded from '" << ldVarData[loadFrom].varName << "' bound to ";
+                            if (ldVarData[loadFrom].globalEnv) {
+                                std::cout << "'GlobalEnv'" << std::endl;
+                            } else {
+                                std::cout << "'" << ldVarData[loadFrom].envCreatedAt << "'" << std::endl;
+                            }
+                        } else {
+                            std::cout << "(Identical) patching the pool value failed, not a llvm::GlobalVariable as expected" << std::endl;
+                        }
+                    } else {
+                        std::cout << "(Identical) not inserted into the CP" << std::endl;
+                    }
+                }
+                #endif
+                if (Rep::Of(a) == Rep::SEXP && a->type.maybePromiseWrapped()) {
+                    #if DEBUG_LOCATIONS == 1
+                    if (debugStatements) {
+                        auto msg = builder.CreateGlobalString(
+                                "Identical depromise a");
+                        addDebugMsg(msg, -1, location++);
+                    }
+                    #endif
                     ai = depromise(ai, a->type);
-                if (Rep::Of(b) == Rep::SEXP && b->type.maybePromiseWrapped())
+                }
+                if (Rep::Of(b) == Rep::SEXP && b->type.maybePromiseWrapped()) {
+                    #if DEBUG_LOCATIONS == 1
+                    if (debugStatements) {
+                        auto msg = builder.CreateGlobalString(
+                                "Identical depromise b");
+                        addDebugMsg(msg, -1, location++);
+                    }
+                    #endif
                     bi = depromise(bi, b->type);
+                }
 
                 // Not needed so far. Needs some care to ensure NA == NA holds
                 assert(ai->getType() != t::Double &&
@@ -2903,25 +3105,79 @@ void LowerFunctionLLVM::compile() {
                 // here?
                 if (a->type.maybe(RType::closure) ||
                     b->type.maybe(RType::closure)) {
+                    #if DEBUG_LOCATIONS == 1
+                    if (debugStatements) {
+                        auto msg = builder.CreateGlobalString(
+                                "Identical a || b closure");
+                        addDebugMsg(msg, -1, location++);
+                    }
+                    #endif
+                    #if DEBUG_LOCATIONS == 1
+                    if (debugStatements) {
+                        auto msg = builder.CreateGlobalString(
+                                "Identical: ai");
+                        addDebugMsg(msg, -1, location++);
+                        addDebugMsg(ai, 1, location++);
+
+
+                        auto msg2 = builder.CreateGlobalString(
+                                "Identical: bi");
+                        addDebugMsg(msg2, -1, location++);
+                        addDebugMsg(bi, 1, location++);
+                    }
+                    #endif
                     res = createSelect2(
                         res, [&]() { return builder.getTrue(); },
                         [&]() {
                             auto cls = builder.CreateAnd(
                                 builder.CreateICmpEQ(sexptype(ai), c(CLOSXP)),
                                 builder.CreateICmpEQ(sexptype(bi), c(CLOSXP)));
+                            auto lang = builder.CreateAnd(
+                                    builder.CreateICmpEQ(sexptype(ai), c(LANGSXP)),
+                                    builder.CreateICmpEQ(sexptype(bi), c(LANGSXP)));
+                            auto ext = builder.CreateAnd(
+                                    builder.CreateICmpEQ(sexptype(ai), c(EXTERNALSXP)),
+                                    builder.CreateICmpEQ(sexptype(bi), c(LANGSXP)));
+                            auto cond = builder.CreateOr(cls, lang);
+                            cond = builder.CreateOr(cond, ext);
                             return createSelect2(
-                                cls,
+                                cond,
                                 [&]() {
+                                    #if DEBUG_LOCATIONS == 1
+                                    if (debugStatements) {
+                                        auto msg = builder.CreateGlobalString(
+                                                "Identical clsEq");
+                                        addDebugMsg(msg, -1, location++);
+                                    }
+                                    #endif
                                     return call(NativeBuiltins::get(
                                                     NativeBuiltins::Id::clsEq),
                                                 {ai, bi});
                                 },
                                 [&]() {
+                                    #if DEBUG_LOCATIONS == 1
+                                    if (debugStatements) {
+                                        auto msg = builder.CreateGlobalString(
+                                                "Identical clsEqFail");
+                                        addDebugMsg(msg, -1, location++);
+                                    }
+                                    #endif
                                     return builder.getFalse();
-                                    });
+
+
+
+                                });
                         });
                 }
                 setVal(i, builder.CreateZExt(res, t::Int));
+                aiLocal = false;
+                biLocal = false;
+                aiasRVal = false;
+                biasRVal = false;
+                inIdentical = false;
+                #if DEBUG_PRINT_Identical_Inst == 1
+                std::cout << "(Identical) END" << std::endl;
+                #endif
                 break;
             }
 
@@ -3519,15 +3775,23 @@ void LowerFunctionLLVM::compile() {
                                 });
                         }
                         setVal(i, res);
+                        ldVarData[i] = ldVarData[b->callArg(0).val()];
+
                         break;
                     }
                     case blt("environment"):
+                        #if DEBUG_PRINT_MkEnv_Inst == 1
+                        std::cout << "(SafeBuiltIn) environment -> set to closxpEnv(arg)" << std::endl;
+                        #endif
                         if (!i->arg(0).val()->type.isA(PirType::function())) {
                             done = false;
                             break;
                         }
                         assert(irep == Rep::SEXP && orep == irep);
                         setVal(i, closxpEnv(a));
+                        #if DEBUG_PRINT_MkEnv_Inst == 1
+                        std::cout << "(SafeBuiltIn) storedat(Value *): " << i << std::endl;
+                        #endif
                         break;
                     default:
                         done = false;
@@ -3976,30 +4240,39 @@ void LowerFunctionLLVM::compile() {
                 //     }
                 // }
 
+                // // Insert the closure into the cPool
+                // auto cpIndex = Pool::insert(calli->cls()->rirClosure());
+                // auto iVal = globalConst(c(cpIndex), t::i32);
+                // auto iLoad = builder.CreateLoad(iVal);
 
                 #if TRY_PATCH_STATIC_CALL3 == 1
+                // std::cout << "StaticCall: hasOriginClosure" << std::endl;
                 auto iValAST = globalConst(c(calli->srcIdx), t::i32);
                 auto iLoadAST = builder.CreateLoad(iValAST);
 
-                // Insert the closure into the cPool
-                auto cpIndex = Pool::insert(calli->cls()->rirClosure());
-                auto iVal = globalConst(c(cpIndex), t::i32);
-                auto iLoad = builder.CreateLoad(iVal);
+                SEXP body = BODY(calli->cls()->rirClosure());
+                auto vtable = DispatchTable::unpack(body);
+                auto hast = vtable->baseline()->body()->hast;
+                std::stringstream ss;
+                ss << "clso_" << hast;
+
+                reqMap.insert(hast);
 
                 assert(asmpt.includes(Assumption::StaticallyArgmatched));
                 setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
-                        return call(
-                            NativeBuiltins::get(NativeBuiltins::Id::callStatic),
-                            {
-                                c(callId),
-                                paramCode(),
-                                iLoadAST,
-                                iLoad,
-                                loadSxp(calli->env()),
-                                c(calli->nCallArgs()),
-                                c(asmpt.toI()),
-                            });
-                    }));
+                           return call(
+                               NativeBuiltins::get(NativeBuiltins::Id::call),
+                               {
+                                   c(callId),
+                                   paramCode(),
+                                   iLoadAST,
+                                   convertToExternalSymbol(ss.str()),
+                                   loadSxp(calli->env()),
+                                   c(calli->nCallArgs()),
+                                   c(asmpt.toI()),
+                               });
+                       }));
+
                 #if DEBUG_LOCATIONS == 1
                 if (debugStatements) {
                     auto msg = builder.CreateGlobalString(
@@ -4106,6 +4379,9 @@ void LowerFunctionLLVM::compile() {
                     m->numFrames = nframes;
 
                     int frameNr = nframes - 1;
+                    #if DEBUG_PRINT_Deopt_Inst == 1
+                    std::cout << "Deopt inst frames (" << frameNr << ") : [ ";
+                    #endif
                     for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
                         auto fs = *f;
                         for (size_t pos = 0; pos < fs->stackSize; pos++)
@@ -4114,41 +4390,44 @@ void LowerFunctionLLVM::compile() {
 
                         #if TRY_PATCH_DEOPTMETADATA == 1
                         uintptr_t offset = (uintptr_t)fs->pc - (uintptr_t)fs->code->code();
+                        SEXP map = Pool::get(1);
+                        SEXP srcSym = Rf_install(std::to_string(fs->code->src).c_str());
 
-                        std::cout << "TRY_PATCH_DEOPTMETADATA (original_pc for inst)    : " << fs->pc << std::endl;
-                        std::cout << "                        (codeStartInst)           : " << (uintptr_t)fs->code->code() << std::endl;
-                        std::cout << "                        (offset)                  : " << offset << std::endl;
+                        SEXP res = UMap::get(map, srcSym);
 
-                        m->frames[frameNr--] = {offset, fs->code->hast, fs->stackSize,
+                        SEXP hastS = VECTOR_ELT(res, 0);
+                        size_t h = std::stoull(CHAR(PRINTNAME(hastS)));
+
+                        SEXP indexS = VECTOR_ELT(res, 1);
+                        int ind = std::stoi(CHAR(PRINTNAME(indexS)));
+
+                        reqMap.insert(h);
+
+                        m->frames[frameNr--] = {offset, h, ind, fs->stackSize,
                                                 fs->inPromise};
+                        #if DEBUG_PRINT_Deopt_Inst == 1
+                        std::cout << h << "|" << ind << "{" << (uintptr_t)fs->code << "} ";
+                        #endif
+
                         #else
                         m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
                                                 fs->inPromise};
                         #endif
+
+
                     }
+                    #if DEBUG_PRINT_Deopt_Inst == 1
+                    std::cout << "]" << std::endl;
+                    #endif
 
                     #if TRY_PATCH_DEOPTMETADATA == 1
-                    if (target->hast == 0) {
-                        #if DEBUG_ERR_MSG == 1
-                        std::cerr << "Failed to create a pointer to extra pool deopt entry" << std::endl;
-                        #endif
-                        target->addExtraPoolEntry(store);
-                        withCallFrame(args, [&]() {
-                            return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
-                                        {paramCode(), paramClosure(),
-                                        convertToPointer(m, t::i8, true), paramArgs(),
-                                        load(deopt->deoptReason()),
-                                        loadSxp(deopt->deoptTrigger())});
-                                        });
-                    } else {
-                        withCallFrame(args, [&]() {
-                            return call(NativeBuiltins::get(NativeBuiltins::Id::deoptPool),
-                                        {paramCode(), paramClosure(),
-                                        constant(store, Rep::SEXP), paramArgs(),
-                                        load(deopt->deoptReason()),
-                                        loadSxp(deopt->deoptTrigger())});
-                                        });
-                    }
+                    withCallFrame(args, [&]() {
+                        return call(NativeBuiltins::get(NativeBuiltins::Id::deoptPool),
+                                    {paramCode(), paramClosure(),
+                                    constant(store, Rep::SEXP), paramArgs(),
+                                    load(deopt->deoptReason()),
+                                    loadSxp(deopt->deoptTrigger())});
+                                    });
                     #else
                     target->addExtraPoolEntry(store);
                     withCallFrame(args, [&]() {
@@ -4181,6 +4460,9 @@ void LowerFunctionLLVM::compile() {
                 auto namesStore = globalConst(namesConst);
 
                 if (mkenv->stub) {
+                    #if DEBUG_PRINT_MkEnv_Inst == 1
+                    std::cout << "(MkEnv)[b] (mkenv->stub) -> createStubEnvironment" << std::endl;
+                    #endif
                     auto env =
                         call(NativeBuiltins::get(
                                  NativeBuiltins::Id::createStubEnvironment),
@@ -4215,6 +4497,9 @@ void LowerFunctionLLVM::compile() {
                         incrementNamed(vn);
                     });
                     setVal(i, env);
+                    #if DEBUG_PRINT_MkEnv_Inst == 1
+                    std::cout << "(MkEnv) storedat(Value *): " << i << std::endl;
+                    #endif
                     break;
                 }
 
@@ -4240,9 +4525,17 @@ void LowerFunctionLLVM::compile() {
                     args.pop();
                 });
 
+                #if DEBUG_PRINT_MkEnv_Inst == 1
+                std::cout << "(MkEnv)[b] !stub -> createEnvironment" << std::endl;
+                #endif
+
+
                 setVal(i, call(NativeBuiltins::get(
                                    NativeBuiltins::Id::createEnvironment),
                                {parent, arglist, c(mkenv->context)}));
+                #if DEBUG_PRINT_MkEnv_Inst == 1
+                std::cout << "(MkEnv) storedat(Value *): " << i << std::endl;
+                #endif
 
                 if (bindingsCache.count(i))
                     for (auto b : bindingsCache.at(i))
@@ -5212,13 +5505,28 @@ void LowerFunctionLLVM::compile() {
                 auto maybeLd = LdVar::Cast(i);
                 auto varName = maybeLd ? maybeLd->varName : R_DotsSymbol;
 
+
                 auto env = MkEnv::Cast(i->env());
                 if (LdFunctionEnv::Cast(i->env()))
                     env = myPromenv;
 
+                LdVarOrigin obj = { CHAR(PRINTNAME(varName)), varName, false, env };
+
+                #if DEBUG_PRINT_LdVar_Inst == 1
+                std::cout << "(LdVar) START" << std::endl;
+                if (env) {
+                    std::cout << "(LdVar) varName: '" << CHAR(PRINTNAME(varName)) << "', env: " << env << std::endl;
+                } else {
+                    std::cout << "(LdVar) varName: '" << CHAR(PRINTNAME(varName)) << "'" << std::endl;
+                }
+                #endif
+
                 bool maybeUnbound = true;
                 llvm::Value* res;
                 if (env && env->stub) {
+                    #if DEBUG_PRINT_LdVar_Inst == 1
+                    std::cout << "(LdVar)[b] env && env->stub -> call::ldvar" << std::endl;
+                    #endif
                     auto e = loadSxp(env);
                     res = envStubGet(e, env->indexOf(varName), env->nLocals());
                     if (env->argNamed(varName).val() !=
@@ -5289,11 +5597,19 @@ void LowerFunctionLLVM::compile() {
                 }
                 #endif
                 else if (i->env() == Env::global()) {
+                    #if DEBUG_PRINT_LdVar_Inst == 1
+                    std::cout << "(LdVar)[b] i->env() == Env::global() -> call::ldvarGlobal" << std::endl;
+                    #endif
+                    obj.globalEnv = true;
                     res = call(
                         NativeBuiltins::get(NativeBuiltins::Id::ldvarGlobal),
                         {constant(varName, t::SEXP)});
                 } else {
                     if (needsLdVarForUpdate.count(i)) {
+                        #if DEBUG_PRINT_LdVar_Inst == 1
+                        std::cout << "(LdVar)[b] needsLdVarForUpdate.count(i) -> call::ldvarForUpdate" << std::endl;
+                        #endif
+                        obj.envCreatedAt = i->env();
                         res = call(
                             NativeBuiltins::get(
                                 NativeBuiltins::Id::ldvarForUpdate),
@@ -5303,6 +5619,9 @@ void LowerFunctionLLVM::compile() {
                         if (auto e = Env::Cast(i->env())) {
                             if (e->rho == R_BaseNamespace ||
                                 e->rho == R_BaseEnv) {
+                                #if DEBUG_PRINT_LdVar_Inst == 1
+                                std::cout << "(LdVar)[b] e->rho == R_BaseNamespace || e->rho == R_BaseEnv -> !unbound ? res : call::ldVarGlobal " << std::endl;
+                                #endif
                                 auto sym = constant(varName, t::SEXP);
                                 res = symsxpValue(sym);
                                 res = createSelect2(
@@ -5319,6 +5638,10 @@ void LowerFunctionLLVM::compile() {
                             }
                         }
                         if (!res) {
+                            #if DEBUG_PRINT_LdVar_Inst == 1
+                            std::cout << "(LdVar)[b] 'e->rho' not in R_BaseNamespace or R_BaseEnv -> call::ldvar" << std::endl;
+                            #endif
+                            obj.envCreatedAt = i->env();
                             res = call(
                                 NativeBuiltins::get(NativeBuiltins::Id::ldvar),
                                 {constant(varName, t::SEXP),
@@ -5335,6 +5658,11 @@ void LowerFunctionLLVM::compile() {
                         checkUnbound(res);
                 }
                 setVal(i, res);
+                ldVarData[i] = obj;
+                #if DEBUG_PRINT_LdVar_Inst == 1
+                std::cout << "(LdVar) storedat(Value *): " << i << std::endl;
+                std::cout << "(LdVar) END" << std::endl;
+                #endif
                 break;
             }
 

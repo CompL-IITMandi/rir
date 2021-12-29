@@ -16,13 +16,14 @@ struct FrameInfo {
     uintptr_t offset;
     Code* code;
     size_t hast;
+    int index;
     size_t stackSize;
     bool inPromise;
-    
+
 
     FrameInfo() {}
-    FrameInfo(uintptr_t offset, size_t hast, size_t stackSize, bool promise)
-        : offset(offset), hast(hast), stackSize(stackSize), inPromise(promise) {
+    FrameInfo(uintptr_t offset, size_t hast, int index, size_t stackSize, bool promise)
+        : offset(offset), hast(hast), index(index), stackSize(stackSize), inPromise(promise) {
             code = 0;
             pc = 0;
         }

@@ -114,6 +114,8 @@ void inferCurrentContext(CallContext& call, size_t formalNargs,
                          InterpreterInstance* ctx);
 
 SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs = false);
+SEXP createPromargsFromStackValues(CallContext& call, InterpreterInstance* ctx);
+
 size_t expandDotDotDotCallArgs(InterpreterInstance* ctx, size_t n,
                                Immediate* names_, SEXP env, bool explicitDots);
 void deoptFramesWithContext(InterpreterInstance* ctx,

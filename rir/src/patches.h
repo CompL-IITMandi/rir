@@ -1,26 +1,34 @@
-// Prints the simple progress of the serializer
+// Print the hast and src's associated with its index
+#define PRINT_POPULATED_SRC_DATA 0
+
+// Serializer Debugging
+// Prints the progress of the serializer
 #define PRINT_SERIALIZER_PROGRESS 1
-
-// Prints out the debug information for the callbacks, this is the data
-// the gets serialized
-#define API_DEBUG_CALLBACKS 0
+// Print contant pool entries
+#define PRINT_CP_ENTRIES 0
+// Print src pool entries
+#define PRINT_SRC_ENTRIES 0
+// Print promise src entries
+#define PRINT_PROM_ENTRIES 0
 // Prints the module before updating the constant pool entries
-#define API_PRINT_MODULE_BEFORE_POOL_PATCHES 0
+#define PRINT_MODULE_BEFORE_POOL_PATCHES 0
 // Prints the module after updating the constant pool entries
-#define API_PRINT_MODULE_AFTER_POOL_PATCHES 0
-// Prints the entries that need no patching
-#define API_PRINT_MISC_MSG 0
+#define PRINT_MODULE_AFTER_POOL_PATCHES 0
 
-// Prints a debug message if initial compilation is successful
-#define BACKEND_INITIAL_COMPILATION_SUCCESS_MSG 0
+// Compilation Debugging
 // Prints the LLVM module before making any name changes
 #define BACKEND_PRINT_INITIAL_LLVM 0
 // Prints the LLVM module after making the name changes
 #define BACKEND_PRINT_FINAL_LLVM 0
 // Prints the old name in the module and the patched name
 #define BACKEND_PRINT_NAME_UPDATES 0
+// Prints the promise map
+#define PRINT_PROM_MAP 0
+// Prints the done map
+#define PRINT_DONE_MAP 0
 
-// LOWERING FEATURES
+
+// Toggle Lowering Features
 #define USE_BINDING_CACHE_WHILE_LOWERING 0
 
 
@@ -104,6 +112,9 @@
 // Try patching DeoptMetadata
 #define TRY_PATCH_STATIC_CALL3 1
 
+
+
+
 // Print the compiled context for each hast
 #define DEBUG_PRINT_COMPILED_CONTEXT 0
 
@@ -112,5 +123,17 @@
 
 #define DEBUG_INSTRUMENT_RIR_CALL 0
 
+#define DEBUG_PRINT_LOAD_FUN 0
+
+#define DEBUG_PRINT_LdVar_Inst 0
+#define DEBUG_PRINT_Identical_Inst 0
+#define DEBUG_PRINT_MkEnv_Inst 0
+#define DEBUG_PRINT_Deopt_Inst 0
+#define DEBUG_PRINT_DeoptReason_Load 0
+
+
 // Add debug locations in the llvm code
-#define DEBUG_LOCATIONS 1
+#define ADD_EXTRA_DEBUGGING_DATA 0
+#define DEBUG_LOCATIONS 0
+
+#define DEBUG_NATIVE_LOCATIONS 0`

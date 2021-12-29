@@ -164,7 +164,9 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
 
     std::string mName = ""; /// name of the function in JIT
 
-    static std::unordered_map<int, void*> hastMap; // HAST to code map
+    std::vector<ArglistOrder::CallArglistOrder> argOrderingVec; /// callArglist order, raw
+    static std::unordered_map<size_t, void*> hastClosMap; // HAST to closureObj
+    static std::unordered_map<size_t, void*> hastCodeMap; // HAST to codeObj
 
     uint8_t data[]; /// the instructions
 
@@ -238,6 +240,9 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
     void disassemble(std::ostream&, const std::string& promPrefix) const;
     void disassemble(std::ostream& out) const { disassemble(out, ""); }
     void print(std::ostream&) const;
+    void populateSrcData(size_t parentHast, SEXP map, bool mainSrc, int & index);
+
+    Code * getSrcAtOffset(int & index);
 
     static size_t extraPtrOffset() {
         static Code* c = (Code*)malloc(sizeof(Code));

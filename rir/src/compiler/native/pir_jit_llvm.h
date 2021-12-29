@@ -23,6 +23,7 @@
 #include <unordered_set>
 
 #include "patches.h"
+#include "api.h"
 
 namespace rir {
 
@@ -55,7 +56,7 @@ class PirJitLLVM {
                  const std::unordered_set<Instruction*>& needsLdVarForUpdate,
                  ClosureStreamLogger& log);
 
-    void moduleMakeup(std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> sCallback, rir::Code * code, std::vector<unsigned> & srcIndices);
+    void serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, contextMeta* cMeta);
 
     void updateFunctionNameInModule(std::string, std::string);
     void patchFixupHandle(std::string newName, Code * code);
@@ -80,6 +81,8 @@ class PirJitLLVM {
 
     // Directory of all functions and builtins
     std::unordered_map<Code*, llvm::Function*> funs;
+
+
 
     // We prepend `rshN_` to all user functions, as a mechanism to
     // differentiate them from builtins. `N` denotes that the definition
@@ -147,6 +150,7 @@ class PirJitLLVM {
     };
     std::unique_ptr<DebugInfo> DI;
     std::unique_ptr<llvm::DIBuilder> DIB;
+    std::set<size_t> reqMapForCompilation;
 };
 
 } // namespace pir

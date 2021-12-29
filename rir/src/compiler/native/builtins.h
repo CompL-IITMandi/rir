@@ -155,6 +155,7 @@ struct NativeBuiltins {
         getAttrb,
         nonLocalReturn,
         clsEq,
+        // clsEqHast,
         checkType,
         shallowDuplicate,
         llDebugMsg,

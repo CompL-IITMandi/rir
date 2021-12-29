@@ -48,10 +48,10 @@ rir.compile <- function(what) {
     .Call("rirCompile", what)
 }
 
-# compiles given closure, or expression and returns the compiled version.
-f.serialize <- function(fun, versions=NULL) {
-    .Call("vSerialize", fun, as.name(as.character(substitute(fun))), versions)
-}
+# # compiles given closure, or expression and returns the compiled version.
+# f.serialize <- function(fun, versions=NULL) {
+#     .Call("vSerialize", fun, as.name(as.character(substitute(fun))), versions)
+# }
 
 f.initializeBaseLib <- function() {
     .Call("initializeBaseLib")

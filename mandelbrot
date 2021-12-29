@@ -1,10 +1,280 @@
+
+╞══════════════════════════╡  Compiling bitwShiftL  ╞══════════════════════════╡
+(>) Serializer Start
+(*) Module bitcode serialized: temp.bc
+(*) Module pool serialized: temp.pool
+(>) Writing Metadata: m_bitwShiftL_12673609025892230999.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 10
+Entry 2(name)       : bitwShiftL
+Entry 3(hast)       : 12673609025892230999
+Entry 4(numVersions): 2
+============ ============ ============
+   Entry 5(context):12888097295
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_634_AFE1B442EA7DA757_30030C20F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_634_AFE1B442EA7DA757_30030C20F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_634_AFE1B442EA7DA757_30030C20F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+============ ============ ============
+   Entry 5(context):4296032271
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_438_AFE1B442EA7DA757_10010400F_0
+   Entry 12(cPoolEntriesSize): 3
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_438_AFE1B442EA7DA757_10010400F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_438_AFE1B442EA7DA757_10010400F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 12673609025892230999
+(/) Serializer End
+
+╞════════════════════════════╡  Compiling bitwXor  ╞═══════════════════════════╡
+(>) Serializer Start
+(*) Module bitcode serialized: temp.bc
+(*) Module pool serialized: temp.pool
+(>) Writing Metadata: m_bitwXor_12673376186638998074.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 7
+Entry 2(name)       : bitwXor
+Entry 3(hast)       : 12673376186638998074
+Entry 4(numVersions): 2
+============ ============ ============
+   Entry 5(context):8660238351
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_179_AFE0E07ECD831A3A_20430C00F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_179_AFE0E07ECD831A3A_20430C00F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_179_AFE0E07ECD831A3A_20430C00F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+============ ============ ============
+   Entry 5(context):204521487
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 32
+   Entry 11(name): f_931_AFE0E07ECD831A3A_C30C00F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 34
+   Entry 19(srcData): f_931_AFE0E07ECD831A3A_C30C00F_0,0
+   Entry 20(argDataLength): 34
+   Entry 21(argData): f_931_AFE0E07ECD831A3A_C30C00F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(/) Serializer End
+
+╞══════════════════════════╡  Compiling bitwShiftL  ╞══════════════════════════╡
+(>) Serializer Start
+(*) Module bitcode serialized: temp.bc
+(*) Module pool serialized: temp.pool
+(>) Writing Metadata: m_bitwShiftL_12673609025892230999.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 10
+Entry 2(name)       : bitwShiftL
+Entry 3(hast)       : 12673609025892230999
+Entry 4(numVersions): 2
+============ ============ ============
+   Entry 5(context):12888097295
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_634_AFE1B442EA7DA757_30030C20F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_634_AFE1B442EA7DA757_30030C20F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_634_AFE1B442EA7DA757_30030C20F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+============ ============ ============
+   Entry 5(context):4296032271
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_947_AFE1B442EA7DA757_10010400F_0
+   Entry 12(cPoolEntriesSize): 3
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_947_AFE1B442EA7DA757_10010400F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_947_AFE1B442EA7DA757_10010400F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 12673609025892230999
+(/) Serializer End
+code patch: code_12673609025892230999_0, hast: 12673609025892230999, index: 0, dec: 94894159408192
+
+╞════════════════════════════╡  Compiling bitwXor  ╞═══════════════════════════╡
+(>) Serializer Start
+(*) Module bitcode serialized: temp.bc
+(*) Module pool serialized: temp.pool
+(>) Writing Metadata: m_bitwXor_12673376186638998074.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 7
+Entry 2(name)       : bitwXor
+Entry 3(hast)       : 12673376186638998074
+Entry 4(numVersions): 2
+============ ============ ============
+   Entry 5(context):8660238351
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_179_AFE0E07ECD831A3A_20430C00F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_179_AFE0E07ECD831A3A_20430C00F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_179_AFE0E07ECD831A3A_20430C00F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+============ ============ ============
+   Entry 5(context):204521487
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 32
+   Entry 11(name): f_230_AFE0E07ECD831A3A_C30C00F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 34
+   Entry 19(srcData): f_230_AFE0E07ECD831A3A_C30C00F_0,0
+   Entry 20(argDataLength): 34
+   Entry 21(argData): f_230_AFE0E07ECD831A3A_C30C00F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(/) Serializer End
 [1] 127
 [1] 127
+
+╞══════════════════════════╡  Compiling mandelbrot  ╞══════════════════════════╡
+(>) Serializer Start
+(*) Module bitcode serialized: temp.bc
+(*) Module pool serialized: temp.pool
+(>) Writing Metadata: m_mandelbrot_250144078105040217.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 10
+Entry 2(name)       : mandelbrot
+Entry 3(hast)       : 250144078105040217
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):4296032271
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 33
+   Entry 11(name): f_690_378B0B6B61E5559_10010400F_0
+   Entry 12(cPoolEntriesSize): 32
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 35
+   Entry 19(srcData): f_690_378B0B6B61E5559_10010400F_0,0
+   Entry 20(argDataLength): 35
+   Entry 21(argData): f_690_378B0B6B61E5559_10010400F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 250144078105040217
+(/) Serializer End
+code patch: code_250144078105040217_0, hast: 250144078105040217, index: 0, dec: 94894155292288
+[1] 127
+
+╞════════════════════════════╡  Compiling execute  ╞═══════════════════════════╡
+(>) Serializer Start
+(*) Module bitcode serialized: temp.bc
+(*) Module pool serialized: temp.pool
+(>) Writing Metadata: m_execute_4072613566374285.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 7
+Entry 2(name)       : execute
+Entry 3(hast)       : 4072613566374285
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):4296032527
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 31
+   Entry 11(name): f_347_E78053CEE618D_10010410F_1
+   Entry 12(cPoolEntriesSize): 5
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 67
+   Entry 17(childrenData): f_347_E78053CEE618D_10010410F_1,f_347_E78053CEE618D_10010410F_0,|,|
+   Entry 18(srcDataLength): 67
+   Entry 19(srcData): f_347_E78053CEE618D_10010410F_0,0,f_347_E78053CEE618D_10010410F_1,1
+   Entry 20(argDataLength): 67
+   Entry 21(argData): f_347_E78053CEE618D_10010410F_0,|,f_347_E78053CEE618D_10010410F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 4072613566374285
+      Entry 27(currEntry): 250144078105040217
+(/) Serializer End
+code patch: code_4072613566374285_0, hast: 4072613566374285, index: 0, dec: 94894171283184
 [1] 127
 [1] 127
-[1] 127
-[1] 127
-[1] 127
-Serializing bitcode: mandelbrot(38962), found 1 version(s)
-(4296032527) : !ExpMi,CorrOrd,!TMany,Argmatch;Eager0,NonRefl0,!Obj0,SimpleReal0
-[1] 1
+[1] 101
+[1] 101
+[1] 101
+[1] 101
+[1] 101

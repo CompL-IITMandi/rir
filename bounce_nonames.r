@@ -14,18 +14,22 @@ execute <- function () {
     resetSeed()
 
     for (i in 1:ballCount) {
-        balls[[i]] = c(nextRandom() %% 500, nextRandom() %% 500, 
+        balls[[i]] = c(nextRandom() %% 500, nextRandom() %% 500,
                              (nextRandom() %% 300) - 150, (nextRandom() %% 300) - 150)
     }
 
-    # ball <- function(ball) {
-    #     results <- bounce(ball)
-    #     if (results[[2]]) bounces <<- bounces + 1
-    #     return (results[[1]])
-    # }
+    ball <- function(ball) {
+        results <- bounce(ball)
+        if (results[[2]]) bounces <<- bounces + 1
+        return (results[[1]])
+    }
 
-    # for (i in 1:50) balls <- lapply(balls, ball)
+    for (i in 1:50) balls <- lapply(balls, ball)
     return (bounces)
+}
+
+verifyResult <- function(result, iterations) {
+    return (result == 1331);
 }
 
 bounce <- function(ball) {
@@ -37,8 +41,8 @@ bounce <- function(ball) {
     ball[2] <- ball[2] + ball[4];
 
     if (ball[1] > xLimit) {
-        ball[1] <- xLimit 
-        ball[3] <- 0 - abs(ball[3]) 
+        ball[1] <- xLimit
+        ball[3] <- 0 - abs(ball[3])
         bounced <- TRUE
     }
     if (ball[1] < 0) {
@@ -52,11 +56,27 @@ bounce <- function(ball) {
         bounced <- TRUE
     }
     if (ball[2] < 0) {
-        ball[2] <- 0 
+        ball[2] <- 0
         ball[4] <- abs(ball[4])
         bounced <- TRUE
     }
     return (list(ball, bounced))
 }
 
+
+execute()
+execute()
+execute()
+execute()
+execute()
+
+execute()
+execute()
+execute()
+execute()
+execute()
+execute()
+execute()
+execute()
+execute()
 execute()

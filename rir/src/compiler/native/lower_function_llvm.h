@@ -278,6 +278,8 @@ class LowerFunctionLLVM {
     void setVisible(int i);
     void addDebugMsg(llvm::Value *v, int tag, int location);
 
+    std::set<size_t> reqMap;
+
     std::array<std::string, 4> argNames = {"code", "args", "env", "closure"};
     std::vector<llvm::Value*> args;
     llvm::Value* paramCode() { return args[0]; }

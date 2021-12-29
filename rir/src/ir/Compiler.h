@@ -7,6 +7,7 @@
 #include "runtime/DispatchTable.h"
 #include "utils/FunctionWriter.h"
 #include "utils/Pool.h"
+#include "utils/UMap.h"
 
 #include "api.h"
 
@@ -20,6 +21,48 @@ extern "C" SEXP R_syscall(int n, RCNTXT *cptr);
 extern "C" SEXP R_sysfunction(int n, RCNTXT *cptr);
 
 namespace rir {
+
+static size_t createHastEntryForCodeObj(DispatchTable* vtable) {
+    auto rirBody = vtable->baseline()->body();
+    SEXP ast_1 = src_pool_at(globalContext(), rirBody->src);
+
+    size_t hast = 0;
+    hash_ast(ast_1, hast);
+
+    if (hast == 0) {
+        rirBody->disassemble(std::cout);
+        std::cout << "TYPE: " << TYPEOF(ast_1) << std::endl;
+        printAST(0, ast_1);
+        // Rf_error("hast calculation failed");
+    }
+
+    rirBody->hast = hast;
+
+    // There was a collision
+    if (Code::hastCodeMap.find(hast) != Code::hastCodeMap.end()) {
+        if (ast_1 == src_pool_at(globalContext(), ((rir::Code *)Code::hastCodeMap[hast])->src)) {
+            std::cout << "BC recompilation for " << hast << std::endl;
+            // rirBody->disassemble(std::cout);
+            // ((rir::Code *)Code::hastCodeMap[hast])->disassemble(std::cout);
+        } else {
+            std::cout << "Existing in pool: " << hast << std::endl;
+            printAST(0, src_pool_at(globalContext(), ((rir::Code *)Code::hastCodeMap[hast])->src));
+            std::cout << "Trying to add: " << hast << std::endl;
+            printAST(0, ast_1);
+        }
+    }
+
+    Code::hastCodeMap[hast] = rirBody;
+    return hast;
+}
+
+static size_t createHastEntryForClosure(DispatchTable* vtable, SEXP closure) {
+    size_t hast = createHastEntryForCodeObj(vtable);
+    Code::hastClosMap[hast] = closure;
+    return hast;
+}
+
+
 
 class Compiler {
     SEXP exp;
@@ -68,7 +111,6 @@ class Compiler {
         }
 #endif
 
-        // Rf_PrintValue(ast);
         Compiler c(ast);
         auto res = c.finalize();
 
@@ -91,17 +133,15 @@ class Compiler {
         // Set the closure fields.
         UNPROTECT(1);
 
-        auto rirBody = vtable->baseline()->body();
+        size_t hast = createHastEntryForCodeObj(vtable);
 
-        SEXP ast_1 = src_pool_at(globalContext(), rirBody->src);
-
-        // The hast is inserted into the code object of the bytecode
-        // Calculate hast for the given function
-        size_t hast = 0;
-        hash_ast(ast_1, hast);
-
-        rirBody->hast = hast;
-        Code::hastMap[hast] = vtable;
+        int index = 0;
+        SEXP map = Pool::get(1);
+        if (map == R_NilValue) {
+            UMap::createMapInCp(1);
+            map = Pool::get(1);
+        }
+        vtable->baseline()->body()->populateSrcData(hast, map, true, index);
 
         return vtable->container();
     }
@@ -136,18 +176,15 @@ class Compiler {
         // Set the closure fields.
         SET_BODY(inClosure, vtable->container());
 
+        size_t hast = createHastEntryForClosure(vtable, inClosure);
 
-        auto rirBody = vtable->baseline()->body();
-
-        SEXP ast_1 = src_pool_at(globalContext(), rirBody->src);
-
-        // The hast is inserted into the code object of the bytecode
-        // Calculate hast for the given function
-        size_t hast = 0;
-        hash_ast(ast_1, hast);
-
-        rirBody->hast = hast;
-        Code::hastMap[hast] = vtable;
+        int index = 0;
+        SEXP map = Pool::get(1);
+        if (map == R_NilValue) {
+            UMap::createMapInCp(1);
+            map = Pool::get(1);
+        }
+        vtable->baseline()->body()->populateSrcData(hast, map, true, index);
     }
 };
 

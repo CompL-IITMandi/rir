@@ -21,6 +21,9 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Transforms/Utils/Cloning.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
+
 #include <memory>
 
 namespace rir {
@@ -320,26 +323,6 @@ PirJitLLVM::~PirJitLLVM() {
 }
 
 void PirJitLLVM::finalizeAndFixup() {
-    // static int count = 0;
-    // TODO: maybe later have TSM from the start and use locking
-    //       to allow concurrent compilation?
-    // for (auto& fix : jitFixup) {
-    //     auto e = JIT->lookup(fix.second.second);
-    //     if (e.takeError()) {
-    //         continue;
-    //     } else {
-    //         auto firstUnder = fix.second.second.find_first_of('_');
-
-    //         auto fun = M.get()->getFunction(fix.second.second);
-
-    //         std::stringstream ss;
-    //         ss << "f" << ++count << fix.second.second.substr(firstUnder);
-    //         fix.second.second = ss.str();
-
-    //         fun->setName(fix.second.second);
-    //     }
-    // }
-
     auto TSM = llvm::orc::ThreadSafeModule(std::move(M), TSC);
     ExitOnErr(JIT->addIRModule(std::move(TSM)));
     for (auto& fix : jitFixup) {
@@ -347,9 +330,258 @@ void PirJitLLVM::finalizeAndFixup() {
     }
 }
 
-void PirJitLLVM::moduleMakeup(std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> sCallback, rir::Code * code, std::vector<unsigned> & srcIndices) {
-    sCallback(M.get(), code, srcIndices);
+void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, contextMeta* cMeta) {
+    std::vector<int64_t> cpEntries;
+    std::vector<int64_t> spEntries;
+
+    std::unordered_map<int64_t, int64_t> cpAlreadySeen;
+    std::unordered_map<int64_t, int64_t> spAlreadySeen;
+
+    size_t srcPoolOffset = 0;
+
+    #if PRINT_SERIALIZER_PROGRESS == 1
+    std::cout << "(>) Serializer Start" << std::endl;
+    #endif
+
+    // Releasing the module as soon as globals are patched and the bc is serialized
+    {
+        // We clone the module because we dont want to update constant pool references in the original module
+        auto module = llvm::CloneModule(*M);
+
+        #if PRINT_MODULE_BEFORE_POOL_PATCHES == 1
+        llvm::raw_os_ostream dbg_stream(std::cout);
+        dbg_stream << *m;
+        dbg_stream << "\n";
+        #endif
+
+        // Patch all CP and SRC pool entries
+        int patchValue = 0;
+        // Iterating over all globals
+        for (auto & global : module->getGlobalList()) {
+            auto pre = global.getName().str().substr(0,6) == "copool";
+            auto srp = global.getName().str().substr(0,6) == "srpool";
+            // All src pool references have a srpool prefix
+            if (srp) {
+                auto con = global.getInitializer();
+                if (auto * v = llvm::dyn_cast<llvm::ConstantInt>(con)) {
+                    // Simple constant ints
+                    auto val = v->getSExtValue();
+                    // contains replacement value, relative to serialized pool
+                    llvm::Constant* replacementValue;
+
+                    if (spAlreadySeen.find(val) == spAlreadySeen.end()) {
+                        // If not seen, we add it to the serialization pool
+                        spEntries.push_back(val);
+                        // update seen map
+                        spAlreadySeen[val] = srcPoolOffset;
+                        replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, srcPoolOffset++));
+                    } else {
+                        // If already seen, just use the previously patched value
+                        replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, spAlreadySeen[val]));
+                    }
+
+                    global.setInitializer(replacementValue);
+                }
+            }
+            // All constant pool references have a copool prefix
+            if (pre) {
+                llvm::raw_os_ostream ost(std::cout);
+                auto con = global.getInitializer();
+                if (auto * v = llvm::dyn_cast<llvm::ConstantDataArray>(con)) {
+                    // Constant data array
+                    std::vector<llvm::Constant*> patchedIndices;
+
+                    auto arrSize = v->getNumElements();
+
+                    for (unsigned int i = 0; i < arrSize; i++) {
+
+                        // cp Index that we are referring to
+                        auto val = v->getElementAsAPInt(i).getSExtValue();
+
+                        // contains replacement value, relative to serialized pool
+                        llvm::Constant* replacementValue;
+
+                        if (cpAlreadySeen.find(val) == cpAlreadySeen.end()) {
+                            // If not seen, we add it to the serialization pool
+                            cpEntries.push_back(val);
+                            // update seen map
+                            cpAlreadySeen[val] = patchValue;
+                            replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
+                        } else {
+                            // If already seen, just use the previously patched value
+                            replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, cpAlreadySeen[val]));
+                        }
+                        patchedIndices.push_back(replacementValue);
+
+                    }
+
+                    auto ty = llvm::ArrayType::get(rir::pir::t::Int, patchedIndices.size());
+                    auto newInit = llvm::ConstantArray::get(ty, patchedIndices);
+
+                    global.setInitializer(newInit);
+                } else if (auto * v = llvm::dyn_cast<llvm::ConstantInt>(con)) {
+                    // Simple constant ints
+                    auto val = v->getSExtValue();
+
+                    // contains replacement value, relative to serialized pool
+                    llvm::Constant* replacementValue;
+
+                    if (cpAlreadySeen.find(val) == cpAlreadySeen.end()) {
+                        // If not seen, we add it to the serialization pool
+                        cpEntries.push_back(val);
+                        // update seen map
+                        cpAlreadySeen[val] = patchValue;
+                        replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
+                    } else {
+                        // If already seen, just use the previously patched value
+                        replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, cpAlreadySeen[val]));
+                    }
+
+                    global.setInitializer(replacementValue);
+                } else if (auto * v = llvm::dyn_cast<llvm::ConstantAggregateZero>(con)) {
+                    // Constant data array
+                    std::vector<llvm::Constant*> patchedIndices;
+
+                    auto arrSize = v->getNumElements();
+
+                    for (unsigned int i = 0; i < arrSize; i++) {
+
+                        // cp Index that we are referring to
+                        auto val = 0;
+
+                        // contains replacement value, relative to serialized pool
+                        llvm::Constant* replacementValue;
+
+                        if (cpAlreadySeen.find(val) == cpAlreadySeen.end()) {
+                            // If not seen, we add it to the serialization pool
+                            cpEntries.push_back(val);
+                            // update seen map
+                            cpAlreadySeen[val] = patchValue;
+                            replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
+                        } else {
+                            // If already seen, just use the previously patched value
+                            replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, cpAlreadySeen[val]));
+                        }
+                        patchedIndices.push_back(replacementValue);
+
+                    }
+
+                    auto ty = llvm::ArrayType::get(rir::pir::t::Int, patchedIndices.size());
+                    auto newInit = llvm::ConstantArray::get(ty, patchedIndices);
+
+                    global.setInitializer(newInit);
+                }
+            }
+        }
+
+
+
+        // SERIALIZE THE LLVM MODULE
+        std::ofstream bitcodeFile;
+        bitcodeFile.open("temp.bc");
+        llvm::raw_os_ostream ooo(bitcodeFile);
+        WriteBitcodeToFile(*module,ooo);
+
+        #if PRINT_SERIALIZER_PROGRESS == 1
+        std::cout << "(*) Module bitcode serialized: temp.bc" << std::endl;
+        #endif
+
+        #if PRINT_MODULE_AFTER_POOL_PATCHES == 1
+        llvm::raw_os_ostream debugOp(std::cout);
+        debugOp << *module;
+        #endif
+
+    }
+
+    // Creating a vector containing all pool references
+    auto serializationObjects = Rf_allocVector(VECSXP,
+        cpEntries.size() + spEntries.size() + srcIndices.size());
+
+    cMeta->cPoolEntriesSize   = cpEntries.size();
+    cMeta->srcPoolEntriesSize = spEntries.size();
+    cMeta->promiseSrcPoolEntriesSize = srcIndices.size();
+
+    int i = 0;
+
+    // Restore the original bodies of the closures
+    std::unordered_map<SEXP, SEXP> restoreMap;
+
+    #if PRINT_CP_ENTRIES == 1
+    std::cout << "(*) Constant Pool Entries: [ ";
+    #endif
+
+    for (auto & ele : cpEntries) {
+        SEXP obj = Pool::get(ele);
+        // Dont serialize external code, we serialize the original AST
+        if (TYPEOF(obj) == CLOSXP && DispatchTable::check(BODY(obj))) {
+            auto rshFun = DispatchTable::unpack(BODY(obj));
+            restoreMap[obj] = BODY(obj);
+            auto origBody = src_pool_at(globalContext(), rshFun->baseline()->body()->src);
+            SET_BODY(obj, origBody);
+        }
+        #if PRINT_CP_ENTRIES == 1
+        std::cout << i << "{ TYPE: " << TYPEOF(obj) << "} ";
+        #endif
+        SET_VECTOR_ELT(serializationObjects, i++, obj);
+    }
+
+    #if PRINT_CP_ENTRIES == 1
+    std::cout << " ]" << std::endl;
+    #endif
+
+    // RESTORE THE ORIGINAL BODIES
+    for (auto & ele : restoreMap) {
+        SET_BODY(ele.first, ele.second);
+    }
+
+    #if PRINT_SRC_ENTRIES == 1
+    int j = 0;
+    std::cout << "(*) Source Pool Entries: [ ";
+    #endif
+
+    for (auto & ele : spEntries) {
+        SEXP obj = src_pool_at(globalContext(), ele);
+        #if PRINT_SRC_ENTRIES == 1
+        std::cout << "{" <<  j << " at "<< i << ", TYPE: " << TYPEOF(obj) << "}" << " ";
+        j++;
+        #endif
+        SET_VECTOR_ELT(serializationObjects, i++, obj);
+    }
+
+    #if PRINT_SRC_ENTRIES == 1
+    std::cout << " ]" << std::endl;
+    #endif
+
+
+    #if PRINT_PROM_ENTRIES == 1
+    std::cout << "(*) Promise Src Entries: [ ";
+    #endif
+
+    for (auto & ele : srcIndices) {
+        SEXP obj = src_pool_at(globalContext(), ele);
+        #if PRINT_PROM_ENTRIES == 1
+        std::cout << "{ " << ele  << " at " << i << "} ";
+        #endif
+        SET_VECTOR_ELT(serializationObjects, i++, obj);
+    }
+
+    #if PRINT_PROM_ENTRIES == 1
+    std::cout << " ]" << std::endl;
+    #endif
+
+    // SERIALIZE THE CONSTANT POOL
+    R_outpstream_st outputStream;
+    FILE *fptr;
+    fptr = fopen("temp.pool","w");
+    R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
+    R_Serialize(serializationObjects, &outputStream);
+    fclose(fptr);
+
+    #if PRINT_SERIALIZER_PROGRESS == 1
+    std::cout << "(*) Module pool serialized: temp.pool" << std::endl;
+    #endif
 }
+
 
 void PirJitLLVM::updateFunctionNameInModule(std::string oldName, std::string newName) {
     if (M) {
@@ -473,6 +705,9 @@ void PirJitLLVM::compile(
     }
     funCompiler.debugStatements = debugStatements;
     funCompiler.compile();
+    for (auto & ele : funCompiler.reqMap) {
+        reqMapForCompilation.insert(ele);
+    }
 
     assert(jitFixup.count(code) == 0);
 
@@ -490,8 +725,10 @@ void PirJitLLVM::compile(
 
     if (funCompiler.pirTypeFeedback)
         target->pirTypeFeedback(funCompiler.pirTypeFeedback);
-    if (funCompiler.hasArgReordering())
+    if (funCompiler.hasArgReordering()) {
         target->arglistOrder(ArglistOrder::New(funCompiler.getArgReordering()));
+        target->argOrderingVec = funCompiler.getArgReordering();
+    }
     jitFixup.emplace(code, std::make_pair(target, funCompiler.fun->getName()));
 
     log.LLVMBitcode([&](std::ostream& out, bool tty) {
@@ -629,19 +866,14 @@ void PirJitLLVM::initializeLLVM() {
 
                 auto msg = n.substr(0, 4) == "msg_"; // Message ptr
 
-                auto real = n.substr(0, 7) ==  "cpreal_"; // constant pool real
-                // auto lang = n.substr(0, 4) ==  "lan_"; // constant pool langsxp
-
                 auto gcode = n.substr(0, 4) == "cod_"; // callable pointer to builtin
-                auto hast = n.substr(0, 5) == "hast_"; // replace this symbol with the start of the corresponding Code *
 
-                auto epe = n.substr(0, 4) == "epe_"; // extra pool entry
+                auto spef = n.substr(0, 5) == "spef_"; // PP_FUNCTION
+                auto spe1 = n.substr(0, 5) == "spe1_"; // PP_ASSIGN
 
-                auto base = n.substr(0, 5) == "base_"; // baseLibraryEntry
-
-                auto spef = n.substr(0, 5) == "spef_"; // specialsxp function
-
-                auto func = n.substr(0, 5) == "func_"; // func function
+                // auto clso = n.substr(0, 5) == "clso_"; // closure objs for staticCalls
+                auto code = n.substr(0, 5) == "code_"; // code objs for DeoptReason
+                auto clso = n.substr(0, 5) == "clso_"; // closure objs for staticCalls
 
                 if (ept || efn) {
                     auto addrStr = n.substr(4);
@@ -749,41 +981,7 @@ void PirJitLLVM::initializeLLVM() {
                         static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(p)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
-                } else if (real) {
-                    auto real_num = n.substr(7);
-                    double real = std::stod(real_num);
-                    SEXP ptr;
-                    PROTECT(ptr = Rf_ScalarReal(real));
-
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(ptr)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
-
-                }
-                else
-
-                // if (lang) {
-                //     auto hastAndPath = n.substr(4);
-                //     int start = 0;
-                //     int end = hastAndPath.find("_");
-
-                //     auto hast = std::stoi(hastAndPath.substr(start, end - start));
-                //     start = end + 1;
-                //     end = hastAndPath.find("_", start);
-                //     auto path = std::stoi(hastAndPath.substr(start, end - start));
-
-                //     auto found_ast = rir::Code::hastMap[hast];
-
-                //     SEXP el = VECTOR_ELT(globalContext()->src.list, found_ast->src);
-
-                //     NewSymbols[Name] = JITEvaluatedSymbol(
-                //         static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(get_from_path(path, el))),
-                //         JITSymbolFlags::Exported | (JITSymbolFlags::None));
-
-
-                // } else
-
-                if (gcode) {
+                } else if (gcode) {
                     auto id = std::stoi(n.substr(4));
                     SEXP ptr;
                     assert(R_FunTab[id].eval % 10 == 1 && "Only use for BUILTINSXP");
@@ -797,94 +995,6 @@ void PirJitLLVM::initializeLLVM() {
                             reinterpret_cast<uintptr_t>(getBuiltin(ptr))),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
-                } else if (hast) {
-                    auto id = std::stoi(n.substr(5));
-                    if (rir::Code::hastMap.count(id) == 0) {
-                        std::cout << "Hast patching failed, hast not found: " << id  << std::endl;
-                    }
-                    auto addr = ((rir::DispatchTable *)rir::Code::hastMap[id])->baseline()->body();
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(
-                            reinterpret_cast<uintptr_t>(addr)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
-                } else if (func) {
-                    auto firstDel = n.find('_');
-                    auto secondDel = n.find('_', firstDel + 1);
-
-                    auto id = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
-                    if (rir::Code::hastMap.count(id) == 0) {
-                        std::cout << "Hasf patching failed, hast not found: " << n  << std::endl;
-                    }
-
-                    DispatchTable * vtable = (DispatchTable *) rir::Code::hastMap[id];
-
-                    auto addr = vtable->baseline()->body()->container();
-
-                    std::cout << "func_patch: " << TYPEOF(addr) << std::endl;
-
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(
-                            reinterpret_cast<uintptr_t>(addr)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
-                } else if (epe) {
-                    auto firstDel = n.find('_');
-                    auto secondDel = n.find('_', firstDel + 1);
-                    auto thirdDel = n.find('_', secondDel + 1);
-
-                    auto hast = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
-                    auto extraPoolOffset = std::stoi(n.substr(secondDel + 1, thirdDel - secondDel - 1));
-                    auto context = std::stoul(n.substr(thirdDel + 1));
-                    Context c(context);
-
-                    rir::DispatchTable * dtable = ((rir::DispatchTable *)rir::Code::hastMap[hast]);
-
-                    rir::Code * code;
-
-                    code = dtable->dispatch(c)->body();
-
-                    for (size_t i = 1; i < dtable->size(); ++i) {
-                        auto e = dtable->get(i);
-                        if (e->context() == c) {
-                            code = e->body();
-                        }
-                    }
-
-                    if (!code) {
-                        std::cout << "failed to find the version in dispatch table" << std::endl;
-                    }
-
-
-                    DeoptMetadata * res = (DeoptMetadata *) DATAPTR(code->getExtraPoolEntry(extraPoolOffset));
-                    for (size_t i = 0; i < res->numFrames; i++) {
-                        if (res->frames[i].code == 0) {
-                            rir::DispatchTable * dtable = ((rir::DispatchTable *)rir::Code::hastMap[res->frames[i].hast]);
-                            res->frames[i].code = dtable->baseline()->body();
-                            // std::cout << "deopt patch: " << res->frames[i].code << std::endl;
-                            res->frames[i].pc = (Opcode *)(res->frames[i].offset + ((uintptr_t)res->frames[i].code));
-                            // std::cout << "deopt pc: " << res->frames[i].pc << std::endl;
-                        }
-                    }
-                    // std::cout << "patch: " << res << std::endl;
-
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(
-                            reinterpret_cast<uintptr_t>(res)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
-                } else if (base) {
-                    auto firstDel = n.find('_');
-                    auto secondDel = n.find('_', firstDel + 1);
-
-                    auto baseIndex = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
-                    auto funName = BaseLibs::libBaseName.at(baseIndex);
-                    auto sym = Rf_install(funName.c_str());
-                    auto fun = Rf_findFun(sym, R_GlobalEnv);
-
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(
-                            reinterpret_cast<uintptr_t>(fun)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
-
-
                 } else if (spef) {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
@@ -896,6 +1006,42 @@ void PirJitLLVM::initializeLLVM() {
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(fun)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (spe1) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto index = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    auto sym = Rf_install(R_FunTab[index].name);
+                    auto spe1 = Rf_findFun(sym,R_GlobalEnv);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(spe1)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (code) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    size_t hast = std::stoull(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    int index = std::stoi(n.substr(secondDel + 1));
+                    auto addr = rir::Code::hastCodeMap[hast];
+                    addr = ((rir::Code *)addr)->getSrcAtOffset(index);
+                    std::cout << "code patch: " << n << ", hast: " << hast << ", index: " << index << ", dec: " << (uintptr_t)addr << std::endl;
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(addr)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (clso) {
+                    auto hast = std::stoull(n.substr(5));
+                    auto addr = rir::Code::hastClosMap[hast];
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(addr)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
                 } else {

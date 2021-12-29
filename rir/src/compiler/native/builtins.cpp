@@ -21,6 +21,7 @@
 
 #include "R/Funtab.h"
 #include "R/Symbols.h"
+#include "R/Printing.h"
 #include <R_ext/RS.h> /* for Memzero */
 
 #include "llvm/IR/Attributes.h"
@@ -143,7 +144,13 @@ SEXP ldvarImpl(SEXP n, SEXP env) {
     return res;
 }
 
-SEXP ldvarGlobalImpl(SEXP a) { return Rf_findVar(a, R_GlobalEnv); }
+SEXP ldvarGlobalImpl(SEXP a) {
+    auto res = Rf_findVar(a, R_GlobalEnv);
+    // #if DEBUG_NATIVE_LOCATIONS == 1
+    // std::cout << "ldvarGlobalImpl" << std::endl;
+    // #endif
+    return res;
+}
 
 SEXP ldvarCachedImpl(SEXP sym, SEXP env, SEXP* cache) {
     if (*cache != (SEXP)NativeBuiltins::bindingsCacheFails) {
@@ -341,12 +348,13 @@ static SEXP callStaticImpl(ArglistOrder::CallId callId, rir::Code* c, Immediate 
                      ostack_cell_at(ctx, (long)nargs - 1), env, R_NilValue,
                      Context(available), ctx);
 
+    #if DEBUG_INSTRUMENT_RIR_CALL == 1
+    std::cout << "callStaticImpl" << std::endl;
+
+    #endif
     SLOWASSERT(env == symbol::delayedEnv || TYPEOF(env) == ENVSXP ||
                LazyEnvironment::check(env) || env == R_NilValue);
     SLOWASSERT(ctx);
-    #if DEBUG_INSTRUMENT_RIR_CALL == 1
-    std::cout << "callStaticImpl" << std::endl;
-    #endif
     return doCall(call, globalContext(), true);
 }
 
@@ -603,7 +611,7 @@ static SEXP binopEnvImpl(SEXP lhs, SEXP rhs, SEXP env, Immediate srcIdx,
     return res;
 }
 
-bool debugBinopImpl = true;
+bool debugBinopImpl = false;
 static SEXP binopImpl(SEXP lhs, SEXP rhs, BinopKind kind) {
     SEXP res = nullptr;
 
@@ -849,14 +857,14 @@ void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
 
     for (size_t i = 0; i < m->numFrames; i++) {
         if (m->frames[i].code == 0) {
-            m->frames[i].code = ((DispatchTable *)rir::Code::hastMap[m->frames[i].hast])->baseline()->body();
-            m->frames[i].pc = (rir::Opcode *) ((uintptr_t)m->frames[i].code->code() + m->frames[i].offset);
-            std::cout << "TRY_PATCH_DEOPTMETADATA (patched_pc for inst)     : " << m->frames[i].pc << std::endl;
-            std::cout << "                        (codeStartInst)           : " << (uintptr_t)m->frames[i].code->code() << std::endl;
-            std::cout << "                        (offset)                  : " << m->frames[i].offset << std::endl;
+            size_t hast = m->frames[i].hast;
+            rir::Code * code = (rir::Code *) rir::Code::hastCodeMap[hast];
+            code = code->getSrcAtOffset(m->frames[i].index);
+            m->frames[i].code = code;
+            m->frames[i].pc = code->code() + m->frames[i].offset;
+            std::cout << "TRY_PATCH_DEOPTMETADATA (" << hast << "|" << m->frames[i].index << "): " << (uintptr_t)code << std::endl;
         }
     }
-    std::cout << "deoptImpl" << std::endl;
     recordDeoptReason(deoptTrigger, *deoptReason);
 
     assert(m->numFrames >= 1);
@@ -2113,8 +2121,16 @@ SEXP makeVectorImpl(int mode, size_t len) {
 }
 
 void llDebugMsgImpl(void * ptr, int tag, int location) {
-
-    std::cout << "At location: " << location << " (" << (char *) ptr << ")"  << std::endl;
+    // #if DEBUG_NATIVE_LOCATIONS == 1
+    // if (tag == 1) {
+    //     SEXP obj = (SEXP) ptr;
+    //     std::cout << "(" << location << ") TYPEOF OBJ: " << TYPEOF(obj) << std::endl;
+    //     // printAST(0, obj);
+    //     Print::dumpSexp(obj);
+    //     return;
+    // }
+    // std::cout << "At location: " << location << " (" << (char *) ptr << ")"  << std::endl;
+    // #endif
 
     // switch (tag) {
     // case 0:
@@ -2194,11 +2210,98 @@ void nonLocalReturnImpl(SEXP res, SEXP env) {
 // Not tagged NoReturn to avoid hot/cold splitting to assume it is cold
 
 bool clsEqImpl(SEXP lhs, SEXP rhs) {
-    SLOWASSERT(TYPEOF(lhs) == CLOSXP && TYPEOF(rhs) == CLOSXP);
-    std::cout << "clsEqImpl: " << (CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) &&
-        BODY_EXPR(lhs) == BODY_EXPR(rhs)) << std::endl;
-    return CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) &&
-           BODY_EXPR(lhs) == BODY_EXPR(rhs);
+    // SLOWASSERT((TYPEOF(lhs) == CLOSXP && TYPEOF(rhs) == CLOSXP) || (TYPEOF(lhs) == LANGSXP && TYPEOF(rhs) == LANGSXP));
+    if (TYPEOF(lhs) == CLOSXP && TYPEOF(rhs) == CLOSXP) {
+        if (CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) && BODY_EXPR(lhs) == BODY_EXPR(rhs)) {
+            return true;
+        }
+        size_t lhsCloHast = 0;
+        hash_ast(CLOENV(lhs), lhsCloHast);
+        size_t rhsCloHast = 0;
+        hash_ast(CLOENV(rhs), rhsCloHast);
+
+        size_t lhsFormalsHast = 0;
+        hash_ast(FORMALS(lhs), lhsFormalsHast);
+        size_t rhsFormalsHast = 0;
+        hash_ast(FORMALS(rhs), rhsFormalsHast);
+
+        size_t lhsBodyHast = 0;
+        if (TYPEOF(BODY(lhs)) == EXTERNALSXP) {
+            auto dt = DispatchTable::unpack(BODY(lhs));
+            auto src = dt->baseline()->body()->src;
+            auto realBody = src_pool_at(globalContext(), src);
+            hash_ast(realBody, lhsBodyHast);
+        }
+        else if (TYPEOF(BODY(lhs)) == BCODESXP) {
+            auto realBody = VECTOR_ELT(CDR(BODY(lhs)), 0);
+            hash_ast(realBody, lhsBodyHast);
+        } else {
+            hash_ast(BODY(lhs), lhsBodyHast);
+        }
+
+        size_t rhsBodyHast = 0;
+        if (TYPEOF(BODY(lhs)) == EXTERNALSXP) {
+            auto dt = DispatchTable::unpack(BODY(lhs));
+            auto src = dt->baseline()->body()->src;
+            auto realBody = src_pool_at(globalContext(), src);
+            hash_ast(realBody, rhsBodyHast);
+        }
+        else if (TYPEOF(BODY(lhs)) == BCODESXP) {
+            auto realBody = VECTOR_ELT(CDR(BODY(lhs)), 0);
+            hash_ast(realBody, rhsBodyHast);
+        } else {
+            hash_ast(BODY(lhs), rhsBodyHast);
+        }
+
+        bool cloEnvSame = lhsCloHast == rhsCloHast;
+        bool cloForSame = lhsFormalsHast == rhsFormalsHast;
+        bool cloBodSame = lhsBodyHast == rhsBodyHast;
+
+        // #if DEBUG_NATIVE_LOCATIONS == 1
+        // std::cout << "clsEqImpl: " << (CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) &&
+        //        BODY_EXPR(lhs) == BODY_EXPR(rhs)) << std::endl;
+        // std::cout << "(HAST CHECK) Environment: " << cloEnvSame << std::endl;
+        // std::cout << "(HAST CHECK) Formals: " << cloForSame << std::endl;
+        // std::cout << "(HAST CHECK) Body: " << cloBodSame << std::endl;
+        // printAST(0,lhs);
+        // #endif
+
+        if (cloEnvSame && cloForSame && cloBodSame) {
+            SET_CLOENV(rhs, CLOENV(lhs));
+            SET_FORMALS(rhs, FORMALS(lhs));
+            SET_BODY(rhs, BODY(lhs));
+            return true;
+        }
+    } else if (TYPEOF(lhs) == LANGSXP && TYPEOF(rhs) == LANGSXP) {
+        size_t lhsLangHast = 0;
+        hash_ast(lhs, lhsLangHast);
+        size_t rhsLangHast = 0;
+        hash_ast(rhs, rhsLangHast);
+        return lhsLangHast == rhsLangHast;
+    } else if (TYPEOF(lhs) == EXTERNALSXP && TYPEOF(rhs) == LANGSXP) {
+        if (DispatchTable::check(lhs)) {
+            size_t h1 = 0;
+            size_t h2 = 0;
+            auto dt = DispatchTable::unpack(lhs);
+            auto src = dt->baseline()->body()->src;
+            auto realBody = src_pool_at(globalContext(), src);
+            hash_ast(realBody, h1);
+            hash_ast(rhs, h2);
+            return h1 == h2;
+        }
+    } else if (TYPEOF(rhs) == EXTERNALSXP && TYPEOF(lhs) == LANGSXP) {
+        if (DispatchTable::check(rhs)) {
+            size_t h1 = 0;
+            size_t h2 = 0;
+            auto dt = DispatchTable::unpack(rhs);
+            auto src = dt->baseline()->body()->src;
+            auto realBody = src_pool_at(globalContext(), src);
+            hash_ast(realBody, h1);
+            hash_ast(lhs, h2);
+            return h1 == h2;
+        }
+    }
+    return false;
 }
 
 void checkTypeImpl(SEXP val, uint64_t type, const char* msg) {
@@ -2565,6 +2668,11 @@ void NativeBuiltins::initializeBuiltins() {
         (void*)&clsEqImpl,
         llvm::FunctionType::get(t::i1, {t::SEXP, t::SEXP}, false),
         {llvm::Attribute::ReadOnly, llvm::Attribute::Speculatable}};
+    // get_(Id::clsEq) = {
+    //     "clsEqHast",
+    //     (void*)&clsEqHastImpl,
+    //     llvm::FunctionType::get(t::i1, {t::SEXP, t::SEXP}, false),
+    //     {llvm::Attribute::ReadOnly, llvm::Attribute::Speculatable}};
     get_(Id::checkType) = {
         "checkType", (void*)&checkTypeImpl,
         llvm::FunctionType::get(t::t_void, {t::SEXP, t::i64, t::charPtr},

@@ -114,6 +114,7 @@
     "__functional_base_03": "cpp",
     "__memory": "cpp",
     "__bits": "cpp",
-    "version": "cpp"
+    "version": "cpp",
+    "defn.h": "c"
   }
 }
