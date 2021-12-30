@@ -53,6 +53,14 @@ rir.compile <- function(what) {
 #     .Call("vSerialize", fun, as.name(as.character(substitute(fun))), versions)
 # }
 
+f.startSerializer <- function() {
+    invisible(.Call("startSerializer"))
+}
+
+f.stopSerializer <- function() {
+    invisible(.Call("stopSerializer"))
+}
+
 f.initializeBaseLib <- function() {
     .Call("initializeBaseLib")
 }

@@ -419,6 +419,9 @@ void hash_ast(SEXP ast, size_t & hast);
 void printAST(int space, SEXP ast);
 void printAST(int space, int val);
 
+REXPORT SEXP startSerializer();
+REXPORT SEXP stopSerializer();
+
 REXPORT SEXP printHAST(SEXP clos);
 REXPORT SEXP rirSerialize(SEXP data, SEXP file);
 REXPORT SEXP rirDeserialize(SEXP file);

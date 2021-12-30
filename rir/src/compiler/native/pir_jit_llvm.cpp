@@ -331,6 +331,8 @@ void PirJitLLVM::finalizeAndFixup() {
 }
 
 void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, contextMeta* cMeta) {
+    auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
+
     std::vector<int64_t> cpEntries;
     std::vector<int64_t> spEntries;
 
@@ -478,12 +480,16 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
 
         // SERIALIZE THE LLVM MODULE
         std::ofstream bitcodeFile;
-        bitcodeFile.open("temp.bc");
+
+        std::stringstream bcPath;
+        bcPath << prefix << "/" << "temp.meta";
+
+        bitcodeFile.open(bcPath.str().c_str());
         llvm::raw_os_ostream ooo(bitcodeFile);
         WriteBitcodeToFile(*module,ooo);
 
         #if PRINT_SERIALIZER_PROGRESS == 1
-        std::cout << "(*) Module bitcode serialized: temp.bc" << std::endl;
+        std::cout << "(*) Module bitcode serialized: " << bcPath.str() << std::endl;
         #endif
 
         #if PRINT_MODULE_AFTER_POOL_PATCHES == 1
@@ -571,14 +577,16 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
 
     // SERIALIZE THE CONSTANT POOL
     R_outpstream_st outputStream;
+    std::stringstream bcPath;
+    bcPath << prefix << "/" << "temp.pool";
     FILE *fptr;
-    fptr = fopen("temp.pool","w");
+    fptr = fopen(bcPath.str().c_str(),"w");
     R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
     R_Serialize(serializationObjects, &outputStream);
     fclose(fptr);
 
     #if PRINT_SERIALIZER_PROGRESS == 1
-    std::cout << "(*) Module pool serialized: temp.pool" << std::endl;
+    std::cout << "(*) Module pool serialized: " << bcPath.str() << std::endl;
     #endif
 }
 

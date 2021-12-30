@@ -1,1 +1,863 @@
-[1/1] cd /home/meetesh06/compL/rir_serializer/rir && /home/meetesh06/compL/rir_serializer/rir/tools/setup-build-dir /home/meetesh06/compL/rir_serializer/rir /home/meetesh06/compL/rir_serializer/rir/external/custom-r
+Running toRun/bounce_nonames.r
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce_nonames/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce_nonames/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce_nonames/m_nextRandom_3221860196855452669.meta
+Entry 1(nameLen)    : 10
+Entry 2(name)       : nextRandom
+Entry 3(hast)       : 3221860196855452669
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 0
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_808_2CB658C7658A13FD_F_1
+   Entry 12(cPoolEntriesSize): 9
+   Entry 13(srcPoolEntriesSize): 2
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 57
+   Entry 17(childrenData): f_808_2CB658C7658A13FD_F_1,f_808_2CB658C7658A13FD_F_0,|,|
+   Entry 18(srcDataLength): 57
+   Entry 19(srcData): f_808_2CB658C7658A13FD_F_0,0,f_808_2CB658C7658A13FD_F_1,1
+   Entry 20(argDataLength): 57
+   Entry 21(argData): f_808_2CB658C7658A13FD_F_0,|,f_808_2CB658C7658A13FD_F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 3221860196855452669
+      Entry 27(currEntry): 12673343776779575316
+(/) Serializer End
+code patch: code_3221860196855452669_0, hast: 3221860196855452669, index: 0, dec: 94030311674192
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce_nonames/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce_nonames/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce_nonames/m_FUN_7857130921784245960.meta
+Entry 1(nameLen)    : 3
+Entry 2(name)       : FUN
+Entry 3(hast)       : 7857130921784245960
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_841_6D0A22F1CAAFFEC8_F_1
+   Entry 12(cPoolEntriesSize): 44
+   Entry 13(srcPoolEntriesSize): 24
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 57
+   Entry 17(childrenData): f_841_6D0A22F1CAAFFEC8_F_1,f_841_6D0A22F1CAAFFEC8_F_0,|,|
+   Entry 18(srcDataLength): 57
+   Entry 19(srcData): f_841_6D0A22F1CAAFFEC8_F_0,0,f_841_6D0A22F1CAAFFEC8_F_1,1
+   Entry 20(argDataLength): 57
+   Entry 21(argData): f_841_6D0A22F1CAAFFEC8_F_0,|,f_841_6D0A22F1CAAFFEC8_F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 809187925779887382
+      Entry 27(currEntry): 7857130921784245960
+(/) Serializer End
+code patch: code_7857130921784245960_0, hast: 7857130921784245960, index: 0, dec: 94030309755104
+code patch: code_809187925779887382_0, hast: 809187925779887382, index: 0, dec: 94030334752976
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce_nonames/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce_nonames/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce_nonames/m_lapply_4639679292400908031.meta
+Entry 1(nameLen)    : 6
+Entry 2(name)       : lapply
+Entry 3(hast)       : 4639679292400908031
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):1099514822671
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 3
+   Entry 9(dotsPosition): 2
+   Entry 10(mainNameLen): 36
+   Entry 11(name): f_318_406373BBFF4AB6FF_1000030C00F_4
+   Entry 12(cPoolEntriesSize): 18
+   Entry 13(srcPoolEntriesSize): 2
+   Entry 15(promiseSrcPoolEntriesSize): 5
+   Entry 16(childrenDataLength): 227
+   Entry 17(childrenData): f_318_406373BBFF4AB6FF_1000030C00F_1,f_318_406373BBFF4AB6FF_1000030C00F_0,|,f_318_406373BBFF4AB6FF_1000030C00F_4,f_318_406373BBFF4AB6FF_1000030C00F_3,f_318_406373BBFF4AB6FF_1000030C00F_2,f_318_406373BBFF4AB6FF_1000030C00F_1,|,|
+   Entry 18(srcDataLength): 194
+   Entry 19(srcData): f_318_406373BBFF4AB6FF_1000030C00F_0,0,f_318_406373BBFF4AB6FF_1000030C00F_1,1,f_318_406373BBFF4AB6FF_1000030C00F_2,2,f_318_406373BBFF4AB6FF_1000030C00F_3,3,f_318_406373BBFF4AB6FF_1000030C00F_4,4
+   Entry 20(argDataLength): 194
+   Entry 21(argData): f_318_406373BBFF4AB6FF_1000030C00F_0,|,f_318_406373BBFF4AB6FF_1000030C00F_1,|,f_318_406373BBFF4AB6FF_1000030C00F_2,|,f_318_406373BBFF4AB6FF_1000030C00F_3,|,f_318_406373BBFF4AB6FF_1000030C00F_4,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 3
+      Entry 27(currEntry): 4639679292400908031
+      Entry 27(currEntry): 8667094939504755069
+      Entry 27(currEntry): 12673250812315275123
+(/) Serializer End
+code patch: code_4639679292400908031_0, hast: 4639679292400908031, index: 0, dec: 94030336180400
+code patch: code_8667094939504755069_0, hast: 8667094939504755069, index: 0, dec: 94030335828272
+[1] 1331
+[1] 1331
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce_nonames/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce_nonames/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce_nonames/m_execute_13117334645147847298.meta
+Entry 1(nameLen)    : 7
+Entry 2(name)       : execute
+Entry 3(hast)       : 13117334645147847298
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 0
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 27
+   Entry 11(name): f_760_B60A225C73F64A82_F_12
+   Entry 12(cPoolEntriesSize): 50
+   Entry 13(srcPoolEntriesSize): 4
+   Entry 15(promiseSrcPoolEntriesSize): 13
+   Entry 16(childrenDataLength): 415
+   Entry 17(childrenData): f_760_B60A225C73F64A82_F_4,f_760_B60A225C73F64A82_F_0,|,f_760_B60A225C73F64A82_F_6,f_760_B60A225C73F64A82_F_1,|,f_760_B60A225C73F64A82_F_12,f_760_B60A225C73F64A82_F_11,f_760_B60A225C73F64A82_F_9,f_760_B60A225C73F64A82_F_8,f_760_B60A225C73F64A82_F_7,f_760_B60A225C73F64A82_F_10,f_760_B60A225C73F64A82_F_3,f_760_B60A225C73F64A82_F_2,f_760_B60A225C73F64A82_F_6,f_760_B60A225C73F64A82_F_5,f_760_B60A225C73F64A82_F_4,|,|
+   Entry 18(srcDataLength): 382
+   Entry 19(srcData): f_760_B60A225C73F64A82_F_0,0,f_760_B60A225C73F64A82_F_1,1,f_760_B60A225C73F64A82_F_2,2,f_760_B60A225C73F64A82_F_3,3,f_760_B60A225C73F64A82_F_4,4,f_760_B60A225C73F64A82_F_5,5,f_760_B60A225C73F64A82_F_6,6,f_760_B60A225C73F64A82_F_7,7,f_760_B60A225C73F64A82_F_8,8,f_760_B60A225C73F64A82_F_9,9,f_760_B60A225C73F64A82_F_10,10,f_760_B60A225C73F64A82_F_11,11,f_760_B60A225C73F64A82_F_12,12
+   Entry 20(argDataLength): 379
+   Entry 21(argData): f_760_B60A225C73F64A82_F_0,|,f_760_B60A225C73F64A82_F_1,|,f_760_B60A225C73F64A82_F_2,|,f_760_B60A225C73F64A82_F_3,|,f_760_B60A225C73F64A82_F_4,|,f_760_B60A225C73F64A82_F_5,|,f_760_B60A225C73F64A82_F_6,|,f_760_B60A225C73F64A82_F_7,|,f_760_B60A225C73F64A82_F_8,|,f_760_B60A225C73F64A82_F_9,|,f_760_B60A225C73F64A82_F_10,|,f_760_B60A225C73F64A82_F_11,|,f_760_B60A225C73F64A82_F_12,0
+   Entry 22(arglistOrderEntriesLength): 1
+      Entry 23(outerEntriesSize): 2
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 1
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 1
+   Entry 26(reqMapSize): 5
+      Entry 27(currEntry): 3221860196855452669
+      Entry 27(currEntry): 4639679292400908031
+      Entry 27(currEntry): 8667094939504755069
+      Entry 27(currEntry): 12673250812315275123
+      Entry 27(currEntry): 13117334645147847298
+(/) Serializer End
+code patch: code_13117334645147847298_0, hast: 13117334645147847298, index: 0, dec: 94030321803280
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+Running toRun/bounce_nonames_simple.r
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce_nonames_simple/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce_nonames_simple/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce_nonames_simple/m_nextRandom_3221860196855452669.meta
+Entry 1(nameLen)    : 10
+Entry 2(name)       : nextRandom
+Entry 3(hast)       : 3221860196855452669
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 0
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_850_2CB658C7658A13FD_F_1
+   Entry 12(cPoolEntriesSize): 9
+   Entry 13(srcPoolEntriesSize): 2
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 57
+   Entry 17(childrenData): f_850_2CB658C7658A13FD_F_1,f_850_2CB658C7658A13FD_F_0,|,|
+   Entry 18(srcDataLength): 57
+   Entry 19(srcData): f_850_2CB658C7658A13FD_F_0,0,f_850_2CB658C7658A13FD_F_1,1
+   Entry 20(argDataLength): 57
+   Entry 21(argData): f_850_2CB658C7658A13FD_F_0,|,f_850_2CB658C7658A13FD_F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 3221860196855452669
+      Entry 27(currEntry): 12673343776779575316
+(/) Serializer End
+code patch: code_3221860196855452669_0, hast: 3221860196855452669, index: 0, dec: 93919630152016
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce_nonames_simple/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce_nonames_simple/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce_nonames_simple/m_FUN_7857130921784245960.meta
+Entry 1(nameLen)    : 3
+Entry 2(name)       : FUN
+Entry 3(hast)       : 7857130921784245960
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_145_6D0A22F1CAAFFEC8_F_1
+   Entry 12(cPoolEntriesSize): 44
+   Entry 13(srcPoolEntriesSize): 24
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 57
+   Entry 17(childrenData): f_145_6D0A22F1CAAFFEC8_F_1,f_145_6D0A22F1CAAFFEC8_F_0,|,|
+   Entry 18(srcDataLength): 57
+   Entry 19(srcData): f_145_6D0A22F1CAAFFEC8_F_0,0,f_145_6D0A22F1CAAFFEC8_F_1,1
+   Entry 20(argDataLength): 57
+   Entry 21(argData): f_145_6D0A22F1CAAFFEC8_F_0,|,f_145_6D0A22F1CAAFFEC8_F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 809187925779887382
+      Entry 27(currEntry): 7857130921784245960
+(/) Serializer End
+code patch: code_7857130921784245960_0, hast: 7857130921784245960, index: 0, dec: 93919628662992
+code patch: code_809187925779887382_0, hast: 809187925779887382, index: 0, dec: 93919653631808
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce_nonames_simple/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce_nonames_simple/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce_nonames_simple/m_lapply_4639679292400908031.meta
+Entry 1(nameLen)    : 6
+Entry 2(name)       : lapply
+Entry 3(hast)       : 4639679292400908031
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):1099514822671
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 3
+   Entry 9(dotsPosition): 2
+   Entry 10(mainNameLen): 36
+   Entry 11(name): f_645_406373BBFF4AB6FF_1000030C00F_4
+   Entry 12(cPoolEntriesSize): 18
+   Entry 13(srcPoolEntriesSize): 2
+   Entry 15(promiseSrcPoolEntriesSize): 5
+   Entry 16(childrenDataLength): 227
+   Entry 17(childrenData): f_645_406373BBFF4AB6FF_1000030C00F_1,f_645_406373BBFF4AB6FF_1000030C00F_0,|,f_645_406373BBFF4AB6FF_1000030C00F_4,f_645_406373BBFF4AB6FF_1000030C00F_3,f_645_406373BBFF4AB6FF_1000030C00F_2,f_645_406373BBFF4AB6FF_1000030C00F_1,|,|
+   Entry 18(srcDataLength): 194
+   Entry 19(srcData): f_645_406373BBFF4AB6FF_1000030C00F_0,0,f_645_406373BBFF4AB6FF_1000030C00F_1,1,f_645_406373BBFF4AB6FF_1000030C00F_2,2,f_645_406373BBFF4AB6FF_1000030C00F_3,3,f_645_406373BBFF4AB6FF_1000030C00F_4,4
+   Entry 20(argDataLength): 194
+   Entry 21(argData): f_645_406373BBFF4AB6FF_1000030C00F_0,|,f_645_406373BBFF4AB6FF_1000030C00F_1,|,f_645_406373BBFF4AB6FF_1000030C00F_2,|,f_645_406373BBFF4AB6FF_1000030C00F_3,|,f_645_406373BBFF4AB6FF_1000030C00F_4,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 3
+      Entry 27(currEntry): 4639679292400908031
+      Entry 27(currEntry): 8667094939504755069
+      Entry 27(currEntry): 12673250812315275123
+(/) Serializer End
+code patch: code_4639679292400908031_0, hast: 4639679292400908031, index: 0, dec: 93919654659168
+code patch: code_8667094939504755069_0, hast: 8667094939504755069, index: 0, dec: 93919654570880
+[1] 1331
+[1] 1331
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce_nonames_simple/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce_nonames_simple/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce_nonames_simple/m_execute_9177279055729969082.meta
+Entry 1(nameLen)    : 7
+Entry 2(name)       : execute
+Entry 3(hast)       : 9177279055729969082
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 0
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 27
+   Entry 11(name): f_413_7F5C3EAD896AC7BA_F_12
+   Entry 12(cPoolEntriesSize): 52
+   Entry 13(srcPoolEntriesSize): 4
+   Entry 15(promiseSrcPoolEntriesSize): 13
+   Entry 16(childrenDataLength): 415
+   Entry 17(childrenData): f_413_7F5C3EAD896AC7BA_F_1,f_413_7F5C3EAD896AC7BA_F_2,|,f_413_7F5C3EAD896AC7BA_F_3,f_413_7F5C3EAD896AC7BA_F_4,|,f_413_7F5C3EAD896AC7BA_F_12,f_413_7F5C3EAD896AC7BA_F_11,f_413_7F5C3EAD896AC7BA_F_10,f_413_7F5C3EAD896AC7BA_F_9,f_413_7F5C3EAD896AC7BA_F_8,f_413_7F5C3EAD896AC7BA_F_7,f_413_7F5C3EAD896AC7BA_F_6,f_413_7F5C3EAD896AC7BA_F_5,f_413_7F5C3EAD896AC7BA_F_1,f_413_7F5C3EAD896AC7BA_F_0,f_413_7F5C3EAD896AC7BA_F_3,|,|
+   Entry 18(srcDataLength): 382
+   Entry 19(srcData): f_413_7F5C3EAD896AC7BA_F_0,0,f_413_7F5C3EAD896AC7BA_F_1,1,f_413_7F5C3EAD896AC7BA_F_2,2,f_413_7F5C3EAD896AC7BA_F_3,3,f_413_7F5C3EAD896AC7BA_F_4,4,f_413_7F5C3EAD896AC7BA_F_5,5,f_413_7F5C3EAD896AC7BA_F_6,6,f_413_7F5C3EAD896AC7BA_F_7,7,f_413_7F5C3EAD896AC7BA_F_8,8,f_413_7F5C3EAD896AC7BA_F_9,9,f_413_7F5C3EAD896AC7BA_F_10,10,f_413_7F5C3EAD896AC7BA_F_11,11,f_413_7F5C3EAD896AC7BA_F_12,12
+   Entry 20(argDataLength): 379
+   Entry 21(argData): f_413_7F5C3EAD896AC7BA_F_0,|,f_413_7F5C3EAD896AC7BA_F_1,|,f_413_7F5C3EAD896AC7BA_F_2,|,f_413_7F5C3EAD896AC7BA_F_3,|,f_413_7F5C3EAD896AC7BA_F_4,|,f_413_7F5C3EAD896AC7BA_F_5,|,f_413_7F5C3EAD896AC7BA_F_6,|,f_413_7F5C3EAD896AC7BA_F_7,|,f_413_7F5C3EAD896AC7BA_F_8,|,f_413_7F5C3EAD896AC7BA_F_9,|,f_413_7F5C3EAD896AC7BA_F_10,|,f_413_7F5C3EAD896AC7BA_F_11,|,f_413_7F5C3EAD896AC7BA_F_12,0
+   Entry 22(arglistOrderEntriesLength): 1
+      Entry 23(outerEntriesSize): 2
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 1
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 1
+   Entry 26(reqMapSize): 5
+      Entry 27(currEntry): 3221860196855452669
+      Entry 27(currEntry): 4639679292400908031
+      Entry 27(currEntry): 8667094939504755069
+      Entry 27(currEntry): 9177279055729969082
+      Entry 27(currEntry): 12673250812315275123
+(/) Serializer End
+code patch: code_9177279055729969082_0, hast: 9177279055729969082, index: 0, dec: 93919640281104
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+Running toRun/bounce.r
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce/m_nextRandom_3221860196855452669.meta
+Entry 1(nameLen)    : 10
+Entry 2(name)       : nextRandom
+Entry 3(hast)       : 3221860196855452669
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 0
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_327_2CB658C7658A13FD_F_1
+   Entry 12(cPoolEntriesSize): 8
+   Entry 13(srcPoolEntriesSize): 2
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 57
+   Entry 17(childrenData): f_327_2CB658C7658A13FD_F_1,f_327_2CB658C7658A13FD_F_0,|,|
+   Entry 18(srcDataLength): 57
+   Entry 19(srcData): f_327_2CB658C7658A13FD_F_0,0,f_327_2CB658C7658A13FD_F_1,1
+   Entry 20(argDataLength): 57
+   Entry 21(argData): f_327_2CB658C7658A13FD_F_0,|,f_327_2CB658C7658A13FD_F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 3221860196855452669
+      Entry 27(currEntry): 12673343776779575316
+(/) Serializer End
+code patch: code_3221860196855452669_0, hast: 3221860196855452669, index: 0, dec: 94524675163120
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce/m_FUN_7857130921784245960.meta
+Entry 1(nameLen)    : 3
+Entry 2(name)       : FUN
+Entry 3(hast)       : 7857130921784245960
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_443_6D0A22F1CAAFFEC8_F_1
+   Entry 12(cPoolEntriesSize): 65
+   Entry 13(srcPoolEntriesSize): 25
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 57
+   Entry 17(childrenData): f_443_6D0A22F1CAAFFEC8_F_1,f_443_6D0A22F1CAAFFEC8_F_0,|,|
+   Entry 18(srcDataLength): 57
+   Entry 19(srcData): f_443_6D0A22F1CAAFFEC8_F_0,0,f_443_6D0A22F1CAAFFEC8_F_1,1
+   Entry 20(argDataLength): 57
+   Entry 21(argData): f_443_6D0A22F1CAAFFEC8_F_0,|,f_443_6D0A22F1CAAFFEC8_F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 7857130921784245960
+      Entry 27(currEntry): 13215439068103491195
+(/) Serializer End
+code patch: code_13215439068103491195_0, hast: 13215439068103491195, index: 0, dec: 94524690733808
+code patch: code_7857130921784245960_0, hast: 7857130921784245960, index: 0, dec: 94524672796688
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce/m_lapply_4639679292400908031.meta
+Entry 1(nameLen)    : 6
+Entry 2(name)       : lapply
+Entry 3(hast)       : 4639679292400908031
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):1099514822671
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 3
+   Entry 9(dotsPosition): 2
+   Entry 10(mainNameLen): 36
+   Entry 11(name): f_103_406373BBFF4AB6FF_1000030C00F_4
+   Entry 12(cPoolEntriesSize): 18
+   Entry 13(srcPoolEntriesSize): 2
+   Entry 15(promiseSrcPoolEntriesSize): 5
+   Entry 16(childrenDataLength): 227
+   Entry 17(childrenData): f_103_406373BBFF4AB6FF_1000030C00F_0,f_103_406373BBFF4AB6FF_1000030C00F_1,|,f_103_406373BBFF4AB6FF_1000030C00F_4,f_103_406373BBFF4AB6FF_1000030C00F_3,f_103_406373BBFF4AB6FF_1000030C00F_2,f_103_406373BBFF4AB6FF_1000030C00F_0,|,|
+   Entry 18(srcDataLength): 194
+   Entry 19(srcData): f_103_406373BBFF4AB6FF_1000030C00F_0,0,f_103_406373BBFF4AB6FF_1000030C00F_1,1,f_103_406373BBFF4AB6FF_1000030C00F_2,2,f_103_406373BBFF4AB6FF_1000030C00F_3,3,f_103_406373BBFF4AB6FF_1000030C00F_4,4
+   Entry 20(argDataLength): 194
+   Entry 21(argData): f_103_406373BBFF4AB6FF_1000030C00F_0,|,f_103_406373BBFF4AB6FF_1000030C00F_1,|,f_103_406373BBFF4AB6FF_1000030C00F_2,|,f_103_406373BBFF4AB6FF_1000030C00F_3,|,f_103_406373BBFF4AB6FF_1000030C00F_4,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 3
+      Entry 27(currEntry): 4639679292400908031
+      Entry 27(currEntry): 8667094939504755069
+      Entry 27(currEntry): 12673250812315275123
+(/) Serializer End
+code patch: code_4639679292400908031_0, hast: 4639679292400908031, index: 0, dec: 94524690658608
+code patch: code_8667094939504755069_0, hast: 8667094939504755069, index: 0, dec: 94524690307360
+[1] 1331
+[1] 1331
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/bounce/temp.meta
+(*) Module pool serialized: ./bitcodes/bounce/temp.pool
+(>) Writing Metadata: ./bitcodes/bounce/m_execute_8309751199937944552.meta
+Entry 1(nameLen)    : 7
+Entry 2(name)       : execute
+Entry 3(hast)       : 8309751199937944552
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 0
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 27
+   Entry 11(name): f_651_73522AB07C2D5BE8_F_20
+   Entry 12(cPoolEntriesSize): 79
+   Entry 13(srcPoolEntriesSize): 8
+   Entry 15(promiseSrcPoolEntriesSize): 26
+   Entry 16(childrenDataLength): 898
+   Entry 17(childrenData): f_651_73522AB07C2D5BE8_F_1,f_651_73522AB07C2D5BE8_F_0,|,f_651_73522AB07C2D5BE8_F_4,f_651_73522AB07C2D5BE8_F_5,|,f_651_73522AB07C2D5BE8_F_5,f_651_73522AB07C2D5BE8_F_3,|,f_651_73522AB07C2D5BE8_F_13,f_651_73522AB07C2D5BE8_F_14,|,f_651_73522AB07C2D5BE8_F_15,f_651_73522AB07C2D5BE8_F_9,|,f_651_73522AB07C2D5BE8_F_14,f_651_73522AB07C2D5BE8_F_17,|,f_651_73522AB07C2D5BE8_F_20,f_651_73522AB07C2D5BE8_F_12,f_651_73522AB07C2D5BE8_F_13,f_651_73522AB07C2D5BE8_F_16,f_651_73522AB07C2D5BE8_F_21,f_651_73522AB07C2D5BE8_F_10,f_651_73522AB07C2D5BE8_F_18,f_651_73522AB07C2D5BE8_F_22,f_651_73522AB07C2D5BE8_F_23,f_651_73522AB07C2D5BE8_F_24,f_651_73522AB07C2D5BE8_F_15,f_651_73522AB07C2D5BE8_F_8,f_651_73522AB07C2D5BE8_F_7,f_651_73522AB07C2D5BE8_F_11,f_651_73522AB07C2D5BE8_F_6,f_651_73522AB07C2D5BE8_F_25,f_651_73522AB07C2D5BE8_F_4,f_651_73522AB07C2D5BE8_F_19,f_651_73522AB07C2D5BE8_F_2,f_651_73522AB07C2D5BE8_F_1,|,|
+   Entry 18(srcDataLength): 785
+   Entry 19(srcData): f_651_73522AB07C2D5BE8_F_0,0,f_651_73522AB07C2D5BE8_F_1,1,f_651_73522AB07C2D5BE8_F_2,2,f_651_73522AB07C2D5BE8_F_3,3,f_651_73522AB07C2D5BE8_F_4,4,f_651_73522AB07C2D5BE8_F_5,5,f_651_73522AB07C2D5BE8_F_6,6,f_651_73522AB07C2D5BE8_F_7,7,f_651_73522AB07C2D5BE8_F_8,8,f_651_73522AB07C2D5BE8_F_9,9,f_651_73522AB07C2D5BE8_F_10,10,f_651_73522AB07C2D5BE8_F_11,11,f_651_73522AB07C2D5BE8_F_12,12,f_651_73522AB07C2D5BE8_F_13,13,f_651_73522AB07C2D5BE8_F_14,14,f_651_73522AB07C2D5BE8_F_15,15,f_651_73522AB07C2D5BE8_F_16,16,f_651_73522AB07C2D5BE8_F_17,17,f_651_73522AB07C2D5BE8_F_18,18,f_651_73522AB07C2D5BE8_F_19,19,f_651_73522AB07C2D5BE8_F_20,20,f_651_73522AB07C2D5BE8_F_21,21,f_651_73522AB07C2D5BE8_F_22,22,f_651_73522AB07C2D5BE8_F_23,23,f_651_73522AB07C2D5BE8_F_24,24,f_651_73522AB07C2D5BE8_F_25,25
+   Entry 20(argDataLength): 769
+   Entry 21(argData): f_651_73522AB07C2D5BE8_F_0,|,f_651_73522AB07C2D5BE8_F_1,|,f_651_73522AB07C2D5BE8_F_2,|,f_651_73522AB07C2D5BE8_F_3,|,f_651_73522AB07C2D5BE8_F_4,|,f_651_73522AB07C2D5BE8_F_5,|,f_651_73522AB07C2D5BE8_F_6,|,f_651_73522AB07C2D5BE8_F_7,|,f_651_73522AB07C2D5BE8_F_8,|,f_651_73522AB07C2D5BE8_F_9,|,f_651_73522AB07C2D5BE8_F_10,|,f_651_73522AB07C2D5BE8_F_11,|,f_651_73522AB07C2D5BE8_F_12,|,f_651_73522AB07C2D5BE8_F_13,|,f_651_73522AB07C2D5BE8_F_14,|,f_651_73522AB07C2D5BE8_F_15,|,f_651_73522AB07C2D5BE8_F_16,|,f_651_73522AB07C2D5BE8_F_17,|,f_651_73522AB07C2D5BE8_F_18,|,f_651_73522AB07C2D5BE8_F_19,|,f_651_73522AB07C2D5BE8_F_20,0,f_651_73522AB07C2D5BE8_F_21,|,f_651_73522AB07C2D5BE8_F_22,|,f_651_73522AB07C2D5BE8_F_23,|,f_651_73522AB07C2D5BE8_F_24,|,f_651_73522AB07C2D5BE8_F_25,|
+   Entry 22(arglistOrderEntriesLength): 1
+      Entry 23(outerEntriesSize): 2
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 1
+         Entry 24(innerEntriesSize): 2
+            Entry 25(currEntry): 0
+            Entry 25(currEntry): 1
+   Entry 26(reqMapSize): 8
+      Entry 27(currEntry): 173992697988
+      Entry 27(currEntry): 3221860196855452669
+      Entry 27(currEntry): 4639679292400908031
+      Entry 27(currEntry): 8309751199937944552
+      Entry 27(currEntry): 8667094939504755069
+      Entry 27(currEntry): 12673023951916902649
+      Entry 27(currEntry): 12673250812315275123
+      Entry 27(currEntry): 12673343776779575316
+(/) Serializer End
+code patch: code_8309751199937944552_0, hast: 8309751199937944552, index: 0, dec: 94524677537808
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+[1] 1331
+Running toRun/mandelbrot.r
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/mandelbrot/temp.meta
+(*) Module pool serialized: ./bitcodes/mandelbrot/temp.pool
+(>) Writing Metadata: ./bitcodes/mandelbrot/m_bitwShiftL_12673609025892230999.meta
+Entry 1(nameLen)    : 10
+Entry 2(name)       : bitwShiftL
+Entry 3(hast)       : 12673609025892230999
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):12888097295
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_843_AFE1B442EA7DA757_30030C20F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_843_AFE1B442EA7DA757_30030C20F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_843_AFE1B442EA7DA757_30030C20F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(/) Serializer End
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/mandelbrot/temp.meta
+(*) Module pool serialized: ./bitcodes/mandelbrot/temp.pool
+(>) Writing Metadata: ./bitcodes/mandelbrot/m_bitwXor_12673376186638998074.meta
+Entry 1(nameLen)    : 7
+Entry 2(name)       : bitwXor
+Entry 3(hast)       : 12673376186638998074
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):8660238351
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_707_AFE0E07ECD831A3A_20430C00F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_707_AFE0E07ECD831A3A_20430C00F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_707_AFE0E07ECD831A3A_20430C00F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(/) Serializer End
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/mandelbrot/temp.meta
+(*) Module pool serialized: ./bitcodes/mandelbrot/temp.pool
+(>) Writing Metadata: ./bitcodes/mandelbrot/m_bitwShiftL_12673609025892230999.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 10
+Entry 2(name)       : bitwShiftL
+Entry 3(hast)       : 12673609025892230999
+Entry 4(numVersions): 2
+============ ============ ============
+   Entry 5(context):12888097295
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_843_AFE1B442EA7DA757_30030C20F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_843_AFE1B442EA7DA757_30030C20F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_843_AFE1B442EA7DA757_30030C20F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+============ ============ ============
+   Entry 5(context):4296032271
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_482_AFE1B442EA7DA757_10010400F_0
+   Entry 12(cPoolEntriesSize): 3
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_482_AFE1B442EA7DA757_10010400F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_482_AFE1B442EA7DA757_10010400F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 12673609025892230999
+(/) Serializer End
+code patch: code_12673609025892230999_0, hast: 12673609025892230999, index: 0, dec: 94116925150688
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/mandelbrot/temp.meta
+(*) Module pool serialized: ./bitcodes/mandelbrot/temp.pool
+(>) Writing Metadata: ./bitcodes/mandelbrot/m_bitwXor_12673376186638998074.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 7
+Entry 2(name)       : bitwXor
+Entry 3(hast)       : 12673376186638998074
+Entry 4(numVersions): 2
+============ ============ ============
+   Entry 5(context):8660238351
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_707_AFE0E07ECD831A3A_20430C00F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_707_AFE0E07ECD831A3A_20430C00F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_707_AFE0E07ECD831A3A_20430C00F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+============ ============ ============
+   Entry 5(context):204521487
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 32
+   Entry 11(name): f_368_AFE0E07ECD831A3A_C30C00F_0
+   Entry 12(cPoolEntriesSize): 0
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 34
+   Entry 19(srcData): f_368_AFE0E07ECD831A3A_C30C00F_0,0
+   Entry 20(argDataLength): 34
+   Entry 21(argData): f_368_AFE0E07ECD831A3A_C30C00F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(/) Serializer End
+[1] 239
+[1] 239
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/mandelbrot/temp.meta
+(*) Module pool serialized: ./bitcodes/mandelbrot/temp.pool
+(>) Writing Metadata: ./bitcodes/mandelbrot/m_mandelbrot_250144078105040217.meta
+Entry 1(nameLen)    : 10
+Entry 2(name)       : mandelbrot
+Entry 3(hast)       : 250144078105040217
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):4296032271
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 33
+   Entry 11(name): f_398_378B0B6B61E5559_10010400F_0
+   Entry 12(cPoolEntriesSize): 32
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 35
+   Entry 19(srcData): f_398_378B0B6B61E5559_10010400F_0,0
+   Entry 20(argDataLength): 35
+   Entry 21(argData): f_398_378B0B6B61E5559_10010400F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 250144078105040217
+(/) Serializer End
+code patch: code_250144078105040217_0, hast: 250144078105040217, index: 0, dec: 94116922880016
+[1] 239
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/mandelbrot/temp.meta
+(*) Module pool serialized: ./bitcodes/mandelbrot/temp.pool
+(>) Writing Metadata: ./bitcodes/mandelbrot/m_execute_4072613566374285.meta
+Entry 1(nameLen)    : 7
+Entry 2(name)       : execute
+Entry 3(hast)       : 4072613566374285
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):4296032527
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 1
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 31
+   Entry 11(name): f_907_E78053CEE618D_10010410F_1
+   Entry 12(cPoolEntriesSize): 46
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 67
+   Entry 17(childrenData): f_907_E78053CEE618D_10010410F_1,f_907_E78053CEE618D_10010410F_0,|,|
+   Entry 18(srcDataLength): 67
+   Entry 19(srcData): f_907_E78053CEE618D_10010410F_0,0,f_907_E78053CEE618D_10010410F_1,1
+   Entry 20(argDataLength): 67
+   Entry 21(argData): f_907_E78053CEE618D_10010410F_0,|,f_907_E78053CEE618D_10010410F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 2
+      Entry 27(currEntry): 4072613566374285
+      Entry 27(currEntry): 250144078105040217
+(/) Serializer End
+code patch: code_4072613566374285_0, hast: 4072613566374285, index: 0, dec: 94116936697360
+[1] 239
+[1] 239
+[1] 239
+[1] 239
+[1] 239
+[1] 239
+[1] 239
+Running toRun/storage.r
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/storage/temp.meta
+(*) Module pool serialized: ./bitcodes/storage/temp.pool
+(>) Writing Metadata: ./bitcodes/storage/m_buildTreeDepth_7364315946290773925.meta
+Entry 1(nameLen)    : 14
+Entry 2(name)       : buildTreeDepth
+Entry 3(hast)       : 7364315946290773925
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_397_66334E55D867FFA5_F_2
+   Entry 12(cPoolEntriesSize): 19
+   Entry 13(srcPoolEntriesSize): 2
+   Entry 15(promiseSrcPoolEntriesSize): 3
+   Entry 16(childrenDataLength): 84
+   Entry 17(childrenData): f_397_66334E55D867FFA5_F_2,f_397_66334E55D867FFA5_F_1,f_397_66334E55D867FFA5_F_0,|,|
+   Entry 18(srcDataLength): 86
+   Entry 19(srcData): f_397_66334E55D867FFA5_F_0,0,f_397_66334E55D867FFA5_F_1,1,f_397_66334E55D867FFA5_F_2,2
+   Entry 20(argDataLength): 86
+   Entry 21(argData): f_397_66334E55D867FFA5_F_0,|,f_397_66334E55D867FFA5_F_1,|,f_397_66334E55D867FFA5_F_2,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 1
+      Entry 27(currEntry): 7364315946290773925
+(/) Serializer End
+code patch: code_7364315946290773925_0, hast: 7364315946290773925, index: 0, dec: 94483200023664
+TRY_PATCH_DEOPTMETADATA (7364315946290773925|0): 94483200023664
+TRY_PATCH_DEOPTMETADATA (7364315946290773925|0): 94483200023664
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/storage/temp.meta
+(*) Module pool serialized: ./bitcodes/storage/temp.pool
+(>) Writing Metadata: ./bitcodes/storage/m_vector_12673023951916902649.meta
+Entry 1(nameLen)    : 6
+Entry 2(name)       : vector
+Entry 3(hast)       : 12673023951916902649
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):8593130255
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_528_AFDFA023C40628F9_20030C30F_0
+   Entry 12(cPoolEntriesSize): 1
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 1
+   Entry 16(childrenDataLength): 1
+   Entry 17(childrenData): |
+   Entry 18(srcDataLength): 36
+   Entry 19(srcData): f_528_AFDFA023C40628F9_20030C30F_0,0
+   Entry 20(argDataLength): 36
+   Entry 21(argData): f_528_AFDFA023C40628F9_20030C30F_0,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 0
+(/) Serializer End
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/storage/temp.meta
+(*) Module pool serialized: ./bitcodes/storage/temp.pool
+(>) Writing Metadata: ./bitcodes/storage/m_buildTreeDepth_7364315946290773925.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 14
+Entry 2(name)       : buildTreeDepth
+Entry 3(hast)       : 7364315946290773925
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_634_66334E55D867FFA5_F_5
+   Entry 12(cPoolEntriesSize): 25
+   Entry 13(srcPoolEntriesSize): 6
+   Entry 15(promiseSrcPoolEntriesSize): 6
+   Entry 16(childrenDataLength): 165
+   Entry 17(childrenData): f_634_66334E55D867FFA5_F_5,f_634_66334E55D867FFA5_F_3,f_634_66334E55D867FFA5_F_2,f_634_66334E55D867FFA5_F_1,f_634_66334E55D867FFA5_F_4,f_634_66334E55D867FFA5_F_0,|,|
+   Entry 18(srcDataLength): 173
+   Entry 19(srcData): f_634_66334E55D867FFA5_F_0,0,f_634_66334E55D867FFA5_F_1,1,f_634_66334E55D867FFA5_F_2,2,f_634_66334E55D867FFA5_F_3,3,f_634_66334E55D867FFA5_F_4,4,f_634_66334E55D867FFA5_F_5,5
+   Entry 20(argDataLength): 173
+   Entry 21(argData): f_634_66334E55D867FFA5_F_0,|,f_634_66334E55D867FFA5_F_1,|,f_634_66334E55D867FFA5_F_2,|,f_634_66334E55D867FFA5_F_3,|,f_634_66334E55D867FFA5_F_4,|,f_634_66334E55D867FFA5_F_5,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 3
+      Entry 27(currEntry): 3221860196855452669
+      Entry 27(currEntry): 7364315946290773925
+      Entry 27(currEntry): 12673343776779575316
+(/) Serializer End
+code patch: code_3221860196855452669_0, hast: 3221860196855452669, index: 0, dec: 94483230983808
+[1] 5461
+[1] 5461
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/storage/temp.meta
+(*) Module pool serialized: ./bitcodes/storage/temp.pool
+(>) Writing Metadata: ./bitcodes/storage/m_buildTreeDepth_7364315946290773925.meta
+(*) Metadata already exists for this hast
+Entry 1(nameLen)    : 14
+Entry 2(name)       : buildTreeDepth
+Entry 3(hast)       : 7364315946290773925
+Entry 4(numVersions): 2
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 26
+   Entry 11(name): f_634_66334E55D867FFA5_F_5
+   Entry 12(cPoolEntriesSize): 25
+   Entry 13(srcPoolEntriesSize): 6
+   Entry 15(promiseSrcPoolEntriesSize): 6
+   Entry 16(childrenDataLength): 165
+   Entry 17(childrenData): f_634_66334E55D867FFA5_F_5,f_634_66334E55D867FFA5_F_3,f_634_66334E55D867FFA5_F_2,f_634_66334E55D867FFA5_F_1,f_634_66334E55D867FFA5_F_4,f_634_66334E55D867FFA5_F_0,|,|
+   Entry 18(srcDataLength): 173
+   Entry 19(srcData): f_634_66334E55D867FFA5_F_0,0,f_634_66334E55D867FFA5_F_1,1,f_634_66334E55D867FFA5_F_2,2,f_634_66334E55D867FFA5_F_3,3,f_634_66334E55D867FFA5_F_4,4,f_634_66334E55D867FFA5_F_5,5
+   Entry 20(argDataLength): 173
+   Entry 21(argData): f_634_66334E55D867FFA5_F_0,|,f_634_66334E55D867FFA5_F_1,|,f_634_66334E55D867FFA5_F_2,|,f_634_66334E55D867FFA5_F_3,|,f_634_66334E55D867FFA5_F_4,|,f_634_66334E55D867FFA5_F_5,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 3
+      Entry 27(currEntry): 3221860196855452669
+      Entry 27(currEntry): 7364315946290773925
+      Entry 27(currEntry): 12673343776779575316
+============ ============ ============
+   Entry 5(context):4296032527
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 2
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 34
+   Entry 11(name): f_842_66334E55D867FFA5_10010410F_5
+   Entry 12(cPoolEntriesSize): 25
+   Entry 13(srcPoolEntriesSize): 6
+   Entry 15(promiseSrcPoolEntriesSize): 6
+   Entry 16(childrenDataLength): 213
+   Entry 17(childrenData): f_842_66334E55D867FFA5_10010410F_5,f_842_66334E55D867FFA5_10010410F_4,f_842_66334E55D867FFA5_10010410F_2,f_842_66334E55D867FFA5_10010410F_3,f_842_66334E55D867FFA5_10010410F_1,f_842_66334E55D867FFA5_10010410F_0,|,|
+   Entry 18(srcDataLength): 221
+   Entry 19(srcData): f_842_66334E55D867FFA5_10010410F_0,0,f_842_66334E55D867FFA5_10010410F_1,1,f_842_66334E55D867FFA5_10010410F_2,2,f_842_66334E55D867FFA5_10010410F_3,3,f_842_66334E55D867FFA5_10010410F_4,4,f_842_66334E55D867FFA5_10010410F_5,5
+   Entry 20(argDataLength): 221
+   Entry 21(argData): f_842_66334E55D867FFA5_10010410F_0,|,f_842_66334E55D867FFA5_10010410F_1,|,f_842_66334E55D867FFA5_10010410F_2,|,f_842_66334E55D867FFA5_10010410F_3,|,f_842_66334E55D867FFA5_10010410F_4,|,f_842_66334E55D867FFA5_10010410F_5,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 3
+      Entry 27(currEntry): 3221860196855452669
+      Entry 27(currEntry): 7364315946290773925
+      Entry 27(currEntry): 12673343776779575316
+(/) Serializer End
+[1] 5461
+(>) Serializer Start
+(*) Module bitcode serialized: ./bitcodes/storage/temp.meta
+(*) Module pool serialized: ./bitcodes/storage/temp.pool
+(>) Writing Metadata: ./bitcodes/storage/m_execute_818491491934110991.meta
+Entry 1(nameLen)    : 7
+Entry 2(name)       : execute
+Entry 3(hast)       : 818491491934110991
+Entry 4(numVersions): 1
+============ ============ ============
+   Entry 5(context):15
+   Entry 6(envCreation): 1
+   Entry 7(optimization): 1
+   Entry 8(numArguments): 0
+   Entry 9(dotsPosition): 18446744073709551615
+   Entry 10(mainNameLen): 25
+   Entry 11(name): f_609_B5BDDACE469850F_F_1
+   Entry 12(cPoolEntriesSize): 9
+   Entry 13(srcPoolEntriesSize): 0
+   Entry 15(promiseSrcPoolEntriesSize): 2
+   Entry 16(childrenDataLength): 55
+   Entry 17(childrenData): f_609_B5BDDACE469850F_F_1,f_609_B5BDDACE469850F_F_0,|,|
+   Entry 18(srcDataLength): 55
+   Entry 19(srcData): f_609_B5BDDACE469850F_F_0,0,f_609_B5BDDACE469850F_F_1,1
+   Entry 20(argDataLength): 55
+   Entry 21(argData): f_609_B5BDDACE469850F_F_0,|,f_609_B5BDDACE469850F_F_1,|
+   Entry 22(arglistOrderEntriesLength): 0
+   Entry 26(reqMapSize): 3
+      Entry 27(currEntry): 173992697988
+      Entry 27(currEntry): 818491491934110991
+      Entry 27(currEntry): 7364315946290773925
+(/) Serializer End
+code patch: code_818491491934110991_0, hast: 818491491934110991, index: 0, dec: 94483228412032
+[1] 5461
+[1] 5461
+[1] 5461
+[1] 5461
+[1] 5461
+[1] 5461
+[1] 5461

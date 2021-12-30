@@ -663,14 +663,16 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                        },
                        {});
     if (serializeLL) {
+        auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
         if (compilationStatus) {
             DispatchTable* vtable = DispatchTable::unpack(BODY(what));
+
 
             // Hast is calculated at bytecode compilation time,
             auto hast = vtable->baseline()->body()->hast;
 
             std::stringstream fN;
-            fN << "m_" << name << "_" << hast << ".meta";
+            fN << prefix << "/" << "m_" << name << "_" << hast << ".meta";
             std::string fName = fN.str();
 
             #if PRINT_SERIALIZER_PROGRESS == 1
@@ -735,11 +737,11 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
 
             // rename temp files
             std::stringstream bcFName;
-            bcFName << hast << "_" << cMeta.con << ".bc";
+            bcFName << prefix << "/" << hast << "_" << cMeta.con << ".bc";
             std::rename("temp.bc", bcFName.str().c_str());
 
             std::stringstream poolFName;
-            poolFName << hast << "_" << cMeta.con << ".pool";
+            poolFName << prefix << "/" << hast << "_" << cMeta.con << ".pool";
             std::rename("temp.pool", poolFName.str().c_str());
 
             #if PRINT_SERIALIZER_PROGRESS == 1
@@ -754,6 +756,16 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     delete m;
     UNPROTECT(1);
     return what;
+}
+
+REXPORT SEXP startSerializer() {
+    serializeLL = true;
+    return R_NilValue;
+}
+
+REXPORT SEXP stopSerializer() {
+    serializeLL = false;
+    return R_NilValue;
 }
 
 REXPORT SEXP rirInvocationCount(SEXP what) {
