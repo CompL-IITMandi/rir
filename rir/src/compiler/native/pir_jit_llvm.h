@@ -16,6 +16,8 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Module.h"
 
+#include "utils/serializerData.h"
+
 #include <iomanip>
 #include <memory>
 #include <sstream>
@@ -56,7 +58,7 @@ class PirJitLLVM {
                  const std::unordered_set<Instruction*>& needsLdVarForUpdate,
                  ClosureStreamLogger& log);
 
-    void serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, contextMeta* cMeta);
+    void serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, contextData* cData);
 
     void updateFunctionNameInModule(std::string, std::string);
     void patchFixupHandle(std::string newName, Code * code);
@@ -150,7 +152,8 @@ class PirJitLLVM {
     };
     std::unique_ptr<DebugInfo> DI;
     std::unique_ptr<llvm::DIBuilder> DIB;
-    std::set<size_t> reqMapForCompilation;
+    std::set<size_t> * reqMapForCompilation = nullptr;
+    bool* serializerError;
 };
 
 } // namespace pir

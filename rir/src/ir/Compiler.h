@@ -22,46 +22,78 @@ extern "C" SEXP R_sysfunction(int n, RCNTXT *cptr);
 
 namespace rir {
 
-static size_t createHastEntryForCodeObj(DispatchTable* vtable) {
+static size_t getHast(DispatchTable* vtable) {
     auto rirBody = vtable->baseline()->body();
     SEXP ast_1 = src_pool_at(globalContext(), rirBody->src);
 
     size_t hast = 0;
     hash_ast(ast_1, hast);
 
-    if (hast == 0) {
-        rirBody->disassemble(std::cout);
-        std::cout << "TYPE: " << TYPEOF(ast_1) << std::endl;
-        printAST(0, ast_1);
-        // Rf_error("hast calculation failed");
+    return hast;
+}
+
+static void populateHastSrcData(DispatchTable* vtable, size_t hast) {
+    int index = 0;
+    SEXP map = Pool::get(1);
+    if (map == R_NilValue) {
+        UMap::createMapInCp(1);
+        map = Pool::get(1);
     }
+    vtable->baseline()->body()->populateSrcData(hast, map, true, index);
+}
 
-    rirBody->hast = hast;
+static void insertVTable(DispatchTable* vtable, size_t hast) {
+    SEXP map = Pool::get(2);
+    if (map == R_NilValue) {
+        UMap::createMapInCp(2);
+        map = Pool::get(2);
+    }
+    SEXP hastSym = Rf_install(std::to_string(hast).c_str());
+    UMap::insert(map, hastSym, vtable->container());
+}
 
-    // There was a collision
-    if (Code::hastCodeMap.find(hast) != Code::hastCodeMap.end()) {
-        if (ast_1 == src_pool_at(globalContext(), ((rir::Code *)Code::hastCodeMap[hast])->src)) {
-            std::cout << "BC recompilation for " << hast << std::endl;
-            // rirBody->disassemble(std::cout);
-            // ((rir::Code *)Code::hastCodeMap[hast])->disassemble(std::cout);
-        } else {
-            std::cout << "Existing in pool: " << hast << std::endl;
-            printAST(0, src_pool_at(globalContext(), ((rir::Code *)Code::hastCodeMap[hast])->src));
-            std::cout << "Trying to add: " << hast << std::endl;
-            printAST(0, ast_1);
+static void insertClosObj(SEXP clos, size_t hast) {
+    SEXP map = Pool::get(3);
+    if (map == R_NilValue) {
+        UMap::createMapInCp(3);
+        map = Pool::get(3);
+    }
+    SEXP hastSym = Rf_install(std::to_string(hast).c_str());
+    std::cout << "linking closure: " << hast << " -> " << (uintptr_t)clos << std::endl;
+    UMap::insert(map, hastSym, clos);
+}
+
+static void insertToBlacklist(size_t hast) {
+    SEXP map = Pool::get(4);
+    if (map == R_NilValue) {
+        UMap::createMapInCp(4);
+        map = Pool::get(4);
+    }
+    SEXP hastSym = Rf_install(std::to_string(hast).c_str());
+    UMap::insert(map, hastSym, R_TrueValue);
+}
+
+static bool readyForSerialization(DispatchTable* vtable, size_t hast) {
+    // if the hast already corresponds to other src addresses and is a different closureObj then
+    // there was a collision and we cannot use this function and all functions that depend on it
+    auto rirBody = vtable->baseline()->body();
+
+    SEXP hastSym = Rf_install(std::to_string(hast).c_str());
+
+    SEXP vTableMap = Pool::get(2);
+    if (vTableMap != R_NilValue && UMap::symbolExistsInMap(hastSym, vTableMap)) {
+        std::cout << "hast already exists: " << hast << std::endl;
+        DispatchTable * oldTab = DispatchTable::unpack(UMap::get(vTableMap, hastSym));
+        auto oldRirBody = oldTab->baseline()->body();
+
+        if (oldRirBody->src != rirBody->src) {
+            std::cout << "collision: " << hast << " (blacklisting)" << std::endl;
+            insertToBlacklist(hast);
+            return false;
         }
     }
-
-    Code::hastCodeMap[hast] = rirBody;
-    return hast;
+    return true;
 }
-
-static size_t createHastEntryForClosure(DispatchTable* vtable, SEXP closure) {
-    size_t hast = createHastEntryForCodeObj(vtable);
-    Code::hastClosMap[hast] = closure;
-    return hast;
-}
-
 
 
 class Compiler {
@@ -133,15 +165,13 @@ class Compiler {
         // Set the closure fields.
         UNPROTECT(1);
 
-        size_t hast = createHastEntryForCodeObj(vtable);
+        size_t hast = getHast(vtable);
 
-        int index = 0;
-        SEXP map = Pool::get(1);
-        if (map == R_NilValue) {
-            UMap::createMapInCp(1);
-            map = Pool::get(1);
+        if (readyForSerialization(vtable, hast)) {
+            std::cout << "hast: " << hast << " (ready for serialization)" << std::endl;
+            insertVTable(vtable, hast);
+            populateHastSrcData(vtable, hast);
         }
-        vtable->baseline()->body()->populateSrcData(hast, map, true, index);
 
         return vtable->container();
     }
@@ -176,15 +206,16 @@ class Compiler {
         // Set the closure fields.
         SET_BODY(inClosure, vtable->container());
 
-        size_t hast = createHastEntryForClosure(vtable, inClosure);
+        size_t hast = getHast(vtable);
 
-        int index = 0;
-        SEXP map = Pool::get(1);
-        if (map == R_NilValue) {
-            UMap::createMapInCp(1);
-            map = Pool::get(1);
+        if (readyForSerialization(vtable, hast)) {
+            std::cout << "hast: " << hast << " (ready for serialization)" << std::endl;
+            insertVTable(vtable, hast);
+            populateHastSrcData(vtable, hast);
+            insertClosObj(inClosure, hast);
+        } else {
+            std::cout << "updating closure: " << hast << " (not ready for serialization)" << std::endl;
         }
-        vtable->baseline()->body()->populateSrcData(hast, map, true, index);
     }
 };
 

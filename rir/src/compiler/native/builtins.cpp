@@ -11,6 +11,7 @@
 #include "runtime/LazyEnvironment.h"
 #include "runtime/TypeFeedback.h"
 #include "utils/Pool.h"
+#include "utils/UMap.h"
 
 #include "R/Protect.h"
 #include "api.h"
@@ -854,11 +855,12 @@ static SEXP deoptSentinelContainer = []() {
 
 void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                DeoptReason* deoptReason, SEXP deoptTrigger) {
-
+    SEXP map = Pool::get(2);
     for (size_t i = 0; i < m->numFrames; i++) {
         if (m->frames[i].code == 0) {
             size_t hast = m->frames[i].hast;
-            rir::Code * code = (rir::Code *) rir::Code::hastCodeMap[hast];
+            DispatchTable * vtable = DispatchTable::unpack(UMap::get(map, Rf_install(std::to_string(hast).c_str())));
+            rir::Code * code = vtable->baseline()->body();
             code = code->getSrcAtOffset(m->frames[i].index);
             m->frames[i].code = code;
             m->frames[i].pc = code->code() + m->frames[i].offset;

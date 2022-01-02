@@ -160,13 +160,9 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
 
     unsigned extraPoolSize; /// Number of elements in the per code constant pool
 
-    size_t hast = 0; /// The calculated HAST from the AST
-
     std::string mName = ""; /// name of the function in JIT
 
     std::vector<ArglistOrder::CallArglistOrder> argOrderingVec; /// callArglist order, raw
-    static std::unordered_map<size_t, void*> hastClosMap; // HAST to closureObj
-    static std::unordered_map<size_t, void*> hastCodeMap; // HAST to codeObj
 
     uint8_t data[]; /// the instructions
 

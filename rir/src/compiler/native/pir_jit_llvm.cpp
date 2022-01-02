@@ -5,6 +5,7 @@
 #include "compiler/native/pass_schedule_llvm.h"
 #include "compiler/native/types_llvm.h"
 #include "utils/filesystem.h"
+#include "utils/UMap.h"
 #include "R/Funtab.h"
 
 #include "runtime/DispatchTable.h"
@@ -330,7 +331,7 @@ void PirJitLLVM::finalizeAndFixup() {
     }
 }
 
-void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, contextMeta* cMeta) {
+void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, contextData* cData) {
     auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
 
     std::vector<int64_t> cpEntries;
@@ -482,7 +483,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
         std::ofstream bitcodeFile;
 
         std::stringstream bcPath;
-        bcPath << prefix << "/" << "temp.meta";
+        bcPath << prefix << "/" << "temp.bc";
 
         bitcodeFile.open(bcPath.str().c_str());
         llvm::raw_os_ostream ooo(bitcodeFile);
@@ -500,12 +501,17 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
     }
 
     // Creating a vector containing all pool references
-    auto serializationObjects = Rf_allocVector(VECSXP,
-        cpEntries.size() + spEntries.size() + srcIndices.size());
+    SEXP serializationObjects;
+    PROTECT(serializationObjects = Rf_allocVector(VECSXP,
+        cpEntries.size() + spEntries.size() + srcIndices.size()));
 
-    cMeta->cPoolEntriesSize   = cpEntries.size();
-    cMeta->srcPoolEntriesSize = spEntries.size();
-    cMeta->promiseSrcPoolEntriesSize = srcIndices.size();
+    cData->addCPoolEntriesSize(cpEntries.size());
+    cData->addSrcPoolEntriesSize(spEntries.size());
+    cData->addPromiseSrcPoolEntriesSize(srcIndices.size());
+
+    #if PRINT_SERIALIZER_PROGRESS == 1
+    std::cout << "(*) Pool data stored" << std::endl;
+    #endif
 
     int i = 0;
 
@@ -576,6 +582,9 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
     #endif
 
     // SERIALIZE THE CONSTANT POOL
+    #if PRINT_SERIALIZER_PROGRESS == 1
+    std::cout << "(*) Starting Constant Pool Serialization" << std::endl;
+    #endif
     R_outpstream_st outputStream;
     std::stringstream bcPath;
     bcPath << prefix << "/" << "temp.pool";
@@ -588,6 +597,8 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
     #if PRINT_SERIALIZER_PROGRESS == 1
     std::cout << "(*) Module pool serialized: " << bcPath.str() << std::endl;
     #endif
+
+    UNPROTECT(1);
 }
 
 
@@ -712,10 +723,9 @@ void PirJitLLVM::compile(
         DI->LexicalBlocks.push_back(SP);
     }
     funCompiler.debugStatements = debugStatements;
+    funCompiler.serializerError = serializerError;
+    funCompiler.reqMap = reqMapForCompilation;
     funCompiler.compile();
-    for (auto & ele : funCompiler.reqMap) {
-        reqMapForCompilation.insert(ele);
-    }
 
     assert(jitFixup.count(code) == 0);
 
@@ -1032,11 +1042,16 @@ void PirJitLLVM::initializeLLVM() {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 
-                    size_t hast = std::stoull(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    // size_t hast = std::stoull(n.substr(firstDel + 1, secondDel - firstDel - 1));
                     int index = std::stoi(n.substr(secondDel + 1));
-                    auto addr = rir::Code::hastCodeMap[hast];
-                    addr = ((rir::Code *)addr)->getSrcAtOffset(index);
-                    std::cout << "code patch: " << n << ", hast: " << hast << ", index: " << index << ", dec: " << (uintptr_t)addr << std::endl;
+
+                    SEXP map = Pool::get(2);
+                    DispatchTable * vtable = DispatchTable::unpack(UMap::get(map, Rf_install(n.substr(firstDel + 1, secondDel - firstDel - 1).c_str())));
+
+
+                    auto addr = vtable->baseline()->body();
+                    addr = addr->getSrcAtOffset(index);
+                    // std::cout << "code patch: " << n << ", hast: " << hast << ", index: " << index << ", dec: " << (uintptr_t)addr << std::endl;
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
@@ -1044,8 +1059,24 @@ void PirJitLLVM::initializeLLVM() {
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
                 } else if (clso) {
-                    auto hast = std::stoull(n.substr(5));
-                    auto addr = rir::Code::hastClosMap[hast];
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto hast = n.substr(secondDel + 1);
+                    SEXP map = Pool::get(3);
+                    auto addr = UMap::get(map, Rf_install(hast.c_str()));
+
+                    SEXP debugMap = Pool::get(5);
+                    SEXP oldVal = UMap::get(debugMap, Rf_install(n.c_str()));
+                    // SEXP newVal = Rf_install(std::to_string((uintptr_t) addr).c_str());
+
+                    if (std::to_string((uintptr_t) addr).compare( std::string( CHAR(PRINTNAME(oldVal)) ) ) != 0) {
+                        std::cout << "invalid patch: " << n << std::endl;
+                    } else {
+                        std::cout << n << " (matched): " << (uintptr_t) addr << std::endl;
+                    }
+
+
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(

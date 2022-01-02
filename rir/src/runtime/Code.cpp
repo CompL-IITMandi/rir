@@ -260,9 +260,6 @@ void Code::populateSrcData(size_t parentHast, SEXP map, bool mainSrc, int & inde
 
 }
 
-std::unordered_map<size_t, void*> Code::hastClosMap;
-std::unordered_map<size_t, void*> Code::hastCodeMap;
-
 void Code::disassemble(std::ostream& out, const std::string& prefix) const {
     out << "code src: " << src << std::endl;
     if (auto map = pirTypeFeedback()) {

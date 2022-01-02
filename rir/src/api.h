@@ -127,34 +127,6 @@ struct contextMeta {
         // Entry 22 (size_t): arglistOrderEntriesLength
         metaDataFile.write(reinterpret_cast<char *>(&arglistOrderEntriesLength), sizeof(size_t));
 
-        // std::vector<std::vector<std::vector<size_t>>> argOrderingData;
-        // for (auto & codeObj : argDataCodes) {
-        //     // Entry 23 (size_t): outerEntriesSize
-        //     size_t outerEntriesSize = codeObj->argOrderingVec.size();
-        //     metaDataFile.write(reinterpret_cast<char *>(&outerEntriesSize), sizeof(size_t));
-
-        //     std::vector<std::vector<size_t>> outerData;
-
-        //     for (auto & outer : codeObj->argOrderingVec) {
-        //         // Entry 24 (size_t): innerEntriesSize
-        //         size_t innerEntriesSize = outer.size();
-        //         metaDataFile.write(reinterpret_cast<char *>(&innerEntriesSize), sizeof(size_t));
-
-        //         std::vector<size_t> innerData;
-
-        //         for (auto & inner : outer) {
-        //             // Entry 25 (size_t): currEntry
-        //             size_t currEntry = inner;
-        //             metaDataFile.write(reinterpret_cast<char *>(&currEntry), sizeof(size_t));
-        //             innerData.push_back(currEntry);
-        //         }
-        //         outerData.push_back(innerData);
-        //     }
-        //     argOrderingData.push_back(outerData);
-        // }
-
-        // this->argOrderingData = std::move(argOrderingData);
-
         for (auto & ele : argOrderingData) {
             // Entry 23 (size_t): outerEntriesSize
             size_t outerEntriesSize = ele.size();
@@ -401,6 +373,11 @@ struct hastMeta {
 
 };
 
+struct hastAndIndex {
+    size_t hast;
+    int index;
+};
+
 REXPORT SEXP rirInvocationCount(SEXP what);
 REXPORT SEXP pirCompileWrapper(SEXP closure, SEXP name, SEXP debugFlags,
                                SEXP debugStyle);
@@ -419,14 +396,14 @@ void hash_ast(SEXP ast, size_t & hast);
 void printAST(int space, SEXP ast);
 void printAST(int space, int val);
 
+hastAndIndex getHastAndIndex(unsigned src);
+
 REXPORT SEXP startSerializer();
 REXPORT SEXP stopSerializer();
 
 REXPORT SEXP printHAST(SEXP clos);
 REXPORT SEXP rirSerialize(SEXP data, SEXP file);
 REXPORT SEXP rirDeserialize(SEXP file);
-
-REXPORT SEXP initializeBaseLib();
 
 REXPORT SEXP rirSetUserContext(SEXP f, SEXP udc);
 REXPORT SEXP rirCreateSimpleIntContext();

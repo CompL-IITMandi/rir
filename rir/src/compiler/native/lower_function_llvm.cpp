@@ -801,9 +801,6 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         }
         #endif
 
-
-
-
         #if TRY_PATCH_DEOPTREASON == 1
         auto dr = (DeoptReasonWrapper*)val;
         auto realOffset = dr->reason.origin.pc() - dr->reason.origin.srcCode()->code();
@@ -817,7 +814,7 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         SEXP indexS = VECTOR_ELT(r, 1);
         int index = std::stoi(CHAR(PRINTNAME(indexS)));
 
-        reqMap.insert(hast);
+        // reqMap.insert(hast);
         std::stringstream ss;
         ss << "code_" << hast << "_" << index;
 
@@ -4246,41 +4243,96 @@ void LowerFunctionLLVM::compile() {
                 // auto iLoad = builder.CreateLoad(iVal);
 
                 #if TRY_PATCH_STATIC_CALL3 == 1
-                // std::cout << "StaticCall: hasOriginClosure" << std::endl;
-                auto iValAST = globalConst(c(calli->srcIdx), t::i32);
-                auto iLoadAST = builder.CreateLoad(iValAST);
 
                 SEXP body = BODY(calli->cls()->rirClosure());
                 auto vtable = DispatchTable::unpack(body);
-                auto hast = vtable->baseline()->body()->hast;
-                std::stringstream ss;
-                ss << "clso_" << hast;
+                size_t hast = getHastAndIndex(vtable->baseline()->body()->src).hast;
 
-                reqMap.insert(hast);
+                std::cout << "TRY_PATCH_STATIC_CALL3 hast: " << hast << std::endl;
 
-                assert(asmpt.includes(Assumption::StaticallyArgmatched));
-                setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
-                           return call(
-                               NativeBuiltins::get(NativeBuiltins::Id::call),
-                               {
-                                   c(callId),
-                                   paramCode(),
-                                   iLoadAST,
-                                   convertToExternalSymbol(ss.str()),
-                                   loadSxp(calli->env()),
-                                   c(calli->nCallArgs()),
-                                   c(asmpt.toI()),
-                               });
-                       }));
+                // If the hast is blacklisted, patch will not work
+                SEXP blMap = Pool::get(4);
+                if ((hast == 0) || (blMap != R_NilValue && UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap))) {
+                    std::cout << "TRY_PATCH_STATIC_CALL3 failed, blacklisted hast" << std::endl;
+                    if (hast == 0) {
+                        std::cout << "hast == 0" << std::endl;
+                    }
+                    // *serializerError = true;
+                    assert(asmpt.includes(Assumption::StaticallyArgmatched));
+                    setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
+                            return call(
+                                NativeBuiltins::get(NativeBuiltins::Id::call),
+                                {
+                                    c(callId),
+                                    paramCode(),
+                                    c(calli->srcIdx),
+                                    builder.CreateIntToPtr(
+                                        c(calli->cls()->rirClosure()), t::SEXP),
+                                    loadSxp(calli->env()),
+                                    c(calli->nCallArgs()),
+                                    c(asmpt.toI()),
+                                });
+                        }));
+                } else {
+                    std::cout << "TRY_PATCH_STATIC_CALL3 start" << std::endl;
+                    // auto iValAST = globalConst(c(calli->srcIdx), t::i32);
+                    // auto iLoadAST = builder.CreateLoad(iValAST);
 
-                #if DEBUG_LOCATIONS == 1
-                if (debugStatements) {
-                    auto msg = builder.CreateGlobalString(
-                            "Static Call Inst");
-                    addDebugMsg(msg, -1, location++);
+                    static int track = 0;
+
+                    std::stringstream ss;
+                    ss << "clso_" << track++ << "_" << hast;
+
+                    SEXP debugMap = Pool::get(5);
+                    if (debugMap == R_NilValue) {
+                        UMap::createMapInCp(5);
+                        debugMap = Pool::get(5);
+                    }
+
+                    UMap::insert(debugMap, Rf_install(ss.str().c_str()), Rf_install(std::to_string((uintptr_t) calli->cls()->rirClosure()).c_str()));
+
+                    std::cout << ss.str() << " (orig): " << (uintptr_t) calli->cls()->rirClosure() << std::endl;
+                    if (reqMap) {
+                        reqMap->insert(hast);
+
+                    }
+
+                    // assert(asmpt.includes(Assumption::StaticallyArgmatched));
+                    // setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
+                    //         return call(
+                    //             NativeBuiltins::get(NativeBuiltins::Id::call),
+                    //             {
+                    //                 c(callId),
+                    //                 paramCode(),
+                    //                 // iLoadAST,
+                    //                 c(calli->srcIdx),
+                    //                 // convertToExternalSymbol(ss.str()),
+                    //                 builder.CreateIntToPtr(
+                    //                     c(calli->cls()->rirClosure()), t::SEXP),
+                    //                 loadSxp(calli->env()),
+                    //                 c(calli->nCallArgs()),
+                    //                 c(asmpt.toI()),
+                    //             });
+                    //     }));
+                    assert(asmpt.includes(Assumption::StaticallyArgmatched));
+                    setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
+                            return call(
+                                NativeBuiltins::get(NativeBuiltins::Id::call),
+                                {
+                                    c(callId),
+                                    paramCode(),
+                                    c(calli->srcIdx),
+                                    convertToExternalSymbol(ss.str()),
+                                    loadSxp(calli->env()),
+                                    c(calli->nCallArgs()),
+                                    c(asmpt.toI()),
+                                });
+                        }));
                 }
-                #endif
+
+
                 #else
+                std::cout << "TRY_PATCH_STATIC_CALL3 disabled" << std::endl;
                 assert(asmpt.includes(Assumption::StaticallyArgmatched));
                 setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                            return call(
@@ -4358,7 +4410,41 @@ void LowerFunctionLLVM::compile() {
                 auto deopt = Deopt::Cast(i);
 
                 #if TRY_PATCH_DEOPTMETADATA == 1
+                bool patchPossible = true;
+
+                {
+                    std::vector<FrameState*> frames;
+
+                    auto fs = deopt->frameState();
+                    while (fs) {
+                        frames.push_back(fs);
+                        fs = fs->next();
+                    }
+
+                    size_t nframes = frames.size();
+                    for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
+                        auto fs = *f;
+                        for (size_t pos = 0; pos < fs->stackSize; pos++)
+                            args.push_back(fs->arg(pos).val());
+                        args.push_back(fs->env());
+
+                        m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
+                                                fs->inPromise};
+
+                        SEXP blMap = Pool::get(4);
+                        if (blMap != R_NilValue && UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap)) {
+
+                        }
+
+
+                    }
+
+                }
+
                 std::stringstream ssN;
+
+
+
                 #endif
 
                 std::vector<Value*> args;
@@ -4379,9 +4465,9 @@ void LowerFunctionLLVM::compile() {
                     m->numFrames = nframes;
 
                     int frameNr = nframes - 1;
-                    #if DEBUG_PRINT_Deopt_Inst == 1
-                    std::cout << "Deopt inst frames (" << frameNr << ") : [ ";
-                    #endif
+                    // #if DEBUG_PRINT_Deopt_Inst == 1
+                    // std::cout << "Deopt inst frames (" << frameNr << ") : [ ";
+                    // #endif
                     for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
                         auto fs = *f;
                         for (size_t pos = 0; pos < fs->stackSize; pos++)
@@ -4393,6 +4479,10 @@ void LowerFunctionLLVM::compile() {
                         SEXP map = Pool::get(1);
                         SEXP srcSym = Rf_install(std::to_string(fs->code->src).c_str());
 
+                        if (!UMap::symbolExistsInMap(srcSym, map)) {
+                            std::cout << "TRY_PATCH_DEOPTMETADATA failed" << std::endl;
+                        }
+
                         SEXP res = UMap::get(map, srcSym);
 
                         SEXP hastS = VECTOR_ELT(res, 0);
@@ -4401,13 +4491,13 @@ void LowerFunctionLLVM::compile() {
                         SEXP indexS = VECTOR_ELT(res, 1);
                         int ind = std::stoi(CHAR(PRINTNAME(indexS)));
 
-                        reqMap.insert(h);
+                        // reqMap.insert(h);
 
                         m->frames[frameNr--] = {offset, h, ind, fs->stackSize,
                                                 fs->inPromise};
-                        #if DEBUG_PRINT_Deopt_Inst == 1
-                        std::cout << h << "|" << ind << "{" << (uintptr_t)fs->code << "} ";
-                        #endif
+                        // #if DEBUG_PRINT_Deopt_Inst == 1
+                        // std::cout << h << "|" << ind << "{" << (uintptr_t)fs->code << "} ";
+                        // #endif
 
                         #else
                         m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
@@ -4416,9 +4506,9 @@ void LowerFunctionLLVM::compile() {
 
 
                     }
-                    #if DEBUG_PRINT_Deopt_Inst == 1
-                    std::cout << "]" << std::endl;
-                    #endif
+                    // #if DEBUG_PRINT_Deopt_Inst == 1
+                    // std::cout << "]" << std::endl;
+                    // #endif
 
                     #if TRY_PATCH_DEOPTMETADATA == 1
                     withCallFrame(args, [&]() {

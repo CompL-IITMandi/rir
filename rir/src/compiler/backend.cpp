@@ -368,18 +368,14 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         Measuring::startTimer("backend.cpp: pir2llvm");
     }
 
-    size_t hast = 0;
-    if (cls->owner()->hasOriginClosure()) {
-        auto c = cls->owner()->rirClosure();
-        auto body = BODY(c);
-        auto dt = DispatchTable::unpack(body);
-        hast = dt->baseline()->body()->hast;
-    }
+    std::set<size_t> rMap;
 
-    if (cMeta != nullptr) {
+    if (cData != nullptr) {
         #if ADD_EXTRA_DEBUGGING_DATA == 1
         jit.enableDebugStatements();
         #endif
+        jit.serializerError = serializerError;
+        jit.reqMapForCompilation = &rMap;
     }
 
     std::unordered_map<Code*, rir::Code*> done;
@@ -404,7 +400,6 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
                 res->flags.set(rir::Code::NoReflection);
             res->addExtraPoolEntry(code->container());
         }
-        res->hast = hast;
         jit.compile(res, cls, c, promMap.at(c), refcount, needsLdVarForUpdate,
                     log);
         return res;
@@ -412,7 +407,7 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
 
     auto body = compile(cls);
 
-    if (cMeta != nullptr) {
+    if (cData != nullptr) {
         #if ADD_EXTRA_DEBUGGING_DATA == 1
         jit.disableDebugStatements();
         #endif
@@ -464,6 +459,12 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
             Rf_error("No root node found!");
         }
 
+        size_t hast = getHastAndIndex(done[mainFunCodeObj]->src).hast;
+
+        if (hast == 0) {
+            std::cout << "backend error, hast unavailable, cannot populate cData" << std::endl;
+        }
+
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis(100, 999); // our distribution is between 100 and 999
@@ -472,7 +473,7 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
             std::stringstream ss;
             ss << "f_";
             ss << dis(gen) << "_"; // random 3 digit number
-            ss << std::hex << std::uppercase << done[mainFunCodeObj]->hast; // random 3 digit number
+            ss << std::hex << std::uppercase << hast; // random 3 digit number
             ss << "_";
             ss << std::hex << std::uppercase << cls->context().toI();
             auto e = jit.JIT->lookup(ss.str());
@@ -584,33 +585,54 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         }
         childrenData << "|";
 
-        jit.serializeModule(done[mainFunCodeObj], srcIndices, cMeta);
+        jit.serializeModule(done[mainFunCodeObj], srcIndices, cData);
+
+        #if PRINT_SERIALIZER_PROGRESS == 1
+        std::cout << "(*) serializeModule complete" << std::endl;
+        #endif
 
         std::string mainName = getProcessedName(mainFunCodeObj);
 
-        cMeta->envCreation = (int)signature.envCreation; // 6
-        cMeta->optimization = (int)signature.optimization; // 7
-        cMeta->numArguments = signature.numArguments; // 8
-        cMeta->dotsPosition = signature.dotsPosition; // 9
+        cData->addEnvCreation((int)signature.envCreation);   // 1
+        cData->addOptimization((int)signature.optimization); // 2
+        cData->addNumArguments(signature.numArguments);      // 3
+        cData->addDotsPosition(signature.dotsPosition);      // 4
+        cData->addMainName(mainName);                        // 5
 
-        cMeta->mainNameLen = strlen(mainName.c_str()); // 10
-        cMeta->mainName = mainName; // 11
+        // 6(cPoolEntriesSize), 7(srcPoolEntriesSize), 8(promiseSrcPoolEntriesSize)
+        cData->addChildrenData(childrenData.str());          // 9
+        cData->addSrcData(srcData.str().substr(0,srcData.str().size() - 1)); // 10
+        cData->addArgData(argData.str().substr(0,argData.str().size() - 1)); // 11
 
-        // 12-cPoolEntriesSize
-        // 13-srcPoolEntriesSize
-        // 14-ePoolEntriesSize
-        // 15-promiseSrcPoolEntriesSize
+        #if PRINT_SERIALIZER_PROGRESS == 1
+        std::cout << "(*) metadata added" << std::endl;
+        #endif
 
-        cMeta->childrenDataLength = strlen(childrenData.str().c_str()); // 16
-        cMeta->childrenData = childrenData.str(); // 17
+        // cMeta->envCreation = (int)signature.envCreation; // 6
+        // cMeta->optimization = (int)signature.optimization; // 7
+        // cMeta->numArguments = signature.numArguments; // 8
+        // cMeta->dotsPosition = signature.dotsPosition; // 9
 
-        cMeta->srcDataLength = strlen(srcData.str().substr(0,srcData.str().size() - 1).c_str()); // 18
-        cMeta->srcData = srcData.str().substr(0,srcData.str().size() - 1); // 19
+        // cMeta->mainNameLen = strlen(mainName.c_str()); // 10
+        // cMeta->mainName = mainName; // 11
 
-        cMeta->argDataLength = strlen(argData.str().substr(0,argData.str().size() - 1).c_str()); // 20
-        cMeta->argData = argData.str().substr(0,argData.str().size() - 1); // 21
+        // // 12-cPoolEntriesSize
+        // // 13-srcPoolEntriesSize
+        // // 14-ePoolEntriesSize
+        // // 15-promiseSrcPoolEntriesSize
 
-        cMeta->arglistOrderEntriesLength = argDataCodes.size(); // 22
+        // cMeta->childrenDataLength = strlen(childrenData.str().c_str()); // 16
+        // cMeta->childrenData = childrenData.str(); // 17
+
+        // cMeta->srcDataLength = strlen(srcData.str().substr(0,srcData.str().size() - 1).c_str()); // 18
+        // cMeta->srcData = srcData.str().substr(0,srcData.str().size() - 1); // 19
+
+        // cMeta->argDataLength = strlen(argData.str().substr(0,argData.str().size() - 1).c_str()); // 20
+        // cMeta->argData = argData.str().substr(0,argData.str().size() - 1); // 21
+
+        // cMeta->arglistOrderEntriesLength = argDataCodes.size(); // 22
+
+
 
         std::vector<std::vector<std::vector<size_t>>> argOrderingData;
         for (auto & codeObj : argDataCodes) {
@@ -627,14 +649,63 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
             argOrderingData.push_back(outerData);
         }
 
-        cMeta->argOrderingData = argOrderingData; // 23, 24, 25
+        Protect p;
+        SEXP aOrderingData;
+        p(aOrderingData = Rf_allocVector(VECSXP, argOrderingData.size()));
 
-        cMeta->reqMapSize = jit.reqMapForCompilation.size(); // 26
+        int in_i = 0;
+        std::cout << "original argOrderingData: <";
+        for (auto & i : argOrderingData) {
 
-        for (auto & ele : jit.reqMapForCompilation) {
-            cMeta->reqMapForCompilation.push_back(ele); // 27
+            SEXP innerData;
+            p(innerData = Rf_allocVector(VECSXP, i.size()));
+            int in_j = 0;
+            std::cout << "<";
+            for (auto & j : i) {
 
+                SEXP innermostData;
+                p(innermostData = Rf_allocVector(VECSXP, j.size()));
+                int in_k = 0;
+
+                std::cout << "<";
+                for (auto & ele : j) {
+
+                    SEXP store;
+                    p(store = Rf_allocVector(RAWSXP, sizeof(size_t)));
+                    size_t * tmp = (size_t *) DATAPTR(store);
+                    *tmp = ele;
+                    SET_VECTOR_ELT(innermostData, in_k++, store);
+                    std::cout << ele << " ";
+                }
+
+                SET_VECTOR_ELT(innerData, in_j++, innermostData);
+                std::cout << ">";
+            }
+
+            SET_VECTOR_ELT(aOrderingData, in_i++, innerData);
+            std::cout << ">";
         }
+
+        std::cout << ">" << std::endl;
+
+        cData->addArgOrderingData(aOrderingData);
+
+        SEXP rData;
+        p(rData = Rf_allocVector(VECSXP, rMap.size()));
+        std::cout << "original reqMapForCompilation: <";
+
+        int i = 0;
+        for (auto & ele : rMap) {
+            SEXP store;
+            p(store = Rf_allocVector(RAWSXP, sizeof(size_t)));
+            size_t * tmp = (size_t *) DATAPTR(store);
+            *tmp = ele;
+            SET_VECTOR_ELT(rData, i++, store);
+            std::cout << ele << " ";
+        }
+        std::cout << ">" << std::endl;
+
+        cData->addReqMapForCompilation(rData);
 
         #if BACKEND_PRINT_FINAL_LLVM == 1
         std::cout << "BACKEND_INITIAL_LLVM" << std::endl;
@@ -654,9 +725,6 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
 
     function.function()->inheritFlags(cls->owner()->rirFunction());
 
-    #if DEBUG_PRINT_COMPILED_CONTEXT == 1
-    std::cout << "hast: " << body->hast << ", context: " << cls->context().toI() << std::endl;
-    #endif
     return function.function();
 }
 

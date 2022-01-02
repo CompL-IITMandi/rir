@@ -61,10 +61,6 @@ f.stopSerializer <- function() {
     invisible(.Call("stopSerializer"))
 }
 
-f.initializeBaseLib <- function() {
-    .Call("initializeBaseLib")
-}
-
 f.printHAST <- function(what) {
     .Call("printHAST", what)
 }

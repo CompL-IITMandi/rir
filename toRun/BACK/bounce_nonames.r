@@ -62,7 +62,6 @@ bounce <- function(ball) {
     }
     return (list(ball, bounced))
 }
-
 execute()
 execute()
 execute()

@@ -1,0 +1,23 @@
+hast: 12296312552175674779 (ready for serialization)
+hast: 224122763887821689 (ready for serialization)
+hast: 23955215243321111 (ready for serialization)
+hast: 23955208944503310 (ready for serialization)
+hast: 5021369118584760206 (ready for serialization)
+hast: 23955205309005714 (ready for serialization)
+hast: 6663308731174993393 (ready for serialization)
+hast: 1153092291654082320 (ready for serialization)
+hast: 16649362454858744786 (ready for serialization)
+hast: 16353270915805498120 (ready for serialization)
+Executing native code: rsh1_0x5601cd548f90
+native call end
+Executing native code: rsh1_0x5601cd548f90
+native call end
+Executing native code: rsh1_0x5601cd548f90
+native call end
+TRY_PATCH_STATIC_CALL3 start
+clso_0_224122763887821689 (orig): 94565724611904
+TRY_PATCH_STATIC_CALL3 start
+clso_1_5021369118584760206 (orig): 94565709082456
+clso_0_224122763887821689 (patched): 94565707914088
+clso_1_5021369118584760206 (patched): 94565707914088
+Executing native code: rsh2_0x5601cd630620

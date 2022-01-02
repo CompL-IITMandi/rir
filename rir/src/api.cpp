@@ -15,6 +15,7 @@
 #include "interpreter/interp_incl.h"
 
 #include "utils/Pool.h"
+#include "utils/serializerData.h"
 #include "compiler/native/types_llvm.h"
 
 #include "patches.h"
@@ -319,6 +320,23 @@ void printAST(int space, SEXP ast) {
     currentStack.pop_back();
 }
 
+hastAndIndex getHastAndIndex(unsigned src) {
+    SEXP srcToHastMap = Pool::get(1);
+    SEXP srcSym = Rf_install(std::to_string(src).c_str());
+    if (srcToHastMap != R_NilValue && UMap::symbolExistsInMap(srcSym, srcToHastMap)) {
+        SEXP r = UMap::get(srcToHastMap, srcSym);
+        SEXP hastS = VECTOR_ELT(r, 0);
+        size_t hast = std::stoull(CHAR(PRINTNAME(hastS)));
+        SEXP indexS = VECTOR_ELT(r, 1);
+        int index = std::stoi(CHAR(PRINTNAME(indexS)));
+
+        hastAndIndex res = { hast, index };
+        return res;
+    } else {
+        hastAndIndex res = { 0, 0 };
+        return res;
+    }
+}
 
 void hash_ast(SEXP ast, size_t & hast) {
     if (TYPEOF(ast) == SYMSXP) {
@@ -342,7 +360,11 @@ void hash_ast(SEXP ast, size_t & hast) {
 REXPORT SEXP printHAST(SEXP clos) {
     if (DispatchTable::check(BODY(clos))) {
         auto vtable = DispatchTable::unpack(BODY(clos));
-        std::cout << "hast: " << vtable->baseline()->body()->hast << std::endl;
+        SEXP srcToHastMap = Pool::get(1);
+        SEXP srcSym = Rf_install(std::to_string(vtable->baseline()->body()->src).c_str());
+        if (srcToHastMap != R_NilValue && UMap::symbolExistsInMap(srcSym, srcToHastMap)) {
+            std::cout << "hast: " << CHAR(PRINTNAME(UMap::get(srcToHastMap, srcSym))) << std::endl;
+        }
         return R_TrueValue;
     }
 
@@ -599,9 +621,12 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     pir::Compiler cmp(m, logger);
     pir::Backend backend(m, logger, name);
 
-    // serializer cMeta
-    contextMeta cMeta;
-    cMeta.con = assumptions.toI();
+    bool serializerError = false;
+
+    SEXP cDataContainer;
+    PROTECT(cDataContainer = Rf_allocVector(VECSXP, 14));
+    contextData cData(cDataContainer);
+    cData.addContext(assumptions.toI());
 
     auto compile = [&](pir::ClosureVersion* c) {
         logger.flush();
@@ -614,7 +639,8 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         auto apply = [&](SEXP body, pir::ClosureVersion* c) {
             if (serializeLL) {
                 if (body == BODY(what) && c->context() == assumptions) {
-                    backend.cMeta = &cMeta;
+                    backend.cData = &cData;
+                    backend.serializerError = &serializerError;
                 }
             }
             auto fun = backend.getOrCompile(c);
@@ -623,7 +649,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
             if (body == BODY(what)) {
                 done = fun;
                 if (serializeLL) {
-                    backend.cMeta = nullptr;
+                    backend.cData = nullptr;
                 }
             }
         };
@@ -658,19 +684,19 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                        [&]() {
                            if (debug.includes(pir::DebugFlag::ShowWarnings)) {
                                std::cerr << "Compilation failed\n";
-                               compilationStatus = false;
                            }
+                            compilationStatus = false;
                        },
                        {});
     if (serializeLL) {
         auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
-        if (compilationStatus) {
-            DispatchTable* vtable = DispatchTable::unpack(BODY(what));
+        // hast corresponding to a src must exist for the patch to work
+        DispatchTable* vtable = DispatchTable::unpack(BODY(what));
+        size_t hast = getHastAndIndex(vtable->baseline()->body()->src).hast;
 
-
-            // Hast is calculated at bytecode compilation time,
-            auto hast = vtable->baseline()->body()->hast;
-
+        if (hast == 0) {
+            std::cout << "unavailable hast, cannot serialize" << std::endl;
+        } else if (compilationStatus) {
             std::stringstream fN;
             fN << prefix << "/" << "m_" << name << "_" << hast << ".meta";
             std::string fName = fN.str();
@@ -679,70 +705,60 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
             std::cout << "(>) Writing Metadata: " << fName << std::endl;
             #endif
 
-            hastMeta hMeta;
-            std::vector<contextMeta> cMetas;
+            // hastMeta hMeta;
+            // std::vector<contextMeta> cMetas;
+
+            serializerData sData(hast, name);
 
             if (fileExists(fName)) {
                 #if PRINT_SERIALIZER_PROGRESS == 1
                 std::cout << "(*) Metadata already exists for this hast" << std::endl;
                 #endif
-                std::ifstream oldMetaFile;
-                oldMetaFile.open(fName, std::ifstream::binary);
 
-                hMeta = hastMeta::readHastMeta(oldMetaFile);
-                bool contextExists = false;
-                for (int i = 0; i < hMeta.numVersions; i++) {
-                    contextMeta c = contextMeta::readContextMeta(oldMetaFile);
+                // Load the serialized pool from the .pool file
+                FILE *reader;
+                reader = fopen(fName.c_str(),"r");
 
-                    if (assumptions.toI() == c.con) {
-                        contextExists = true;
-                        cMetas.push_back(cMeta);
-                    } else {
-                        cMetas.push_back(c);
-                    }
-                }
-                oldMetaFile.close();
-                if (!contextExists) {
-                    cMetas.push_back(cMeta);
-                    hMeta.numVersions += 1;
-                }
+                // Initialize the deserializing stream
+                R_inpstream_st inputStream;
+                R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
+
+                SEXP result;
+                PROTECT(result= R_Unserialize(&inputStream));
+
+                sData.updateContainer(result);
+
+                UNPROTECT(1);
+
+                sData.addContextData(cDataContainer, std::to_string(assumptions.toI()));
+                fclose(reader);
             } else {
-                int nameLen = strlen(name.c_str());
-                hMeta = {
-                    nameLen,
-                    name,
-                    hast,
-                    1
-                };
-                cMetas.push_back(cMeta);
+                sData.addContextData(cDataContainer, std::to_string(assumptions.toI()));
             }
+
+            sData.print();
+            // cData.print();
 
             // 2. Write updated metadata
-            std::ofstream resultMetaFile;
-            resultMetaFile.open(fName, std::ios::binary | std::ios::out);
-
-            hMeta.writeHastMeta(resultMetaFile);
-            #if PRINT_SERIALIZER_PROGRESS == 1
-            hMeta.print(std::cout);
-            #endif
-            for (auto & conData : cMetas) {
-                conData.writeContextMeta(resultMetaFile);
-                #if PRINT_SERIALIZER_PROGRESS == 1
-                std::cout << "============ ============ ============" << std::endl;
-                conData.print(std::cout);
-                #endif
-            }
-
-            resultMetaFile.close();
+            R_outpstream_st outputStream;
+            FILE *fptr;
+            fptr = fopen(fName.c_str(),"w");
+            R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
+            R_Serialize(sData.getContainer(), &outputStream);
+            fclose(fptr);
 
             // rename temp files
             std::stringstream bcFName;
-            bcFName << prefix << "/" << hast << "_" << cMeta.con << ".bc";
-            std::rename("temp.bc", bcFName.str().c_str());
+            std::stringstream bcOldName;
+            bcFName << prefix << "/" << hast << "_" << cData.getContext() << ".bc";
+            bcOldName << prefix << "/" << "temp.bc";
+            std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
 
             std::stringstream poolFName;
-            poolFName << prefix << "/" << hast << "_" << cMeta.con << ".pool";
-            std::rename("temp.pool", poolFName.str().c_str());
+            std::stringstream poolOldName;
+            poolFName << prefix << "/" << hast << "_" << cData.getContext() << ".pool";
+            poolOldName << prefix << "/" << "temp.pool";
+            std::rename(poolOldName.str().c_str(), poolFName.str().c_str());
 
             #if PRINT_SERIALIZER_PROGRESS == 1
             std::cout << "(/) Serializer End" << std::endl;
@@ -753,8 +769,10 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         }
     }
 
+    logger.title("Compiling " + name + " done");
+
     delete m;
-    UNPROTECT(1);
+    UNPROTECT(2);
     return what;
 }
 
@@ -994,28 +1012,14 @@ REXPORT SEXP rirCreateSimpleIntContext() {
     return res;
 }
 
-REXPORT SEXP initializeBaseLib() {
-    // for (auto & ele : libBase) {
-    //     auto funSymSEXP = Rf_install(ele);
-    //     auto functionSEXP = Rf_findFun(funSymSEXP, R_GlobalEnv);
-    //     if (TYPEOF(functionSEXP) == CLOSXP) {
-    //         Compiler::compileClosure(functionSEXP);
-    //         // printAST(0,functionSEXP);
-    //         std::cout << "closure found, compiling rir" << std::endl;
-    //         if (DispatchTable::check(BODY(functionSEXP))) {
-    //             DispatchTable * vtable = DispatchTable::unpack(BODY(functionSEXP));
-    //             std::cout << "compiled: " << ele << ", hast: " << vtable->baseline()->body()->hast << std::endl;
-    //         }
-    //     }
-    //     std::cout << "baselib: " << ele << ", sym: " << funSymSEXP << ", function: " << functionSEXP << " (" << TYPEOF(functionSEXP) << ")" << std::endl;
-    // }
-    return R_NilValue;
-}
-
 bool startup() {
     // Make space for src to (hast map, offset)
     initializeRuntime();
-    Pool::makeSpace();
+    Pool::makeSpace(); // (1) For src to hast map
+    Pool::makeSpace(); // (2) Hast to vtable map
+    Pool::makeSpace(); // (3) Hast to closObj
+    Pool::makeSpace(); // (4) Hast blacklist, discard serialized code for these functions
+    Pool::makeSpace(); // (5) Comparing old and new values for the static call patch
     return true;
 }
 

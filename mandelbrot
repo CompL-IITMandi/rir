@@ -1,0 +1,166 @@
+hast: 250144078105040217 (ready for serialization)
+linking closure: 250144078105040217 -> 94097834943792
+hast: 12673609025892230999 (ready for serialization)
+linking closure: 12673609025892230999 -> 94097834982944
+(>) Serializer Start
+(*) Module bitcode serialized: ./temp.bc
+(*) Pool data stored
+(*) Starting Constant Pool Serialization
+(*) Module pool serialized: ./temp.pool
+(*) serializeModule complete
+(*) metadata added
+original data
+serialized data
+contextData: 
+ENTRY(0): 12888097295
+ENTRY(1): 1
+ENTRY(2): 1
+ENTRY(3): 2
+ENTRY(4): 18446744073709551615
+ENTRY(5): f_508_AFE1B442EA7DA757_30030C20F_0
+ENTRY(6): 0
+ENTRY(7): 0
+ENTRY(8): 1
+ENTRY(9): |
+ENTRY(10): f_508_AFE1B442EA7DA757_30030C20F_0,0
+ENTRY(11): f_508_AFE1B442EA7DA757_30030C20F_0,|
+(>) Writing Metadata: ./m_bitwShiftL_12673609025892230999.meta
+(/) Serializer End
+hast: 12673376186638998074 (ready for serialization)
+linking closure: 12673376186638998074 -> 94097834980144
+(>) Serializer Start
+(*) Module bitcode serialized: ./temp.bc
+(*) Pool data stored
+(*) Starting Constant Pool Serialization
+(*) Module pool serialized: ./temp.pool
+(*) serializeModule complete
+(*) metadata added
+original data
+serialized data
+contextData: 
+ENTRY(0): 8660238351
+ENTRY(1): 1
+ENTRY(2): 1
+ENTRY(3): 2
+ENTRY(4): 18446744073709551615
+ENTRY(5): f_191_AFE0E07ECD831A3A_20430C00F_0
+ENTRY(6): 0
+ENTRY(7): 0
+ENTRY(8): 1
+ENTRY(9): |
+ENTRY(10): f_191_AFE0E07ECD831A3A_20430C00F_0,0
+ENTRY(11): f_191_AFE0E07ECD831A3A_20430C00F_0,|
+(>) Writing Metadata: ./m_bitwXor_12673376186638998074.meta
+(/) Serializer End
+(>) Serializer Start
+(*) Module bitcode serialized: ./temp.bc
+(*) Pool data stored
+(*) Starting Constant Pool Serialization
+(*) Module pool serialized: ./temp.pool
+(*) serializeModule complete
+(*) metadata added
+original data
+serialized data
+contextData: 
+ENTRY(0): 4296032271
+ENTRY(1): 1
+ENTRY(2): 1
+ENTRY(3): 2
+ENTRY(4): 18446744073709551615
+ENTRY(5): f_174_AFE1B442EA7DA757_10010400F_0
+ENTRY(6): 2
+ENTRY(7): 0
+ENTRY(8): 1
+ENTRY(9): |
+ENTRY(10): f_174_AFE1B442EA7DA757_10010400F_0,0
+ENTRY(11): f_174_AFE1B442EA7DA757_10010400F_0,|
+(>) Writing Metadata: ./m_bitwShiftL_12673609025892230999.meta
+(/) Serializer End
+(>) Serializer Start
+(*) Module bitcode serialized: ./temp.bc
+(*) Pool data stored
+(*) Starting Constant Pool Serialization
+(*) Module pool serialized: ./temp.pool
+(*) serializeModule complete
+(*) metadata added
+original data
+serialized data
+contextData: 
+ENTRY(0): 204521487
+ENTRY(1): 1
+ENTRY(2): 1
+ENTRY(3): 2
+ENTRY(4): 18446744073709551615
+ENTRY(5): f_824_AFE0E07ECD831A3A_C30C00F_0
+ENTRY(6): 0
+ENTRY(7): 0
+ENTRY(8): 1
+ENTRY(9): |
+ENTRY(10): f_824_AFE0E07ECD831A3A_C30C00F_0,0
+ENTRY(11): f_824_AFE0E07ECD831A3A_C30C00F_0,|
+(>) Writing Metadata: ./m_bitwXor_12673376186638998074.meta
+(/) Serializer End
+[1] 239
+hast: 4072613566374285 (ready for serialization)
+linking closure: 4072613566374285 -> 94097834958592
+[1] 239
+(>) Serializer Start
+(*) Module bitcode serialized: ./temp.bc
+(*) Pool data stored
+(*) Starting Constant Pool Serialization
+(*) Module pool serialized: ./temp.pool
+(*) serializeModule complete
+(*) metadata added
+original data
+serialized data
+contextData: 
+ENTRY(0): 4296032271
+ENTRY(1): 1
+ENTRY(2): 1
+ENTRY(3): 1
+ENTRY(4): 18446744073709551615
+ENTRY(5): f_970_378B0B6B61E5559_10010400F_0
+ENTRY(6): 29
+ENTRY(7): 0
+ENTRY(8): 1
+ENTRY(9): |
+ENTRY(10): f_970_378B0B6B61E5559_10010400F_0,0
+ENTRY(11): f_970_378B0B6B61E5559_10010400F_0,|
+(>) Writing Metadata: ./m_mandelbrot_250144078105040217.meta
+(/) Serializer End
+[1] 239
+TRY_PATCH_STATIC_CALL3 hast: 250144078105040217
+TRY_PATCH_STATIC_CALL3 start
+clso_0_250144078105040217 (orig): 94097834943792
+(>) Serializer Start
+(*) Module bitcode serialized: ./temp.bc
+(*) Pool data stored
+(*) Starting Constant Pool Serialization
+(*) Module pool serialized: ./temp.pool
+(*) serializeModule complete
+(*) metadata added
+original data
+serialized data
+contextData: 
+ENTRY(0): 4296032527
+ENTRY(1): 1
+ENTRY(2): 1
+ENTRY(3): 1
+ENTRY(4): 18446744073709551615
+ENTRY(5): f_248_E78053CEE618D_10010410F_1
+ENTRY(6): 35
+ENTRY(7): 0
+ENTRY(8): 2
+ENTRY(9): f_248_E78053CEE618D_10010410F_1,f_248_E78053CEE618D_10010410F_0,|,|
+ENTRY(10): f_248_E78053CEE618D_10010410F_0,0,f_248_E78053CEE618D_10010410F_1,1
+ENTRY(11): f_248_E78053CEE618D_10010410F_0,|,f_248_E78053CEE618D_10010410F_1,|
+(>) Writing Metadata: ./m_execute_4072613566374285.meta
+(/) Serializer End
+clso_0_250144078105040217 (matched): 94097834943792
+[1] 239
+[1] 239
+[1] 239
+[1] 239
+[1] 239
+[1] 239
+[1] 239

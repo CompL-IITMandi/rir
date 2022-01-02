@@ -8,6 +8,7 @@
 #include "compiler/pir/pir.h"
 #include "runtime/Function.h"
 #include "api.h"
+#include "utils/serializerData.h"
 
 #include <sstream>
 #include <unordered_set>
@@ -27,7 +28,8 @@ class Backend {
 
     rir::Function* getOrCompile(ClosureVersion* cls);
 
-    contextMeta* cMeta = nullptr;
+    contextData* cData = nullptr;
+    bool* serializerError = nullptr;
 
   private:
     struct LastDestructor {
