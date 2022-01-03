@@ -34,6 +34,9 @@
 #include <string>
 #include <set>
 
+#include "dirent.h"
+
+
 using namespace rir;
 
 extern "C" Rboolean R_Visible;
@@ -329,7 +332,6 @@ hastAndIndex getHastAndIndex(unsigned src) {
         size_t hast = std::stoull(CHAR(PRINTNAME(hastS)));
         SEXP indexS = VECTOR_ELT(r, 1);
         int index = std::stoi(CHAR(PRINTNAME(indexS)));
-
         hastAndIndex res = { hast, index };
         return res;
     } else {
@@ -628,6 +630,12 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     contextData cData(cDataContainer);
     cData.addContext(assumptions.toI());
 
+    if (serializeLL) {
+        #if PRINT_SERIALIZER_PROGRESS == 1
+        std::cout << "(>) Serializer Started" << std::endl;
+        #endif
+    }
+
     auto compile = [&](pir::ClosureVersion* c) {
         logger.flush();
         cmp.optimizeModule();
@@ -691,11 +699,15 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     if (serializeLL) {
         auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
         // hast corresponding to a src must exist for the patch to work
+        if (!DispatchTable::check(BODY(what))) {
+            Rf_error("cannot unpack the dispatch table for serializer");
+        }
         DispatchTable* vtable = DispatchTable::unpack(BODY(what));
         size_t hast = getHastAndIndex(vtable->baseline()->body()->src).hast;
-
         if (hast == 0) {
-            std::cout << "unavailable hast, cannot serialize" << std::endl;
+            std::cout << "(/) unavailable hast, cannot serialize" << std::endl;
+        } else if (serializerError) {
+            std::cout << "(/) Serializer Error Occured" << std::endl;
         } else if (compilationStatus) {
             std::stringstream fN;
             fN << prefix << "/" << "m_" << name << "_" << hast << ".meta";
@@ -736,7 +748,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 sData.addContextData(cDataContainer, std::to_string(assumptions.toI()));
             }
 
-            sData.print();
+            // sData.print();
             // cData.print();
 
             // 2. Write updated metadata
@@ -765,7 +777,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
             #endif
 
         } else {
-            std::cout << "compilation failed, cannot serialize" << std::endl;
+            std::cout << "(/) compilation failed, cannot serialize" << std::endl;
         }
     }
 
@@ -784,6 +796,121 @@ REXPORT SEXP startSerializer() {
 REXPORT SEXP stopSerializer() {
     serializeLL = false;
     return R_NilValue;
+}
+
+static bool dependencyBlacklisted(SEXP map) {
+    SEXP blMap = Pool::get(4);
+    if (blMap == R_NilValue) {
+        return false;
+    }
+    SEXP keys = VECTOR_ELT(map, 0);
+    for (int i = 0; i < Rf_length(keys); i++) {
+        SEXP keySym = VECTOR_ELT(keys, i);
+        SEXP ele = UMap::get(map, keySym);
+        contextData c(ele);
+
+        SEXP rMap = c.getReqMapAsVector();
+
+        std::cout << "   " << CHAR(PRINTNAME(keySym)) << " : [ ";
+
+        for (int j = 0; j < Rf_length(rMap); j++) {
+            SEXP dataContainer = VECTOR_ELT(rMap, j);
+            size_t* res = (size_t *) DATAPTR(dataContainer);
+            std::cout << *res << " ";
+            SEXP depSym = Rf_install(std::to_string(*res).c_str());
+            if (UMap::symbolExistsInMap(depSym, blMap)) {
+                // if even one dependency is blacklisted, we cannot use it
+                return true;
+            }
+        }
+        std::cout << "]" << std::endl;
+    }
+
+    return false;
+}
+
+REXPORT SEXP serializerCleanup() {
+    SEXP blMap = Pool::get(4);
+    if (blMap == R_NilValue) {
+        std::cout << "no blacklist exists!" << std::endl;
+        return R_TrueValue;
+    }
+
+    // SEXP keys = VECTOR_ELT(blMap, 0);
+
+    // for (int i = 0; i < Rf_length(keys); i++) {
+    //     SEXP key = VECTOR_ELT(keys, 0);
+    //     std::cout << "blacklist(" << i << "): " << CHAR(PRINTNAME(key)) << std::endl;
+    // }
+
+    auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
+
+    std::stringstream savePath;
+    savePath << prefix << "/";
+
+    DIR *dir;
+    struct dirent *ent;
+
+    if ((dir = opendir (savePath.str().c_str())) != NULL) {
+        while ((ent = readdir (dir)) != NULL) {
+            std::string fName = ent->d_name;
+            if (fName.find(".meta") != std::string::npos) {
+                std::stringstream metaPath;
+                metaPath << prefix << "/" << fName;
+
+                std::cout << "analysing: " << metaPath.str() << std::endl;
+                // Load the serialized pool from the .pool file
+                FILE *reader;
+                reader = fopen(metaPath.str().c_str(),"r");
+
+                // Initialize the deserializing stream
+                R_inpstream_st inputStream;
+                R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
+
+                SEXP result;
+                PROTECT(result= R_Unserialize(&inputStream));
+                fclose(reader);
+
+                // check if the currentHast is blacklisted
+                serializerData sData(result);
+                size_t hast = sData.getHastData();
+                std::cout << "currHast: " << hast << std::endl;
+
+                if (UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap)) {
+                    std::cout << "BLACKLIST FILE: " << metaPath.str() << " (hast has collisions)" << std::endl;
+                    const int removeRes = remove(metaPath.str().c_str());
+                    if( removeRes == 0 ){
+                        std::cout << "successfully removed the file" << std::endl;
+                    } else {
+                        std::cout << "failed to remove the file" << std::endl;
+                    }
+                    UNPROTECT(1);
+                    continue;
+                }
+
+                SEXP contextMap = sData.getContextMap();
+
+                if (dependencyBlacklisted(contextMap)) {
+                    std::cout << "BLACKLIST FILE: " << metaPath.str() << " (dependency blacklisted)" << std::endl;
+                    const int removeRes = remove(metaPath.str().c_str());
+                    if( removeRes == 0 ){
+                        std::cout << "successfully removed the file" << std::endl;
+                    } else {
+                        std::cout << "failed to remove the file" << std::endl;
+                    }
+                }
+                UNPROTECT(1);
+            }
+        }
+
+        closedir (dir);
+    } else {
+        /* could not open directory */
+        perror ("");
+        return R_FalseValue;
+    }
+
+    return R_TrueValue;
 }
 
 REXPORT SEXP rirInvocationCount(SEXP what) {

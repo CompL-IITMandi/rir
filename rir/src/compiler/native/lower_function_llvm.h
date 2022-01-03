@@ -279,7 +279,7 @@ class LowerFunctionLLVM {
     void addDebugMsg(llvm::Value *v, int tag, int location);
 
     std::set<size_t>* reqMap = nullptr;
-    bool* serializerError;
+    bool* serializerError = nullptr;
 
     std::array<std::string, 4> argNames = {"code", "args", "env", "closure"};
     std::vector<llvm::Value*> args;

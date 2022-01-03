@@ -100,14 +100,14 @@
 // Patch opaqueTrue
 #define PATCH_OPAQUE_TRUE 1
 
-// Try patching DeoptReason
-#define TRY_PATCH_DEOPTREASON 0
+// Change calculation of PC from start of BC instructions, NEEDED FOR TRY_PATCH_DEOPTREASON and TRY_PATCH_DEOPTMETADATA
+#define TRY_PATCH_DEOPTREASON_PC 1
 
-// Change calculation of PC from start of BC instructions, instead of Code object pointer
-#define TRY_PATCH_DEOPTREASON_PC 0
+// Try patching DeoptReason
+#define TRY_PATCH_DEOPTREASON 1
 
 // Try patching DeoptMetadata
-#define TRY_PATCH_DEOPTMETADATA 0
+#define TRY_PATCH_DEOPTMETADATA 1
 
 // Try patching DeoptMetadata
 #define TRY_PATCH_STATIC_CALL3 1

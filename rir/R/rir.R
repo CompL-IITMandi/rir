@@ -61,6 +61,10 @@ f.stopSerializer <- function() {
     invisible(.Call("stopSerializer"))
 }
 
+f.serializerCleanup <- function() {
+    invisible(.Call("serializerCleanup"))
+}
+
 f.printHAST <- function(what) {
     .Call("printHAST", what)
 }

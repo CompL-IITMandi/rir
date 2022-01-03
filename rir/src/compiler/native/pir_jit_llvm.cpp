@@ -343,7 +343,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
     size_t srcPoolOffset = 0;
 
     #if PRINT_SERIALIZER_PROGRESS == 1
-    std::cout << "(>) Serializer Start" << std::endl;
+    std::cout << "(>) Module Serialization Started" << std::endl;
     #endif
 
     // Releasing the module as soon as globals are patched and the bc is serialized
@@ -596,6 +596,10 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
 
     #if PRINT_SERIALIZER_PROGRESS == 1
     std::cout << "(*) Module pool serialized: " << bcPath.str() << std::endl;
+    #endif
+
+    #if PRINT_SERIALIZER_PROGRESS == 1
+    std::cout << "(/) Module Serialized Successfully" << std::endl;
     #endif
 
     UNPROTECT(1);
@@ -1042,17 +1046,26 @@ void PirJitLLVM::initializeLLVM() {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 
-                    // size_t hast = std::stoull(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    auto hast = n.substr(firstDel + 1, secondDel - firstDel - 1);
                     int index = std::stoi(n.substr(secondDel + 1));
 
                     SEXP map = Pool::get(2);
-                    DispatchTable * vtable = DispatchTable::unpack(UMap::get(map, Rf_install(n.substr(firstDel + 1, secondDel - firstDel - 1).c_str())));
-
-
+                    DispatchTable * vtable = DispatchTable::unpack(UMap::get(map, Rf_install(hast.c_str())));
                     auto addr = vtable->baseline()->body();
                     addr = addr->getSrcAtOffset(index);
-                    // std::cout << "code patch: " << n << ", hast: " << hast << ", index: " << index << ", dec: " << (uintptr_t)addr << std::endl;
 
+                    SEXP debugMap = Pool::get(5);
+                    SEXP oldVal = UMap::get(debugMap, Rf_install(n.c_str()));
+                    SEXP newVal = Rf_install(std::to_string((uintptr_t) addr).c_str());
+
+                    // std::cout << "DEOPTREASON patc: {";
+                    // std::cout << "SYM: " << n << ", ";
+                    // std::cout << "CODE: " << (uintptr_t)addr;
+                    // std::cout << " }" << std::endl;
+
+                    if (oldVal != newVal) {
+                        std::cout << "(E) invalid patch: " << n << ", expected: " << CHAR(PRINTNAME(oldVal)) << ", got: " << CHAR(PRINTNAME(newVal)) << std::endl;
+                    }
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(addr)),
@@ -1068,15 +1081,11 @@ void PirJitLLVM::initializeLLVM() {
 
                     SEXP debugMap = Pool::get(5);
                     SEXP oldVal = UMap::get(debugMap, Rf_install(n.c_str()));
-                    // SEXP newVal = Rf_install(std::to_string((uintptr_t) addr).c_str());
+                    SEXP newVal = Rf_install(std::to_string((uintptr_t) addr).c_str());
 
-                    if (std::to_string((uintptr_t) addr).compare( std::string( CHAR(PRINTNAME(oldVal)) ) ) != 0) {
-                        std::cout << "invalid patch: " << n << std::endl;
-                    } else {
-                        std::cout << n << " (matched): " << (uintptr_t) addr << std::endl;
+                    if (oldVal != newVal) {
+                        std::cout << "(E) invalid patch: " << n << ", expected: " << CHAR(PRINTNAME(oldVal)) << ", got: " << CHAR(PRINTNAME(newVal)) << std::endl;
                     }
-
-
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(

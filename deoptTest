@@ -1,0 +1,40 @@
+[1] 20
+[1] 20
+[1] 20
+(>) Serializer Started
+TRY_PATCH_DEOPTMETADATA orig, PC: 94338710767318, SRC_CODE: 94338710767088
+(>) Module Serialization Started
+(*) Module bitcode serialized: ./temp.bc
+(*) Pool data stored
+(*) Starting Constant Pool Serialization
+(*) Module pool serialized: ./temp.pool
+(/) Module Serialized Successfully
+(*) serializeModule complete
+(*) metadata added
+(*) original argOrderingData: <>
+(*) original reqMapForCompilation: <10645895511477707530 >
+(>) Writing Metadata: ./m_f_10645895511477707530.meta
+(/) Serializer End
+[1] 20
+[1] 20
+[1] 20
+CPATCH, PC: 94338710767332, OFFSET: 244, SRC: 94338710767088, CODE: 94338710767309
+TRY_PATCH_DEOPTMETADATA patch, PC: 94338710767318, SRC_CODE: 94338710767088
+[1] 20 21
+[1] 20 21
+(>) Serializer Started
+TRY_PATCH_DEOPTMETADATA orig, PC: 94338710767318, SRC_CODE: 94338710767088
+(>) Module Serialization Started
+(*) Module bitcode serialized: ./temp.bc
+(*) Pool data stored
+(*) Starting Constant Pool Serialization
+(*) Module pool serialized: ./temp.pool
+(/) Module Serialized Successfully
+(*) serializeModule complete
+(*) metadata added
+(*) original argOrderingData: <>
+(*) original reqMapForCompilation: <10645895511477707530 >
+(>) Writing Metadata: ./m_f_10645895511477707530.meta
+(*) Metadata already exists for this hast
+(/) Serializer End
+[1] 20 21

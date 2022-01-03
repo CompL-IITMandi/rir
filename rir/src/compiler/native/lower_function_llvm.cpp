@@ -467,9 +467,6 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     auto cpIndex = Pool::insert(co);
     auto iVal = globalConst(c(cpIndex), t::i32);
     auto iLoad = builder.CreateLoad(iVal);
-    // if (inIdentical) {
-    //     lastCPEntry = iVal;
-    // }
 
     llvm::Value* pos = builder.CreateLoad(constantpool);
     pos = builder.CreateBitCast(dataPtr(pos, false),
@@ -801,33 +798,87 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         }
         #endif
 
+
         #if TRY_PATCH_DEOPTREASON == 1
-        auto dr = (DeoptReasonWrapper*)val;
-        auto realOffset = dr->reason.origin.pc() - dr->reason.origin.srcCode()->code();
         Constant * srcAddr;
-        SEXP map = Pool::get(1);
-        SEXP srcSym = Rf_install(std::to_string(((DeoptReasonWrapper*)val)->reason.srcCode()->src).c_str());
+        auto data = getHastAndIndex(((DeoptReasonWrapper*)val)->reason.srcCode()->src);
+        size_t hast = data.hast;
 
-        SEXP r = UMap::get(map, srcSym);
-        SEXP hastS = VECTOR_ELT(r, 0);
-        size_t hast = std::stoull(CHAR(PRINTNAME(hastS)));
-        SEXP indexS = VECTOR_ELT(r, 1);
-        int index = std::stoi(CHAR(PRINTNAME(indexS)));
+        // If the hast is blacklisted, patch will not work
+        SEXP blMap = Pool::get(4);
+        if ((hast == 0) || (blMap != R_NilValue && UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap))) {
+            std::cout << "(E) TRY_PATCH_DEOPTREASON failed" << std::endl;
+            if (hast == 0) {
+                std::cout << "(E) hast == 0" << std::endl;
+            } else {
+                std::cout << "(E) Trying to serialize to a blacklisted hast" << std::endl;
+            }
+            if (serializerError == nullptr) {
+                std::cout << "(E) non serialization call!, error status not set" << std::endl;
+            } else {
+                *serializerError = true;
+            }
+            auto dr = (DeoptReasonWrapper*)val;
+            auto srcAddr = (Constant*)builder.CreateIntToPtr(
+                llvm::ConstantInt::get(
+                    PirJitLLVM::getContext(),
+                    llvm::APInt(64,
+                                reinterpret_cast<uint64_t>(dr->reason.srcCode()),
+                                false)),
+                t::voidPtr);
+            #if TRY_PATCH_DEOPTREASON_PC == 1
+            auto realOffset = dr->reason.origin.pc() - dr->reason.origin.srcCode()->code();
+            auto drs = llvm::ConstantStruct::get(
+                    t::DeoptReason, {c(dr->reason.reason, 32),
+                                    c(realOffset, 32), srcAddr});
+            #else
+            auto drs = llvm::ConstantStruct::get(
+                t::DeoptReason, {c(dr->reason.reason, 32),
+                                c(dr->reason.origin.offset(), 32), srcAddr});
+            #endif
+            res = globalConst(drs);
+        } else {
+            auto dr = (DeoptReasonWrapper*)val;
+            auto realOffset = dr->reason.origin.pc() - dr->reason.origin.srcCode()->code();
 
-        // reqMap.insert(hast);
-        std::stringstream ss;
-        ss << "code_" << hast << "_" << index;
+            if (reqMap) {
+                reqMap->insert(hast);
+            } else {
+                if (serializerError != nullptr) {
+                    *serializerError = true;
+                    std::cout << "(E) [DeoptReason patch] reqMap not available (ERROR)" << std::endl;
+                }
+            }
+            std::stringstream ss;
+            ss << "code_" << hast << "_" << data.index;
 
-        #if DEBUG_PRINT_DeoptReason_Load == 1
-        std::cout << "DEBUG_PRINT_DeoptReason_Load(" << ss.str() << "): " << CHAR(PRINTNAME(hastS)) << "|" << CHAR(PRINTNAME(indexS)) << "{" << (uintptr_t)dr->reason.srcCode() << "}" << std::endl;
-        #endif
 
-        srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
+            srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
 
-        auto drs = llvm::ConstantStruct::get(
-            t::DeoptReason, {c(dr->reason.reason, 32),
-                             c(realOffset, 32), srcAddr});
-        res = globalConst(drs);
+            SEXP debugMap = Pool::get(5);
+                    if (debugMap == R_NilValue) {
+                        UMap::createMapInCp(5);
+                        debugMap = Pool::get(5);
+                    }
+
+            UMap::insert(debugMap, Rf_install(ss.str().c_str()), Rf_install(std::to_string((uintptr_t) dr->reason.srcCode()).c_str()));
+
+            // std::cout << "DEOPTREASON orig: {";
+            // std::cout << "SYM: " << ss.str() << ", ";
+            // std::cout << "REASON: " << dr->reason.reason << ", ";
+            // std::cout << "OFFSET: " << (uintptr_t)dr->reason.origin.offset() << ", ";
+            // std::cout << "PC: " << (uintptr_t)dr->reason.origin.pc() << ", ";
+            // std::cout << "CODE: " << (uintptr_t)dr->reason.origin.srcCode()->code() << ", ";
+            // std::cout << "SRC_IDX: " << ((DeoptReasonWrapper*)val)->reason.srcCode()->src << ", ";
+            // std::cout << "SRC: " << (uintptr_t)dr->reason.origin.srcCode();
+            // std::cout << " }" << std::endl;
+
+            auto drs = llvm::ConstantStruct::get(
+                t::DeoptReason, {c(dr->reason.reason, 32),
+                                c(realOffset, 32), srcAddr});
+            res = globalConst(drs);
+        }
+
         #else
         auto dr = (DeoptReasonWrapper*)val;
         auto srcAddr = (Constant*)builder.CreateIntToPtr(
@@ -837,9 +888,16 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
                             reinterpret_cast<uint64_t>(dr->reason.srcCode()),
                             false)),
             t::voidPtr);
+        #if TRY_PATCH_DEOPTREASON_PC == 1
+        auto realOffset = dr->reason.origin.pc() - dr->reason.origin.srcCode()->code();
+        auto drs = llvm::ConstantStruct::get(
+                t::DeoptReason, {c(dr->reason.reason, 32),
+                                c(realOffset, 32), srcAddr});
+        #else
         auto drs = llvm::ConstantStruct::get(
             t::DeoptReason, {c(dr->reason.reason, 32),
-                             c(dr->reason.origin.offset(), 32), srcAddr});
+                            c(dr->reason.origin.offset(), 32), srcAddr});
+        #endif
         res = globalConst(drs);
         #endif
     } else {
@@ -4245,19 +4303,25 @@ void LowerFunctionLLVM::compile() {
                 #if TRY_PATCH_STATIC_CALL3 == 1
 
                 SEXP body = BODY(calli->cls()->rirClosure());
+
                 auto vtable = DispatchTable::unpack(body);
                 size_t hast = getHastAndIndex(vtable->baseline()->body()->src).hast;
-
-                std::cout << "TRY_PATCH_STATIC_CALL3 hast: " << hast << std::endl;
 
                 // If the hast is blacklisted, patch will not work
                 SEXP blMap = Pool::get(4);
                 if ((hast == 0) || (blMap != R_NilValue && UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap))) {
-                    std::cout << "TRY_PATCH_STATIC_CALL3 failed, blacklisted hast" << std::endl;
+                    std::cout << "(E) TRY_PATCH_STATIC_CALL3 failed" << std::endl;
                     if (hast == 0) {
-                        std::cout << "hast == 0" << std::endl;
+                        std::cout << "(E) hast == 0" << std::endl;
+                    } else {
+                        std::cout << "(E) Trying to serialize to a blacklisted hast" << std::endl;
                     }
-                    // *serializerError = true;
+
+                    if (serializerError == nullptr) {
+                        std::cout << "(E) non serialization call!, error status not set" << std::endl;
+                    } else {
+                        *serializerError = true;
+                    }
                     assert(asmpt.includes(Assumption::StaticallyArgmatched));
                     setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                             return call(
@@ -4274,9 +4338,8 @@ void LowerFunctionLLVM::compile() {
                                 });
                         }));
                 } else {
-                    std::cout << "TRY_PATCH_STATIC_CALL3 start" << std::endl;
-                    // auto iValAST = globalConst(c(calli->srcIdx), t::i32);
-                    // auto iLoadAST = builder.CreateLoad(iValAST);
+                    auto iValAST = globalConst(c(calli->srcIdx), t::i32);
+                    auto iLoadAST = builder.CreateLoad(iValAST);
 
                     static int track = 0;
 
@@ -4291,29 +4354,14 @@ void LowerFunctionLLVM::compile() {
 
                     UMap::insert(debugMap, Rf_install(ss.str().c_str()), Rf_install(std::to_string((uintptr_t) calli->cls()->rirClosure()).c_str()));
 
-                    std::cout << ss.str() << " (orig): " << (uintptr_t) calli->cls()->rirClosure() << std::endl;
                     if (reqMap) {
                         reqMap->insert(hast);
-
+                    } else {
+                        if (serializerError != nullptr) {
+                            *serializerError = true;
+                            std::cout << "(E) reqMap not available (ERROR)" << std::endl;
+                        }
                     }
-
-                    // assert(asmpt.includes(Assumption::StaticallyArgmatched));
-                    // setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
-                    //         return call(
-                    //             NativeBuiltins::get(NativeBuiltins::Id::call),
-                    //             {
-                    //                 c(callId),
-                    //                 paramCode(),
-                    //                 // iLoadAST,
-                    //                 c(calli->srcIdx),
-                    //                 // convertToExternalSymbol(ss.str()),
-                    //                 builder.CreateIntToPtr(
-                    //                     c(calli->cls()->rirClosure()), t::SEXP),
-                    //                 loadSxp(calli->env()),
-                    //                 c(calli->nCallArgs()),
-                    //                 c(asmpt.toI()),
-                    //             });
-                    //     }));
                     assert(asmpt.includes(Assumption::StaticallyArgmatched));
                     setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                             return call(
@@ -4321,7 +4369,7 @@ void LowerFunctionLLVM::compile() {
                                 {
                                     c(callId),
                                     paramCode(),
-                                    c(calli->srcIdx),
+                                    iLoadAST,
                                     convertToExternalSymbol(ss.str()),
                                     loadSxp(calli->env()),
                                     c(calli->nCallArgs()),
@@ -4332,7 +4380,6 @@ void LowerFunctionLLVM::compile() {
 
 
                 #else
-                std::cout << "TRY_PATCH_STATIC_CALL3 disabled" << std::endl;
                 assert(asmpt.includes(Assumption::StaticallyArgmatched));
                 setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                            return call(
@@ -4411,6 +4458,7 @@ void LowerFunctionLLVM::compile() {
 
                 #if TRY_PATCH_DEOPTMETADATA == 1
                 bool patchPossible = true;
+                SEXP blMap = Pool::get(4);
 
                 {
                     std::vector<FrameState*> frames;
@@ -4421,32 +4469,124 @@ void LowerFunctionLLVM::compile() {
                         fs = fs->next();
                     }
 
-                    size_t nframes = frames.size();
                     for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
                         auto fs = *f;
-                        for (size_t pos = 0; pos < fs->stackSize; pos++)
-                            args.push_back(fs->arg(pos).val());
-                        args.push_back(fs->env());
+                        auto srcData = getHastAndIndex(fs->code->src);
+                        size_t hast = srcData.hast;
 
-                        m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
-                                                fs->inPromise};
-
-                        SEXP blMap = Pool::get(4);
-                        if (blMap != R_NilValue && UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap)) {
-
+                        if ((hast == 0) || (blMap != R_NilValue && UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap))) {
+                            patchPossible = false;
+                            break;
                         }
-
-
                     }
-
                 }
 
-                std::stringstream ssN;
+                if (patchPossible == false) {
+                    std::cout << "(E) TRY_PATCH_DEOPTMETADATA failed" << std::endl;
+                    if (serializerError == nullptr) {
+                        std::cout << "(E) non serialization call!, error status not set" << std::endl;
+                    } else {
+                        *serializerError = true;
+                    }
+
+                    std::vector<Value*> args;
+                    {
+                        std::vector<FrameState*> frames;
+
+                        auto fs = deopt->frameState();
+                        while (fs) {
+                            frames.push_back(fs);
+                            fs = fs->next();
+                        }
+
+                        size_t nframes = frames.size();
+                        SEXP store =
+                            Rf_allocVector(RAWSXP, sizeof(DeoptMetadata) +
+                                                    nframes * sizeof(FrameInfo));
+                        m = new (DATAPTR(store)) DeoptMetadata;
+                        m->numFrames = nframes;
+
+                        int frameNr = nframes - 1;
+                        for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
+                            auto fs = *f;
+                            for (size_t pos = 0; pos < fs->stackSize; pos++)
+                                args.push_back(fs->arg(pos).val());
+                            args.push_back(fs->env());
+                            m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
+                                                    fs->inPromise};
+                        }
+                        target->addExtraPoolEntry(store);
+                        withCallFrame(args, [&]() {
+                                return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
+                                            {paramCode(), paramClosure(),
+                                            convertToPointer(m, t::i8, true), paramArgs(),
+                                            load(deopt->deoptReason()),
+                                            loadSxp(deopt->deoptTrigger())});
+                                            });
+                    }
+                } else {
+                    std::vector<Value*> args;
+                    {
+                        std::vector<FrameState*> frames;
+
+                        auto fs = deopt->frameState();
+                        while (fs) {
+                            frames.push_back(fs);
+                            fs = fs->next();
+                        }
+
+                        size_t nframes = frames.size();
+                        SEXP store =
+                            Rf_allocVector(RAWSXP, sizeof(DeoptMetadata) +
+                                                    nframes * sizeof(FrameInfo));
+                        m = new (DATAPTR(store)) DeoptMetadata;
+                        m->numFrames = nframes;
+
+                        int frameNr = nframes - 1;
+
+                        for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
+                            auto fs = *f;
+                            for (size_t pos = 0; pos < fs->stackSize; pos++)
+                                args.push_back(fs->arg(pos).val());
+                            args.push_back(fs->env());
+
+                            uintptr_t offset = (uintptr_t)fs->pc - (uintptr_t)fs->code->code();
+
+                            auto srcData = getHastAndIndex(fs->code->src);
+                            size_t hast = srcData.hast;
+                            int index = srcData.index;
+
+                            if (reqMap) {
+                                reqMap->insert(hast);
+                            } else {
+                                if (serializerError != nullptr) {
+                                    *serializerError = true;
+                                    std::cout << "(E) [DeoptMetadata patch] reqMap not available (ERROR)" << std::endl;
+                                }
+                            }
+
+                            // std::cout << "DEOPTMETADATA orig: {";
+                            // std::cout << "PC: " << (uintptr_t)fs->pc << ", ";
+                            // std::cout << "CODE: " << (uintptr_t)fs->code->code() << ", ";
+                            // std::cout << "SRC: " << (uintptr_t)fs->code;
+                            // std::cout << " }" << std::endl;
 
 
+                            m->frames[frameNr--] = {offset, hast, index, fs->stackSize,
+                                                    fs->inPromise};
 
-                #endif
+                        }
+                        withCallFrame(args, [&]() {
+                            return call(NativeBuiltins::get(NativeBuiltins::Id::deoptPool),
+                                        {paramCode(), paramClosure(),
+                                        constant(store, Rep::SEXP), paramArgs(),
+                                        load(deopt->deoptReason()),
+                                        loadSxp(deopt->deoptTrigger())});
+                                        });
+                    }
+                }
 
+                #else
                 std::vector<Value*> args;
                 {
                     std::vector<FrameState*> frames;
@@ -4460,65 +4600,19 @@ void LowerFunctionLLVM::compile() {
                     size_t nframes = frames.size();
                     SEXP store =
                         Rf_allocVector(RAWSXP, sizeof(DeoptMetadata) +
-                                                   nframes * sizeof(FrameInfo));
+                                                nframes * sizeof(FrameInfo));
                     m = new (DATAPTR(store)) DeoptMetadata;
                     m->numFrames = nframes;
 
                     int frameNr = nframes - 1;
-                    // #if DEBUG_PRINT_Deopt_Inst == 1
-                    // std::cout << "Deopt inst frames (" << frameNr << ") : [ ";
-                    // #endif
                     for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
                         auto fs = *f;
                         for (size_t pos = 0; pos < fs->stackSize; pos++)
                             args.push_back(fs->arg(pos).val());
                         args.push_back(fs->env());
-
-                        #if TRY_PATCH_DEOPTMETADATA == 1
-                        uintptr_t offset = (uintptr_t)fs->pc - (uintptr_t)fs->code->code();
-                        SEXP map = Pool::get(1);
-                        SEXP srcSym = Rf_install(std::to_string(fs->code->src).c_str());
-
-                        if (!UMap::symbolExistsInMap(srcSym, map)) {
-                            std::cout << "TRY_PATCH_DEOPTMETADATA failed" << std::endl;
-                        }
-
-                        SEXP res = UMap::get(map, srcSym);
-
-                        SEXP hastS = VECTOR_ELT(res, 0);
-                        size_t h = std::stoull(CHAR(PRINTNAME(hastS)));
-
-                        SEXP indexS = VECTOR_ELT(res, 1);
-                        int ind = std::stoi(CHAR(PRINTNAME(indexS)));
-
-                        // reqMap.insert(h);
-
-                        m->frames[frameNr--] = {offset, h, ind, fs->stackSize,
-                                                fs->inPromise};
-                        // #if DEBUG_PRINT_Deopt_Inst == 1
-                        // std::cout << h << "|" << ind << "{" << (uintptr_t)fs->code << "} ";
-                        // #endif
-
-                        #else
                         m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
                                                 fs->inPromise};
-                        #endif
-
-
                     }
-                    // #if DEBUG_PRINT_Deopt_Inst == 1
-                    // std::cout << "]" << std::endl;
-                    // #endif
-
-                    #if TRY_PATCH_DEOPTMETADATA == 1
-                    withCallFrame(args, [&]() {
-                        return call(NativeBuiltins::get(NativeBuiltins::Id::deoptPool),
-                                    {paramCode(), paramClosure(),
-                                    constant(store, Rep::SEXP), paramArgs(),
-                                    load(deopt->deoptReason()),
-                                    loadSxp(deopt->deoptTrigger())});
-                                    });
-                    #else
                     target->addExtraPoolEntry(store);
                     withCallFrame(args, [&]() {
                             return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
@@ -4527,8 +4621,8 @@ void LowerFunctionLLVM::compile() {
                                         load(deopt->deoptReason()),
                                         loadSxp(deopt->deoptTrigger())});
                                         });
-                    #endif
                 }
+                #endif
 
                 builder.CreateUnreachable();
                 break;

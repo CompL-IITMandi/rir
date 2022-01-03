@@ -59,7 +59,6 @@ static void insertClosObj(SEXP clos, size_t hast) {
         map = Pool::get(3);
     }
     SEXP hastSym = Rf_install(std::to_string(hast).c_str());
-    std::cout << "linking closure: " << hast << " -> " << (uintptr_t)clos << std::endl;
     UMap::insert(map, hastSym, clos);
 }
 
@@ -82,7 +81,6 @@ static bool readyForSerialization(DispatchTable* vtable, size_t hast) {
 
     SEXP vTableMap = Pool::get(2);
     if (vTableMap != R_NilValue && UMap::symbolExistsInMap(hastSym, vTableMap)) {
-        std::cout << "hast already exists: " << hast << std::endl;
         DispatchTable * oldTab = DispatchTable::unpack(UMap::get(vTableMap, hastSym));
         auto oldRirBody = oldTab->baseline()->body();
 
@@ -168,7 +166,7 @@ class Compiler {
         size_t hast = getHast(vtable);
 
         if (readyForSerialization(vtable, hast)) {
-            std::cout << "hast: " << hast << " (ready for serialization)" << std::endl;
+            // std::cout << "hast: " << hast << " (ready for serialization)" << std::endl;
             insertVTable(vtable, hast);
             populateHastSrcData(vtable, hast);
         }
@@ -209,12 +207,10 @@ class Compiler {
         size_t hast = getHast(vtable);
 
         if (readyForSerialization(vtable, hast)) {
-            std::cout << "hast: " << hast << " (ready for serialization)" << std::endl;
+            // std::cout << "hast: " << hast << " (ready for serialization)" << std::endl;
             insertVTable(vtable, hast);
             populateHastSrcData(vtable, hast);
             insertClosObj(inClosure, hast);
-        } else {
-            std::cout << "updating closure: " << hast << " (not ready for serialization)" << std::endl;
         }
     }
 };

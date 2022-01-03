@@ -855,6 +855,15 @@ static SEXP deoptSentinelContainer = []() {
 
 void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                DeoptReason* deoptReason, SEXP deoptTrigger) {
+
+    std::cout << "DEOPTREASON(" << (uintptr_t)deoptReason << ") patc: {";
+    std::cout << "REASON: " << deoptReason->reason << ", ";
+    std::cout << "OFFSET: " << (uintptr_t)deoptReason->origin.offset() << ", ";
+    std::cout << "PC: " << (uintptr_t)deoptReason->pc() << ", ";
+    std::cout << "CODE: " << (uintptr_t)deoptReason->srcCode()->code() << ", ";
+    std::cout << "SRC: " << (uintptr_t)deoptReason->srcCode();
+    std::cout << " }" << std::endl;
+
     SEXP map = Pool::get(2);
     for (size_t i = 0; i < m->numFrames; i++) {
         if (m->frames[i].code == 0) {
@@ -864,7 +873,12 @@ void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
             code = code->getSrcAtOffset(m->frames[i].index);
             m->frames[i].code = code;
             m->frames[i].pc = code->code() + m->frames[i].offset;
-            std::cout << "TRY_PATCH_DEOPTMETADATA (" << hast << "|" << m->frames[i].index << "): " << (uintptr_t)code << std::endl;
+
+            std::cout << "DEOPTMETADATA patc: {";
+                            std::cout << "PC: " << (uintptr_t)m->frames[i].pc << ", ";
+                            std::cout << "CODE: " << (uintptr_t)code->code() << ", ";
+                            std::cout << "SRC: " << (uintptr_t)code;
+                            std::cout << " }" << std::endl;
         }
     }
     recordDeoptReason(deoptTrigger, *deoptReason);
@@ -2229,6 +2243,9 @@ bool clsEqImpl(SEXP lhs, SEXP rhs) {
 
         size_t lhsBodyHast = 0;
         if (TYPEOF(BODY(lhs)) == EXTERNALSXP) {
+            if (!DispatchTable::check(BODY(lhs))) {
+                std::cout << "ERROR AT: 3" << std::endl;
+            }
             auto dt = DispatchTable::unpack(BODY(lhs));
             auto src = dt->baseline()->body()->src;
             auto realBody = src_pool_at(globalContext(), src);
@@ -2243,6 +2260,9 @@ bool clsEqImpl(SEXP lhs, SEXP rhs) {
 
         size_t rhsBodyHast = 0;
         if (TYPEOF(BODY(lhs)) == EXTERNALSXP) {
+            if (!DispatchTable::check(BODY(lhs))) {
+                std::cout << "ERROR AT: 4" << std::endl;
+            }
             auto dt = DispatchTable::unpack(BODY(lhs));
             auto src = dt->baseline()->body()->src;
             auto realBody = src_pool_at(globalContext(), src);

@@ -63,11 +63,11 @@ DeoptReason::DeoptReason(const FeedbackOrigin& origin,
 }
 
 Opcode* FeedbackOrigin::pc() const {
-    if (offset_ == 0)
-        return nullptr;
     #if TRY_PATCH_DEOPTREASON_PC == 1
     return (Opcode*)((uintptr_t)srcCode()->code() + offset_);
     #else
+    if (offset_ == 0)
+        return nullptr;
     return (Opcode*)((uintptr_t)srcCode() + offset_);
     #endif
 }

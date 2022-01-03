@@ -271,6 +271,11 @@ namespace rir {
                 return resData;
             }
 
+            SEXP getReqMapAsVector() {
+                SEXP rMap = VECTOR_ELT(container, 13);
+                return rMap;
+            }
+
             void print() {
                 std::cout << "context: " << rir::Context(getContext()) << std::endl;
                 std::cout << "ENTRY(0): " << getContext() << std::endl;
@@ -352,6 +357,10 @@ namespace rir {
 
             size_t getHastData() {
                 return getSizeT(0);
+            }
+
+            SEXP getContextMap() {
+                return VECTOR_ELT(container, 2);
             }
 
             void print() {

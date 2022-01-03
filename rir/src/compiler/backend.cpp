@@ -462,7 +462,7 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         size_t hast = getHastAndIndex(done[mainFunCodeObj]->src).hast;
 
         if (hast == 0) {
-            std::cout << "backend error, hast unavailable, cannot populate cData" << std::endl;
+            std::cout << "(E) backend error, hast unavailable, cannot populate cData" << std::endl;
         }
 
         std::random_device rd;
@@ -654,7 +654,7 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         p(aOrderingData = Rf_allocVector(VECSXP, argOrderingData.size()));
 
         int in_i = 0;
-        std::cout << "original argOrderingData: <";
+        std::cout << "(*) original argOrderingData: <";
         for (auto & i : argOrderingData) {
 
             SEXP innerData;
@@ -692,7 +692,7 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
 
         SEXP rData;
         p(rData = Rf_allocVector(VECSXP, rMap.size()));
-        std::cout << "original reqMapForCompilation: <";
+        std::cout << "(*) original reqMapForCompilation: <";
 
         int i = 0;
         for (auto & ele : rMap) {

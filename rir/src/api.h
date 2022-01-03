@@ -400,6 +400,7 @@ hastAndIndex getHastAndIndex(unsigned src);
 
 REXPORT SEXP startSerializer();
 REXPORT SEXP stopSerializer();
+REXPORT SEXP serializerCleanup();
 
 REXPORT SEXP printHAST(SEXP clos);
 REXPORT SEXP rirSerialize(SEXP data, SEXP file);

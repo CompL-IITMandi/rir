@@ -213,7 +213,7 @@ void Code::populateSrcData(size_t parentHast, SEXP map, bool mainSrc, int & inde
     Protect p;
     if (mainSrc) {
         #if PRINT_POPULATED_SRC_DATA == 1
-        std::cout << "hast(" << parentHast << ", " <<src << "): [ ";
+        std::cout << "hast(" << parentHast << ", " << src << "): [ ";
         #endif
         SEXP srcSym = Rf_install(std::to_string(src).c_str());
 
@@ -225,8 +225,9 @@ void Code::populateSrcData(size_t parentHast, SEXP map, bool mainSrc, int & inde
         SET_VECTOR_ELT(resVec, 1, indexSym);
         UMap::insert(map, srcSym, resVec);
     } else {
+        index++;
         #if PRINT_POPULATED_SRC_DATA == 1
-        std::cout << "(" << ++index << ", " << src << ") ";
+        std::cout << "(" << index << ", " << src << ") ";
         #endif
         SEXP srcSym = Rf_install(std::to_string(src).c_str());
 
@@ -306,7 +307,8 @@ void Code::disassemble(std::ostream& out, const std::string& prefix) const {
         BC bc = BC::decode(pc, this);
         bc.addMyPromArgsTo(promises);
 
-        const size_t OFFSET_WIDTH = 7;
+        const size_t OFFSET_WIDTH = 14;
+        out << (uintptr_t)pc << " ";
         out << std::right << std::setw(OFFSET_WIDTH)
             << ((uintptr_t)pc - (uintptr_t)code()) << std::left;
 

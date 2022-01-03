@@ -510,7 +510,9 @@ execute <- function(n) {
   checksum = flexclust(n)
   cat("Flexclust::kcca ", n, " " , checksum, "\n")
 }
-# f.startSerializer()
+execute(3)
+execute(3)
+execute(3)
 execute(3)
 
-# f.stopSerializer()
+f.serializerCleanup()

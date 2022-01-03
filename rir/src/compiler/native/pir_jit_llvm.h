@@ -153,7 +153,7 @@ class PirJitLLVM {
     std::unique_ptr<DebugInfo> DI;
     std::unique_ptr<llvm::DIBuilder> DIB;
     std::set<size_t> * reqMapForCompilation = nullptr;
-    bool* serializerError;
+    bool* serializerError = nullptr;
 };
 
 } // namespace pir
