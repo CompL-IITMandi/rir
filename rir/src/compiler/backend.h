@@ -28,7 +28,7 @@ class Backend {
 
     rir::Function* getOrCompile(ClosureVersion* cls);
 
-    contextData* cData = nullptr;
+    SEXP cData = nullptr;
     bool* serializerError = nullptr;
 
   private:

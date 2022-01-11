@@ -58,7 +58,7 @@ class PirJitLLVM {
                  const std::unordered_set<Instruction*>& needsLdVarForUpdate,
                  ClosureStreamLogger& log);
 
-    void serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, contextData* cData);
+    void serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, SEXP cData, std::vector<std::string> & relevantNames);
 
     void updateFunctionNameInModule(std::string, std::string);
     void patchFixupHandle(std::string newName, Code * code);

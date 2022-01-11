@@ -107,7 +107,6 @@ void Compiler::compileClosure(Closure* closure, rir::Function* optFunction,
                               const Context& ctx, bool root, MaybeCls success,
                               Maybe fail,
                               std::list<PirTypeFeedback*> outerFeedback) {
-
     if (!ctx.includes(minimalContext)) {
         for (const auto a : minimalContext) {
             if (!ctx.includes(a)) {

@@ -340,24 +340,6 @@ static SEXP callImpl(ArglistOrder::CallId callId, rir::Code* c, Immediate ast,
     return doCall(call, globalContext(), true);
 }
 
-static SEXP callStaticImpl(ArglistOrder::CallId callId, rir::Code* c, Immediate ast,
-                     Immediate calleeCP, SEXP env, size_t nargs,
-                     unsigned long available) {
-    auto ctx = globalContext();
-    auto callee = cp_pool_at(globalContext(), calleeCP);
-    CallContext call(callId, c, callee, nargs, ast,
-                     ostack_cell_at(ctx, (long)nargs - 1), env, R_NilValue,
-                     Context(available), ctx);
-
-    #if DEBUG_INSTRUMENT_RIR_CALL == 1
-    std::cout << "callStaticImpl" << std::endl;
-
-    #endif
-    SLOWASSERT(env == symbol::delayedEnv || TYPEOF(env) == ENVSXP ||
-               LazyEnvironment::check(env) || env == R_NilValue);
-    SLOWASSERT(ctx);
-    return doCall(call, globalContext(), true);
-}
 
 static SEXP namedCallImpl(ArglistOrder::CallId callId, rir::Code* c,
                           Immediate ast, SEXP callee, SEXP env, size_t nargs,
@@ -2414,12 +2396,6 @@ void NativeBuiltins::initializeBuiltins() {
         "callBuiltin", (void*)&callBuiltinImpl,
         llvm::FunctionType::get(
             t::SEXP, {t::voidPtr, t::Int, t::SEXP, t::SEXP, t::i64}, false)};
-    get_(Id::callStatic) = {
-        "callStatic", (void*)&callStaticImpl,
-        llvm::FunctionType::get(
-            t::SEXP,
-            {t::i64, t::voidPtr, t::Int, t::Int, t::SEXP, t::i64, t::i64},
-            false)};
     get_(Id::call) = {
         "call", (void*)&callImpl,
         llvm::FunctionType::get(
@@ -2690,11 +2666,6 @@ void NativeBuiltins::initializeBuiltins() {
         (void*)&clsEqImpl,
         llvm::FunctionType::get(t::i1, {t::SEXP, t::SEXP}, false),
         {llvm::Attribute::ReadOnly, llvm::Attribute::Speculatable}};
-    // get_(Id::clsEq) = {
-    //     "clsEqHast",
-    //     (void*)&clsEqHastImpl,
-    //     llvm::FunctionType::get(t::i1, {t::SEXP, t::SEXP}, false),
-    //     {llvm::Attribute::ReadOnly, llvm::Attribute::Speculatable}};
     get_(Id::checkType) = {
         "checkType", (void*)&checkTypeImpl,
         llvm::FunctionType::get(t::t_void, {t::SEXP, t::i64, t::charPtr},

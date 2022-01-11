@@ -329,6 +329,7 @@ class LowerFunctionLLVM {
     }
 
     llvm::Value* globalConst(llvm::Constant* init, llvm::Type* ty = nullptr);
+    llvm::Value* namedGlobalConst(std::string name, llvm::Constant* init, llvm::Type* ty);
     llvm::Value* globalSrcConst(llvm::Constant* init, llvm::Type* ty = nullptr);
     llvm::AllocaInst* topAlloca(llvm::Type* t, size_t len = 1);
 

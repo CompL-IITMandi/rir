@@ -602,7 +602,82 @@ static bool fileExists(std::string fName) {
     return f.good();
 }
 
-std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> sCallback;
+// std::function<void(llvm::Module*, rir::Code *, std::vector<unsigned> &)> sCallback;
+
+auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
+
+static void serializeClosure(unsigned src, std::string name, bool & serializerError, contextData & cData) {
+    size_t hast = getHastAndIndex(src).hast;
+    if (hast == 0) {
+        std::cout << "  (E) unavailable hast, cannot serialize" << std::endl;
+    } else if (serializerError) {
+        std::cout << "  (E) Serializer Error Occured" << std::endl;
+    } else {
+        std::stringstream fN;
+        fN << prefix << "/" << "m_" << hast << ".meta";
+        std::string fName = fN.str();
+
+        #if PRINT_SERIALIZER_PROGRESS == 1
+        std::cout << "  (>) Writing Metadata: " << fName << std::endl;
+        #endif
+
+        SEXP container;
+        Protect p;
+        p(container = Rf_allocVector(VECSXP, 3));
+
+        serializerData sData(container, hast, name);
+
+        if (fileExists(fName)) {
+            #if PRINT_SERIALIZER_PROGRESS == 1
+            std::cout << "    (*) Metadata already exists for this hast" << std::endl;
+            #endif
+
+            // Load the serialized pool from the .pool file
+            FILE *reader;
+            reader = fopen(fName.c_str(),"r");
+
+            // Initialize the deserializing stream
+            R_inpstream_st inputStream;
+            R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
+
+            SEXP result;
+            p(result= R_Unserialize(&inputStream));
+
+            sData.updateContainer(result);
+
+            sData.addContextData(cData.getContainer(), std::to_string(cData.getContext()));
+            fclose(reader);
+        } else {
+            sData.addContextData(cData.getContainer(), std::to_string(cData.getContext()));
+        }
+
+        #if PRINT_SERIALIZER_PROGRESS == 1
+        std::cout << "    (*) Serializing metadata" << std::endl;
+        sData.print(6);
+        #endif
+
+        // 2. Write updated metadata
+        R_outpstream_st outputStream;
+        FILE *fptr;
+        fptr = fopen(fName.c_str(),"w");
+        R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
+        R_Serialize(sData.getContainer(), &outputStream);
+        fclose(fptr);
+
+        // rename temp files
+        std::stringstream bcFName;
+        std::stringstream bcOldName;
+        bcFName << prefix << "/" << hast << "_" << cData.getContext() << ".bc";
+        bcOldName << prefix << "/" << "temp.bc";
+        std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
+
+        std::stringstream poolFName;
+        std::stringstream poolOldName;
+        poolFName << prefix << "/" << hast << "_" << cData.getContext() << ".pool";
+        poolOldName << prefix << "/" << "temp.pool";
+        std::rename(poolOldName.str().c_str(), poolFName.str().c_str());
+    }
+}
 
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 const pir::DebugOptions& debug) {
@@ -623,19 +698,6 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     pir::Compiler cmp(m, logger);
     pir::Backend backend(m, logger, name);
 
-    bool serializerError = false;
-
-    SEXP cDataContainer;
-    PROTECT(cDataContainer = Rf_allocVector(VECSXP, 14));
-    contextData cData(cDataContainer);
-    cData.addContext(assumptions.toI());
-
-    if (serializeLL) {
-        #if PRINT_SERIALIZER_PROGRESS == 1
-        std::cout << "(>) Serializer Started" << std::endl;
-        #endif
-    }
-
     auto compile = [&](pir::ClosureVersion* c) {
         logger.flush();
         cmp.optimizeModule();
@@ -646,18 +708,55 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         rir::Function* done = nullptr;
         auto apply = [&](SEXP body, pir::ClosureVersion* c) {
             if (serializeLL) {
-                if (body == BODY(what) && c->context() == assumptions) {
-                    backend.cData = &cData;
-                    backend.serializerError = &serializerError;
+                #if PRINT_SERIALIZER_PROGRESS == 1
+                std::cout << "(>) Serializer Started" << std::endl;
+                #endif
+
+                #if PRINT_SERIALIZER_PROGRESS == 1
+                std::cout << "  (*) Function Name: " << c->name() << std::endl;
+                #endif
+
+                bool serializerError = false;
+
+                // Context data container
+                SEXP cDataContainer;
+                PROTECT(cDataContainer = Rf_allocVector(VECSXP, 14));
+                Pool::insert(cDataContainer);
+                UNPROTECT(1);
+                contextData cData(cDataContainer);
+                cData.addContext(c->context().toI());
+
+                // Add the metadata collectors to the backend
+                backend.cData = cDataContainer;
+                backend.serializerError = &serializerError;
+
+                // Compile
+                auto fun = backend.getOrCompile(c);
+                Protect p(fun->container());
+                DispatchTable::unpack(body)->insert(fun);
+                if (body == BODY(what)) {
+                    done = fun;
                 }
-            }
-            auto fun = backend.getOrCompile(c);
-            Protect p(fun->container());
-            DispatchTable::unpack(body)->insert(fun);
-            if (body == BODY(what)) {
-                done = fun;
-                if (serializeLL) {
-                    backend.cData = nullptr;
+
+
+                // Complete writing serializer data and rename bitcode files
+                serializeClosure(c->rirSrc()->src, c->name(), serializerError, cData);
+
+
+                #if PRINT_SERIALIZER_PROGRESS == 1
+                if (!serializerError) {
+                    std::cout << "(/) Serializer Success" << std::endl;
+                } else {
+                    std::cout << "(/) Serializer Error" << std::endl;
+                }
+                #endif
+                backend.cData = nullptr;
+            } else {
+                auto fun = backend.getOrCompile(c);
+                Protect p(fun->container());
+                DispatchTable::unpack(body)->insert(fun);
+                if (body == BODY(what)) {
+                    done = fun;
                 }
             }
         };
@@ -686,105 +785,16 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         done->body()->nativeCode();
     };
 
-    bool compilationStatus = true;
-
     cmp.compileClosure(what, name, assumptions, true, compile,
                        [&]() {
                            if (debug.includes(pir::DebugFlag::ShowWarnings)) {
                                std::cerr << "Compilation failed\n";
                            }
-                            compilationStatus = false;
                        },
                        {});
-    if (serializeLL) {
-        auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
-        // hast corresponding to a src must exist for the patch to work
-        if (!DispatchTable::check(BODY(what))) {
-            Rf_error("cannot unpack the dispatch table for serializer");
-        }
-        DispatchTable* vtable = DispatchTable::unpack(BODY(what));
-        size_t hast = getHastAndIndex(vtable->baseline()->body()->src).hast;
-        if (hast == 0) {
-            std::cout << "(/) unavailable hast, cannot serialize" << std::endl;
-        } else if (serializerError) {
-            std::cout << "(/) Serializer Error Occured" << std::endl;
-        } else if (compilationStatus) {
-            std::stringstream fN;
-            fN << prefix << "/" << "m_" << name << "_" << hast << ".meta";
-            std::string fName = fN.str();
-
-            #if PRINT_SERIALIZER_PROGRESS == 1
-            std::cout << "(>) Writing Metadata: " << fName << std::endl;
-            #endif
-
-            // hastMeta hMeta;
-            // std::vector<contextMeta> cMetas;
-
-            serializerData sData(hast, name);
-
-            if (fileExists(fName)) {
-                #if PRINT_SERIALIZER_PROGRESS == 1
-                std::cout << "(*) Metadata already exists for this hast" << std::endl;
-                #endif
-
-                // Load the serialized pool from the .pool file
-                FILE *reader;
-                reader = fopen(fName.c_str(),"r");
-
-                // Initialize the deserializing stream
-                R_inpstream_st inputStream;
-                R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
-
-                SEXP result;
-                PROTECT(result= R_Unserialize(&inputStream));
-
-                sData.updateContainer(result);
-
-                UNPROTECT(1);
-
-                sData.addContextData(cDataContainer, std::to_string(assumptions.toI()));
-                fclose(reader);
-            } else {
-                sData.addContextData(cDataContainer, std::to_string(assumptions.toI()));
-            }
-
-            // sData.print();
-            // cData.print();
-
-            // 2. Write updated metadata
-            R_outpstream_st outputStream;
-            FILE *fptr;
-            fptr = fopen(fName.c_str(),"w");
-            R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
-            R_Serialize(sData.getContainer(), &outputStream);
-            fclose(fptr);
-
-            // rename temp files
-            std::stringstream bcFName;
-            std::stringstream bcOldName;
-            bcFName << prefix << "/" << hast << "_" << cData.getContext() << ".bc";
-            bcOldName << prefix << "/" << "temp.bc";
-            std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
-
-            std::stringstream poolFName;
-            std::stringstream poolOldName;
-            poolFName << prefix << "/" << hast << "_" << cData.getContext() << ".pool";
-            poolOldName << prefix << "/" << "temp.pool";
-            std::rename(poolOldName.str().c_str(), poolFName.str().c_str());
-
-            #if PRINT_SERIALIZER_PROGRESS == 1
-            std::cout << "(/) Serializer End" << std::endl;
-            #endif
-
-        } else {
-            std::cout << "(/) compilation failed, cannot serialize" << std::endl;
-        }
-    }
-
-    logger.title("Compiling " + name + " done");
 
     delete m;
-    UNPROTECT(2);
+    UNPROTECT(1);
     return what;
 }
 

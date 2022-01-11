@@ -24,6 +24,8 @@
 #include "llvm/Support/raw_os_ostream.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm/Passes/PassBuilder.h"
 
 #include <memory>
 
@@ -331,8 +333,9 @@ void PirJitLLVM::finalizeAndFixup() {
     }
 }
 
-void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, contextData* cData) {
-    auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
+auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : ".";
+
+void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIndices, SEXP cData, std::vector<std::string> & relevantNames) {
 
     std::vector<int64_t> cpEntries;
     std::vector<int64_t> spEntries;
@@ -343,19 +346,69 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
     size_t srcPoolOffset = 0;
 
     #if PRINT_SERIALIZER_PROGRESS == 1
-    std::cout << "(>) Module Serialization Started" << std::endl;
+    std::cout << "  (>) Module Serialization Started" << std::endl;
     #endif
 
     // Releasing the module as soon as globals are patched and the bc is serialized
     {
         // We clone the module because we dont want to update constant pool references in the original module
-        auto module = llvm::CloneModule(*M);
+        std::unique_ptr<llvm::Module> module = llvm::CloneModule(*M.get());
 
         #if PRINT_MODULE_BEFORE_POOL_PATCHES == 1
         llvm::raw_os_ostream dbg_stream(std::cout);
         dbg_stream << *m;
         dbg_stream << "\n";
         #endif
+
+        std::vector<llvm::Function *> junkFunctionList;
+
+        // Remove junk functions, codn and clsn patches should not be needed on the deserializer ideally
+        for (auto & fun: module->getFunctionList()) {
+            if (fun.getName().str().substr(0,3) == "rsh") {
+                junkFunctionList.push_back(&fun);
+            }
+            if (fun.getName().str().substr(0,2) == "f_") {
+                if (std::find(relevantNames.begin(), relevantNames.end(), fun.getName().str()) == relevantNames.end()) {
+                    junkFunctionList.push_back(&fun);
+                }
+            }
+        }
+
+        for (auto & fun : junkFunctionList) {
+            fun->eraseFromParent();
+        }
+
+        // llvm::PassBuilder passBuilder;
+        // llvm::LoopAnalysisManager loopAnalysisManager(false); // true is just to output debug info
+        // llvm::FunctionAnalysisManager functionAnalysisManager(false);
+        // llvm::CGSCCAnalysisManager cGSCCAnalysisManager(false);
+        // llvm::ModuleAnalysisManager moduleAnalysisManager(false);
+
+        // passBuilder.registerModuleAnalyses(moduleAnalysisManager);
+        // passBuilder.registerCGSCCAnalyses(cGSCCAnalysisManager);
+        // passBuilder.registerFunctionAnalyses(functionAnalysisManager);
+        // passBuilder.registerLoopAnalyses(loopAnalysisManager);
+        // // This is the important line:
+        // passBuilder.crossRegisterProxies(
+        //     loopAnalysisManager, functionAnalysisManager, cGSCCAnalysisManager, moduleAnalysisManager);
+
+        // llvm::ModulePassManager modulePassManager =
+        //     passBuilder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O1);
+        // modulePassManager.run(*, moduleAnalysisManager);
+
+        if (junkFunctionList.size() > 0) {
+            #if PRINT_SERIALIZER_PROGRESS == 1
+            std::cout << "    (*) junk functions cleared" << std::endl;
+            #endif
+        }
+
+        // for (auto & global : module->getGlobalList()) {
+        //     auto pre = global.getName().str().substr(0,6) == "copool";
+        //     auto srp = global.getName().str().substr(0,6) == "srpool";
+        //     if (pre || srp) {
+        //         global.users
+        //     }
+        // }
 
         // Patch all CP and SRC pool entries
         int patchValue = 0;
@@ -477,8 +530,6 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
             }
         }
 
-
-
         // SERIALIZE THE LLVM MODULE
         std::ofstream bitcodeFile;
 
@@ -490,14 +541,14 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
         WriteBitcodeToFile(*module,ooo);
 
         #if PRINT_SERIALIZER_PROGRESS == 1
-        std::cout << "(*) Module bitcode serialized: " << bcPath.str() << std::endl;
+        std::cout << "    (*) Module bitcode serialized: " << bcPath.str() << std::endl;
         #endif
 
         #if PRINT_MODULE_AFTER_POOL_PATCHES == 1
         llvm::raw_os_ostream debugOp(std::cout);
         debugOp << *module;
         #endif
-
+        module.reset();
     }
 
     // Creating a vector containing all pool references
@@ -505,12 +556,14 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
     PROTECT(serializationObjects = Rf_allocVector(VECSXP,
         cpEntries.size() + spEntries.size() + srcIndices.size()));
 
-    cData->addCPoolEntriesSize(cpEntries.size());
-    cData->addSrcPoolEntriesSize(spEntries.size());
-    cData->addPromiseSrcPoolEntriesSize(srcIndices.size());
+    contextData conData(cData);
+
+    conData.addCPoolEntriesSize(cpEntries.size());
+    conData.addSrcPoolEntriesSize(spEntries.size());
+    conData.addPromiseSrcPoolEntriesSize(srcIndices.size());
 
     #if PRINT_SERIALIZER_PROGRESS == 1
-    std::cout << "(*) Pool data stored" << std::endl;
+    std::cout << "    (*) Pool data stored" << std::endl;
     #endif
 
     int i = 0;
@@ -519,7 +572,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
     std::unordered_map<SEXP, SEXP> restoreMap;
 
     #if PRINT_CP_ENTRIES == 1
-    std::cout << "(*) Constant Pool Entries: [ ";
+    std::cout << "    (*) Constant Pool Entries: [ ";
     #endif
 
     for (auto & ele : cpEntries) {
@@ -548,7 +601,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
 
     #if PRINT_SRC_ENTRIES == 1
     int j = 0;
-    std::cout << "(*) Source Pool Entries: [ ";
+    std::cout << "    (*) Source Pool Entries: [ ";
     #endif
 
     for (auto & ele : spEntries) {
@@ -566,7 +619,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
 
 
     #if PRINT_PROM_ENTRIES == 1
-    std::cout << "(*) Promise Src Entries: [ ";
+    std::cout << "    (*) Promise Src Entries: [ ";
     #endif
 
     for (auto & ele : srcIndices) {
@@ -583,7 +636,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
 
     // SERIALIZE THE CONSTANT POOL
     #if PRINT_SERIALIZER_PROGRESS == 1
-    std::cout << "(*) Starting Constant Pool Serialization" << std::endl;
+    std::cout << "    (*) Starting Constant Pool Serialization" << std::endl;
     #endif
     R_outpstream_st outputStream;
     std::stringstream bcPath;
@@ -595,11 +648,11 @@ void PirJitLLVM::serializeModule(rir::Code * code, std::vector<unsigned> & srcIn
     fclose(fptr);
 
     #if PRINT_SERIALIZER_PROGRESS == 1
-    std::cout << "(*) Module pool serialized: " << bcPath.str() << std::endl;
+    std::cout << "    (*) Module pool serialized: " << bcPath.str() << std::endl;
     #endif
 
     #if PRINT_SERIALIZER_PROGRESS == 1
-    std::cout << "(/) Module Serialized Successfully" << std::endl;
+    std::cout << "  (/) Module Serialized Successfully" << std::endl;
     #endif
 
     UNPROTECT(1);
@@ -890,12 +943,15 @@ void PirJitLLVM::initializeLLVM() {
 
                 auto gcode = n.substr(0, 4) == "cod_"; // callable pointer to builtin
 
-                auto spef = n.substr(0, 5) == "spef_"; // PP_FUNCTION
-                auto spe1 = n.substr(0, 5) == "spe1_"; // PP_ASSIGN
+                auto spe1 = n.substr(0, 5) == "spe1_"; // SPECIALSXP patch
 
-                // auto clso = n.substr(0, 5) == "clso_"; // closure objs for staticCalls
                 auto code = n.substr(0, 5) == "code_"; // code objs for DeoptReason
+                auto codn = n.substr(0, 5) == "codn_"; // should be ideally ignored, but we can skip patching in the deserializer
                 auto clso = n.substr(0, 5) == "clso_"; // closure objs for staticCalls
+                auto clsn = n.substr(0, 5) == "clsn_"; // should be ideally ignored, but we can skip patching in the deserializer
+
+                auto optd = n.substr(0, 5) == "optd_"; // cp pool index containing pointer to a suitable function that can dispatch to the context
+                auto optn = n.substr(0, 5) == "optn_"; // should be ideally ignored, but we can skip patching in the deserializer
 
                 if (ept || efn) {
                     auto addrStr = n.substr(4);
@@ -1017,19 +1073,6 @@ void PirJitLLVM::initializeLLVM() {
                             reinterpret_cast<uintptr_t>(getBuiltin(ptr))),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
-                } else if (spef) {
-                    auto firstDel = n.find('_');
-                    auto secondDel = n.find('_', firstDel + 1);
-
-                    auto index = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
-                    auto sym = Rf_install(R_FunTab[index].name);
-                    auto fun = Rf_findFun(sym,R_GlobalEnv);
-
-                    NewSymbols[Name] = JITEvaluatedSymbol(
-                        static_cast<JITTargetAddress>(
-                            reinterpret_cast<uintptr_t>(fun)),
-                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
-
                 } else if (spe1) {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
@@ -1042,7 +1085,36 @@ void PirJitLLVM::initializeLLVM() {
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(spe1)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
-                } else if (code) {
+                } else if (optd || optn) {
+
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto hast = n.substr(firstDel + 1, secondDel - firstDel - 1);
+                    unsigned long con = std::stoul(n.substr(secondDel + 1));
+
+                    SEXP map = Pool::get(2);
+                    DispatchTable * dt = DispatchTable::unpack(UMap::get(map, Rf_install(hast.c_str())));
+                    SEXP nativeTargetContainer = dt->dispatch(Context(con))->container();
+
+                    auto at = Pool::insert(nativeTargetContainer);
+
+                    SEXP store;
+                    PROTECT(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx)));
+                    BC::PoolIdx * tmp = (BC::PoolIdx *) DATAPTR(store);
+                    *tmp = at;
+                    Pool::insert(store);
+                    UNPROTECT(1);
+
+
+                    std::cout << n << "(PATC): " << nativeTargetContainer << ", " << at << std::endl;
+                    NativeBuiltins::targetCaches.push_back(at);
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(tmp)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (code || codn) {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 
@@ -1071,7 +1143,7 @@ void PirJitLLVM::initializeLLVM() {
                             reinterpret_cast<uintptr_t>(addr)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
-                } else if (clso) {
+                } else if (clso || clsn) {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 

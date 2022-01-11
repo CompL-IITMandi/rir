@@ -98,4 +98,18 @@ execute(100)
 execute(100)
 execute(100)
 execute(100)
+
+result = c()
+
+for (i in 1:5000) {
+  startTime =  Sys.time()
+  execute(100)
+  endTime <- Sys.time()
+  runTime = endTime - startTime
+  result = append(result, runTime)
+}
+
+print(paste("avg peak: ", mean(result)))
+
+
 f.serializerCleanup()

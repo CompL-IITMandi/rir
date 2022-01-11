@@ -29,7 +29,7 @@
 
 
 // Toggle Lowering Features
-#define USE_BINDING_CACHE_WHILE_LOWERING 0
+#define USE_BINDING_CACHE_WHILE_LOWERING 1
 
 
 // Rename globalConstants - Adds a prefix to the CP lookup indices, so we can look them up during serialization
@@ -111,6 +111,8 @@
 
 // Try patching DeoptMetadata
 #define TRY_PATCH_STATIC_CALL3 1
+
+#define TRY_PATCH_OPT_DISPATCH 1
 
 
 

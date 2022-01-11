@@ -155,6 +155,15 @@ llvm::Value* LowerFunctionLLVM::globalConst(llvm::Constant* init,
     #endif
 }
 
+llvm::Value* LowerFunctionLLVM::namedGlobalConst(std::string name, llvm::Constant* init,
+                                            llvm::Type* ty) {
+    if (!ty)
+        ty = init->getType();
+
+    return new llvm::GlobalVariable(getModule(), ty, true,
+                                    llvm::GlobalValue::PrivateLinkage, init, name);
+}
+
 llvm::FunctionCallee
 LowerFunctionLLVM::getBuiltin(const rir::pir::NativeBuiltin& b) {
     return getModule().getOrInsertFunction(b.name, b.llvmSignature);
@@ -442,22 +451,22 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
 
     if (TYPEOF(co) == SPECIALSXP) {
         #if PATCH_SPECIALSXP == 1
-        if (R_FunTab[co->u.primsxp.offset].gram.kind == PP_FUNCALL) {
-            std::stringstream ss;
-            ss << "spef_";
-            ss << co->u.primsxp.offset;
-            return convertToExternalSymbol(ss.str());
-        } else if (R_FunTab[co->u.primsxp.offset].gram.kind == PP_ASSIGN) {
+        auto sym = Rf_install(R_FunTab[co->u.primsxp.offset].name);
+        auto spe1 = Rf_findFun(sym,R_GlobalEnv);
+
+        if (spe1 == co) {
             std::stringstream ss;
             ss << "spe1_";
             ss << co->u.primsxp.offset;
             return convertToExternalSymbol(ss.str());
         } else {
-            #if DEBUG_ERR_MSG == 1
-            std::cerr << "PATCH_SPECIALSXP: non-function type, offset: " << co->u.primsxp.offset << ", kind: " << R_FunTab[co->u.primsxp.offset].gram.kind << std::endl;
-            #endif
+            std::cout << "  (E) PATCH_SPECIALSXP: non-function type, offset: " << co->u.primsxp.offset << ", kind: " << R_FunTab[co->u.primsxp.offset].gram.kind << std::endl;
+            if (serializerError == nullptr) {
+                std::cout << "  (E) non serialization call!, error status not set" << std::endl;
+            } else {
+                *serializerError = true;
+            }
         }
-
         #else
         return convertToPointer(co, true);
         #endif
@@ -467,6 +476,8 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     auto cpIndex = Pool::insert(co);
     auto iVal = globalConst(c(cpIndex), t::i32);
     auto iLoad = builder.CreateLoad(iVal);
+
+    std::cout << "cpIndex: " << cpIndex << std::endl;
 
     llvm::Value* pos = builder.CreateLoad(constantpool);
     pos = builder.CreateBitCast(dataPtr(pos, false),
@@ -807,14 +818,14 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         // If the hast is blacklisted, patch will not work
         SEXP blMap = Pool::get(4);
         if ((hast == 0) || (blMap != R_NilValue && UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap))) {
-            std::cout << "(E) TRY_PATCH_DEOPTREASON failed" << std::endl;
+            std::cout << "  (E) TRY_PATCH_DEOPTREASON failed" << std::endl;
             if (hast == 0) {
-                std::cout << "(E) hast == 0" << std::endl;
+                std::cout << "  (E) hast == 0" << std::endl;
             } else {
-                std::cout << "(E) Trying to serialize to a blacklisted hast" << std::endl;
+                std::cout << "  (E) Trying to serialize to a blacklisted hast" << std::endl;
             }
             if (serializerError == nullptr) {
-                std::cout << "(E) non serialization call!, error status not set" << std::endl;
+                std::cout << "  (E) non serialization call!, error status not set" << std::endl;
             } else {
                 *serializerError = true;
             }
@@ -841,17 +852,18 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             auto dr = (DeoptReasonWrapper*)val;
             auto realOffset = dr->reason.origin.pc() - dr->reason.origin.srcCode()->code();
 
+            std::stringstream ss;
+
             if (reqMap) {
+                ss << "code_" << hast << "_" << data.index;
                 reqMap->insert(hast);
             } else {
+                ss << "codn_" << hast << "_" << data.index;
                 if (serializerError != nullptr) {
                     *serializerError = true;
-                    std::cout << "(E) [DeoptReason patch] reqMap not available (ERROR)" << std::endl;
+                    std::cout << "  (E) [DeoptReason patch] reqMap not available (ERROR)" << std::endl;
                 }
             }
-            std::stringstream ss;
-            ss << "code_" << hast << "_" << data.index;
-
 
             srcAddr = (Constant *) convertToExternalSymbol(ss.str(), t::i8);
 
@@ -2830,8 +2842,11 @@ void LowerFunctionLLVM::compile() {
         };
 
         #if PATCH_CONSTANT_POOL_PTR == 1
-        auto speSym = convertToExternalSymbol("spe_constantPool", t::i64);
-        constantpool = builder.CreateIntToPtr(speSym, t::SEXP_ptr);
+        auto speSym = namedGlobalConst("named_constantPool", c(globalContext()), t::i64);
+        auto iLoad = builder.CreateLoad(speSym);
+        // auto speSym = convertToExternalSymbol("spe_constantPool", t::i64);
+        constantpool = builder.CreateIntToPtr(iLoad, t::SEXP_ptr);
+
         #else
         constantpool = builder.CreateIntToPtr(c(globalContext()), t::SEXP_ptr);
         #endif
@@ -4218,7 +4233,7 @@ void LowerFunctionLLVM::compile() {
                 auto calli = StaticCall::Cast(i);
                 calli->eachArg([](Value* v) { assert(!ExpandDots::Cast(v)); });
                 auto target = calli->tryDispatch();
-                // auto bestTarget = calli->tryOptimisticDispatch();
+                auto bestTarget = calli->tryOptimisticDispatch();
                 std::vector<Value*> args;
                 calli->eachCallArg([&](Value* v) { args.push_back(v); });
                 Context asmpt = calli->inferAvailableAssumptions();
@@ -4256,44 +4271,143 @@ void LowerFunctionLLVM::compile() {
                     break;
                 }
 
-                // if (target == bestTarget) {
-                //     auto callee = target->owner()->rirClosure();
-                //     auto dt = DispatchTable::check(BODY(callee));
-                //     rir::Function* nativeTarget = nullptr;
-                //     for (size_t i = 0; i < dt->size(); i++) {
-                //         auto entry = dt->get(i);
-                //         if (entry->context() == target->context() &&
-                //             entry->signature().numArguments >= args.size()) {
-                //             nativeTarget = entry;
-                //         }
-                //     }
-                //     if (nativeTarget) {
-                //         std::cout << "target == bestTarget" << std::endl;
-                //         assert(
-                //             asmpt.includes(Assumption::StaticallyArgmatched));
-                //         auto idx = Pool::makeSpace();
-                //         NativeBuiltins::targetCaches.push_back(idx);
-                //         Pool::patch(idx, nativeTarget->container());
-                //         assert(asmpt.smaller(nativeTarget->context()));
-                //         auto res = withCallFrame(args, [&]() {
-                //             return call(
-                //                 NativeBuiltins::get(
-                //                     NativeBuiltins::Id::nativeCallTrampoline),
-                //                 {
-                //                     c(callId),
-                //                     paramCode(),
-                //                     constant(callee, t::SEXP),
-                //                     c(idx),
-                //                     c(calli->srcIdx),
-                //                     loadSxp(calli->env()),
-                //                     c(args.size()),
-                //                     c(asmpt.toI()),
-                //                 });
-                //         });
-                //         setVal(i, res);
-                //         break;
-                //     }
-                // }
+                if (target == bestTarget) {
+                    auto callee = target->owner()->rirClosure();
+                    auto dt = DispatchTable::check(BODY(callee));
+                    rir::Function* nativeTarget = nullptr;
+                    for (size_t i = 0; i < dt->size(); i++) {
+                        auto entry = dt->get(i);
+                        if (entry->context() == target->context() &&
+                            entry->signature().numArguments >= args.size()) {
+                            nativeTarget = entry;
+                        }
+                    }
+
+                    if (nativeTarget) {
+                        #if TRY_PATCH_OPT_DISPATCH == 1
+                        size_t hast = getHastAndIndex(dt->baseline()->body()->src).hast;
+                        // If the hast is blacklisted, patch will not work
+                        SEXP blMap = Pool::get(4);
+                        if ((hast == 0) || (blMap != R_NilValue && UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap))) {
+                            std::cout << "  (E) TRY_PATCH_OPT_DISPATCH failed" << std::endl;
+                            if (hast == 0) {
+                                std::cout << "  (E) hast == 0" << std::endl;
+                            } else {
+                                std::cout << "  (E) Trying to serialize to a blacklisted hast" << std::endl;
+                            }
+
+                            if (serializerError == nullptr) {
+                                std::cout << "  (E) non serialization call!, error status not set" << std::endl;
+                            } else {
+                                *serializerError = true;
+                            }
+                            assert(
+                            asmpt.includes(Assumption::StaticallyArgmatched));
+                            auto idx = Pool::makeSpace();
+                            NativeBuiltins::targetCaches.push_back(idx);
+                            Pool::patch(idx, nativeTarget->container());
+                            assert(asmpt.smaller(nativeTarget->context()));
+                            auto res = withCallFrame(args, [&]() {
+                                return call(
+                                    NativeBuiltins::get(
+                                        NativeBuiltins::Id::nativeCallTrampoline),
+                                    {
+                                        c(callId),
+                                        paramCode(),
+                                        constant(callee, t::SEXP),
+                                        c(idx),
+                                        c(calli->srcIdx),
+                                        loadSxp(calli->env()),
+                                        c(args.size()),
+                                        c(asmpt.toI()),
+                                    });
+                            });
+                            setVal(i, res);
+                            break;
+                        } else {
+                            static int track = 0;
+                            auto iValAST = globalConst(c(calli->srcIdx), t::i32);
+                            auto iLoadAST = builder.CreateLoad(iValAST);
+                            std::stringstream ss1;
+                            std::stringstream ss2;
+
+                            if (reqMap) {
+                                ss1 << "clso_" << track++ << "_" << hast;
+                                ss2 << "optd_" << hast << "_" << nativeTarget->context().toI();
+                                reqMap->insert(hast);
+                            } else {
+                                ss1 << "clsn_" << track++ << "_" << hast;
+                                ss2 << "optn_" << hast << "_" << nativeTarget->context().toI();
+                                if (serializerError != nullptr) {
+                                    *serializerError = true;
+                                    std::cout << "  (E) reqMap not available (ERROR)" << std::endl;
+                                }
+                            }
+
+                            std::cout << ss2.str() << "(ORIG): " << nativeTarget->container() << std::endl;
+
+                            SEXP debugMap = Pool::get(5);
+                            if (debugMap == R_NilValue) {
+                                UMap::createMapInCp(5);
+                                debugMap = Pool::get(5);
+                            }
+
+                            UMap::insert(debugMap, Rf_install(ss1.str().c_str()), Rf_install(std::to_string((uintptr_t) callee).c_str()));
+
+                            std::cout << "nativeTarget: " << ss1.str() << ", " << ss2.str() << std::endl;
+                            assert(
+                                asmpt.includes(Assumption::StaticallyArgmatched));
+                            // auto idx = Pool::makeSpace();
+                            // NativeBuiltins::targetCaches.push_back(idx);
+                            // Pool::patch(idx, nativeTarget->container());
+                            assert(asmpt.smaller(nativeTarget->context()));
+                            auto res = withCallFrame(args, [&]() {
+                                return call(
+                                    NativeBuiltins::get(
+                                        NativeBuiltins::Id::nativeCallTrampoline),
+                                    {
+                                        c(callId),
+                                        paramCode(),
+                                        convertToExternalSymbol(ss1.str()),
+                                        builder.CreateLoad(convertToExternalSymbol(ss2.str(), t::Int)),
+                                        iLoadAST,
+                                        loadSxp(calli->env()),
+                                        c(args.size()),
+                                        c(asmpt.toI()),
+                                    });
+                            });
+                            setVal(i, res);
+                            break;
+                        }
+                        #else
+                        assert(
+                            asmpt.includes(Assumption::StaticallyArgmatched));
+                        auto idx = Pool::makeSpace();
+                        NativeBuiltins::targetCaches.push_back(idx);
+                        Pool::patch(idx, nativeTarget->container());
+                        assert(asmpt.smaller(nativeTarget->context()));
+                        auto res = withCallFrame(args, [&]() {
+                            return call(
+                                NativeBuiltins::get(
+                                    NativeBuiltins::Id::nativeCallTrampoline),
+                                {
+                                    c(callId),
+                                    paramCode(),
+                                    constant(callee, t::SEXP),
+                                    c(idx),
+                                    c(calli->srcIdx),
+                                    loadSxp(calli->env()),
+                                    c(args.size()),
+                                    c(asmpt.toI()),
+                                });
+                        });
+                        setVal(i, res);
+                        break;
+                        #endif
+                    }
+
+
+                }
 
                 // // Insert the closure into the cPool
                 // auto cpIndex = Pool::insert(calli->cls()->rirClosure());
@@ -4310,15 +4424,15 @@ void LowerFunctionLLVM::compile() {
                 // If the hast is blacklisted, patch will not work
                 SEXP blMap = Pool::get(4);
                 if ((hast == 0) || (blMap != R_NilValue && UMap::symbolExistsInMap(Rf_install(std::to_string(hast).c_str()), blMap))) {
-                    std::cout << "(E) TRY_PATCH_STATIC_CALL3 failed" << std::endl;
+                    std::cout << "  (E) TRY_PATCH_STATIC_CALL3 failed" << std::endl;
                     if (hast == 0) {
-                        std::cout << "(E) hast == 0" << std::endl;
+                        std::cout << "  (E) hast == 0" << std::endl;
                     } else {
-                        std::cout << "(E) Trying to serialize to a blacklisted hast" << std::endl;
+                        std::cout << "  (E) Trying to serialize to a blacklisted hast" << std::endl;
                     }
 
                     if (serializerError == nullptr) {
-                        std::cout << "(E) non serialization call!, error status not set" << std::endl;
+                        std::cout << "  (E) non serialization call!, error status not set" << std::endl;
                     } else {
                         *serializerError = true;
                     }
@@ -4344,7 +4458,17 @@ void LowerFunctionLLVM::compile() {
                     static int track = 0;
 
                     std::stringstream ss;
-                    ss << "clso_" << track++ << "_" << hast;
+
+                    if (reqMap) {
+                        ss << "clso_" << track++ << "_" << hast;
+                        reqMap->insert(hast);
+                    } else {
+                        ss << "clsn_" << track++ << "_" << hast;
+                        if (serializerError != nullptr) {
+                            *serializerError = true;
+                            std::cout << "  (E) reqMap not available (ERROR)" << std::endl;
+                        }
+                    }
 
                     SEXP debugMap = Pool::get(5);
                     if (debugMap == R_NilValue) {
@@ -4354,14 +4478,6 @@ void LowerFunctionLLVM::compile() {
 
                     UMap::insert(debugMap, Rf_install(ss.str().c_str()), Rf_install(std::to_string((uintptr_t) calli->cls()->rirClosure()).c_str()));
 
-                    if (reqMap) {
-                        reqMap->insert(hast);
-                    } else {
-                        if (serializerError != nullptr) {
-                            *serializerError = true;
-                            std::cout << "(E) reqMap not available (ERROR)" << std::endl;
-                        }
-                    }
                     assert(asmpt.includes(Assumption::StaticallyArgmatched));
                     setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                             return call(
@@ -4482,9 +4598,9 @@ void LowerFunctionLLVM::compile() {
                 }
 
                 if (patchPossible == false) {
-                    std::cout << "(E) TRY_PATCH_DEOPTMETADATA failed" << std::endl;
+                    std::cout << "  (E) TRY_PATCH_DEOPTMETADATA failed" << std::endl;
                     if (serializerError == nullptr) {
-                        std::cout << "(E) non serialization call!, error status not set" << std::endl;
+                        std::cout << "  (E) non serialization call!, error status not set" << std::endl;
                     } else {
                         *serializerError = true;
                     }
@@ -4556,21 +4672,16 @@ void LowerFunctionLLVM::compile() {
                             size_t hast = srcData.hast;
                             int index = srcData.index;
 
+                            std::cout << "DeoptMetadata: " << hast << std::endl;
+
                             if (reqMap) {
                                 reqMap->insert(hast);
                             } else {
                                 if (serializerError != nullptr) {
                                     *serializerError = true;
-                                    std::cout << "(E) [DeoptMetadata patch] reqMap not available (ERROR)" << std::endl;
+                                    std::cout << "  (E) [DeoptMetadata patch] reqMap not available (ERROR)" << std::endl;
                                 }
                             }
-
-                            // std::cout << "DEOPTMETADATA orig: {";
-                            // std::cout << "PC: " << (uintptr_t)fs->pc << ", ";
-                            // std::cout << "CODE: " << (uintptr_t)fs->code->code() << ", ";
-                            // std::cout << "SRC: " << (uintptr_t)fs->code;
-                            // std::cout << " }" << std::endl;
-
 
                             m->frames[frameNr--] = {offset, hast, index, fs->stackSize,
                                                     fs->inPromise};
