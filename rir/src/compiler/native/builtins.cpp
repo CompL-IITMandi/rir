@@ -2262,35 +2262,35 @@ bool clsEqImpl(SEXP lhs, SEXP rhs) {
             return true;
         }
     }
-    // else if (TYPEOF(lhs) == LANGSXP && TYPEOF(rhs) == LANGSXP) {
-    //     size_t lhsLangHast = 0;
-    //     hash_ast(lhs, lhsLangHast);
-    //     size_t rhsLangHast = 0;
-    //     hash_ast(rhs, rhsLangHast);
-    //     return lhsLangHast == rhsLangHast;
-    // } else if (TYPEOF(lhs) == EXTERNALSXP && TYPEOF(rhs) == LANGSXP) {
-    //     if (DispatchTable::check(lhs)) {
-    //         size_t h1 = 0;
-    //         size_t h2 = 0;
-    //         auto dt = DispatchTable::unpack(lhs);
-    //         auto src = dt->baseline()->body()->src;
-    //         auto realBody = src_pool_at(globalContext(), src);
-    //         hash_ast(realBody, h1);
-    //         hash_ast(rhs, h2);
-    //         return h1 == h2;
-    //     }
-    // } else if (TYPEOF(rhs) == EXTERNALSXP && TYPEOF(lhs) == LANGSXP) {
-    //     if (DispatchTable::check(rhs)) {
-    //         size_t h1 = 0;
-    //         size_t h2 = 0;
-    //         auto dt = DispatchTable::unpack(rhs);
-    //         auto src = dt->baseline()->body()->src;
-    //         auto realBody = src_pool_at(globalContext(), src);
-    //         hash_ast(realBody, h1);
-    //         hash_ast(lhs, h2);
-    //         return h1 == h2;
-    //     }
-    // }
+    else if (TYPEOF(lhs) == LANGSXP && TYPEOF(rhs) == LANGSXP) {
+        size_t lhsLangHast = 0;
+        hash_ast(lhs, lhsLangHast);
+        size_t rhsLangHast = 0;
+        hash_ast(rhs, rhsLangHast);
+        return lhsLangHast == rhsLangHast;
+    } else if (TYPEOF(lhs) == EXTERNALSXP && TYPEOF(rhs) == LANGSXP) {
+        if (DispatchTable::check(lhs)) {
+            size_t h1 = 0;
+            size_t h2 = 0;
+            auto dt = DispatchTable::unpack(lhs);
+            auto src = dt->baseline()->body()->src;
+            auto realBody = src_pool_at(globalContext(), src);
+            hash_ast(realBody, h1);
+            hash_ast(rhs, h2);
+            return h1 == h2;
+        }
+    } else if (TYPEOF(rhs) == EXTERNALSXP && TYPEOF(lhs) == LANGSXP) {
+        if (DispatchTable::check(rhs)) {
+            size_t h1 = 0;
+            size_t h2 = 0;
+            auto dt = DispatchTable::unpack(rhs);
+            auto src = dt->baseline()->body()->src;
+            auto realBody = src_pool_at(globalContext(), src);
+            hash_ast(realBody, h1);
+            hash_ast(lhs, h2);
+            return h1 == h2;
+        }
+    }
     return false;
 }
 
