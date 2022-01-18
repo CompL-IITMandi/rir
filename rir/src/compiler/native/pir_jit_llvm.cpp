@@ -1125,18 +1125,18 @@ void PirJitLLVM::initializeLLVM() {
                     auto addr = vtable->baseline()->body();
                     addr = addr->getSrcAtOffset(index);
 
-                    SEXP debugMap = Pool::get(5);
-                    SEXP oldVal = UMap::get(debugMap, Rf_install(n.c_str()));
-                    SEXP newVal = Rf_install(std::to_string((uintptr_t) addr).c_str());
+                    // SEXP debugMap = Pool::get(5);
+                    // SEXP oldVal = UMap::get(debugMap, Rf_install(n.c_str()));
+                    // SEXP newVal = Rf_install(std::to_string((uintptr_t) addr).c_str());
 
                     // std::cout << "DEOPTREASON patc: {";
                     // std::cout << "SYM: " << n << ", ";
                     // std::cout << "CODE: " << (uintptr_t)addr;
                     // std::cout << " }" << std::endl;
 
-                    if (oldVal != newVal) {
-                        std::cout << "(E) invalid patch: " << n << ", expected: " << CHAR(PRINTNAME(oldVal)) << ", got: " << CHAR(PRINTNAME(newVal)) << std::endl;
-                    }
+                    // if (oldVal != newVal) {
+                    //     std::cout << "(E) invalid patch: " << n << ", expected: " << CHAR(PRINTNAME(oldVal)) << ", got: " << CHAR(PRINTNAME(newVal)) << std::endl;
+                    // }
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(addr)),
@@ -1150,13 +1150,13 @@ void PirJitLLVM::initializeLLVM() {
                     SEXP map = Pool::get(3);
                     auto addr = UMap::get(map, Rf_install(hast.c_str()));
 
-                    SEXP debugMap = Pool::get(5);
-                    SEXP oldVal = UMap::get(debugMap, Rf_install(n.c_str()));
-                    SEXP newVal = Rf_install(std::to_string((uintptr_t) addr).c_str());
+                    // SEXP debugMap = Pool::get(5);
+                    // SEXP oldVal = UMap::get(debugMap, Rf_install(n.c_str()));
+                    // SEXP newVal = Rf_install(std::to_string((uintptr_t) addr).c_str());
 
-                    if (oldVal != newVal) {
-                        std::cout << "(E) invalid patch: " << n << ", expected: " << CHAR(PRINTNAME(oldVal)) << ", got: " << CHAR(PRINTNAME(newVal)) << std::endl;
-                    }
+                    // if (oldVal != newVal) {
+                    //     std::cout << "(E) invalid patch: " << n << ", expected: " << CHAR(PRINTNAME(oldVal)) << ", got: " << CHAR(PRINTNAME(newVal)) << std::endl;
+                    // }
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(

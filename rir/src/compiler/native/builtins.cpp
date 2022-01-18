@@ -838,13 +838,13 @@ static SEXP deoptSentinelContainer = []() {
 void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                DeoptReason* deoptReason, SEXP deoptTrigger) {
 
-    std::cout << "DEOPTREASON(" << (uintptr_t)deoptReason << ") patc: {";
-    std::cout << "REASON: " << deoptReason->reason << ", ";
-    std::cout << "OFFSET: " << (uintptr_t)deoptReason->origin.offset() << ", ";
-    std::cout << "PC: " << (uintptr_t)deoptReason->pc() << ", ";
-    std::cout << "CODE: " << (uintptr_t)deoptReason->srcCode()->code() << ", ";
-    std::cout << "SRC: " << (uintptr_t)deoptReason->srcCode();
-    std::cout << " }" << std::endl;
+    // std::cout << "DEOPTREASON(" << (uintptr_t)deoptReason << ") patc: {";
+    // std::cout << "REASON: " << deoptReason->reason << ", ";
+    // std::cout << "OFFSET: " << (uintptr_t)deoptReason->origin.offset() << ", ";
+    // std::cout << "PC: " << (uintptr_t)deoptReason->pc() << ", ";
+    // std::cout << "CODE: " << (uintptr_t)deoptReason->srcCode()->code() << ", ";
+    // std::cout << "SRC: " << (uintptr_t)deoptReason->srcCode();
+    // std::cout << " }" << std::endl;
 
     SEXP map = Pool::get(2);
     for (size_t i = 0; i < m->numFrames; i++) {
@@ -856,11 +856,11 @@ void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
             m->frames[i].code = code;
             m->frames[i].pc = code->code() + m->frames[i].offset;
 
-            std::cout << "DEOPTMETADATA patc: {";
-                            std::cout << "PC: " << (uintptr_t)m->frames[i].pc << ", ";
-                            std::cout << "CODE: " << (uintptr_t)code->code() << ", ";
-                            std::cout << "SRC: " << (uintptr_t)code;
-                            std::cout << " }" << std::endl;
+            // std::cout << "DEOPTMETADATA patc: {";
+            //                 std::cout << "PC: " << (uintptr_t)m->frames[i].pc << ", ";
+            //                 std::cout << "CODE: " << (uintptr_t)code->code() << ", ";
+            //                 std::cout << "SRC: " << (uintptr_t)code;
+            //                 std::cout << " }" << std::endl;
         }
     }
     recordDeoptReason(deoptTrigger, *deoptReason);
@@ -2225,9 +2225,6 @@ bool clsEqImpl(SEXP lhs, SEXP rhs) {
 
         size_t lhsBodyHast = 0;
         if (TYPEOF(BODY(lhs)) == EXTERNALSXP) {
-            if (!DispatchTable::check(BODY(lhs))) {
-                std::cout << "ERROR AT: 3" << std::endl;
-            }
             auto dt = DispatchTable::unpack(BODY(lhs));
             auto src = dt->baseline()->body()->src;
             auto realBody = src_pool_at(globalContext(), src);
@@ -2241,34 +2238,22 @@ bool clsEqImpl(SEXP lhs, SEXP rhs) {
         }
 
         size_t rhsBodyHast = 0;
-        if (TYPEOF(BODY(lhs)) == EXTERNALSXP) {
-            if (!DispatchTable::check(BODY(lhs))) {
-                std::cout << "ERROR AT: 4" << std::endl;
-            }
-            auto dt = DispatchTable::unpack(BODY(lhs));
+        if (TYPEOF(BODY(rhs)) == EXTERNALSXP) {
+            auto dt = DispatchTable::unpack(BODY(rhs));
             auto src = dt->baseline()->body()->src;
             auto realBody = src_pool_at(globalContext(), src);
             hash_ast(realBody, rhsBodyHast);
         }
-        else if (TYPEOF(BODY(lhs)) == BCODESXP) {
-            auto realBody = VECTOR_ELT(CDR(BODY(lhs)), 0);
+        else if (TYPEOF(BODY(rhs)) == BCODESXP) {
+            auto realBody = VECTOR_ELT(CDR(BODY(rhs)), 0);
             hash_ast(realBody, rhsBodyHast);
         } else {
-            hash_ast(BODY(lhs), rhsBodyHast);
+            hash_ast(BODY(rhs), rhsBodyHast);
         }
 
         bool cloEnvSame = lhsCloHast == rhsCloHast;
         bool cloForSame = lhsFormalsHast == rhsFormalsHast;
         bool cloBodSame = lhsBodyHast == rhsBodyHast;
-
-        // #if DEBUG_NATIVE_LOCATIONS == 1
-        // std::cout << "clsEqImpl: " << (CLOENV(lhs) == CLOENV(rhs) && FORMALS(lhs) == FORMALS(rhs) &&
-        //        BODY_EXPR(lhs) == BODY_EXPR(rhs)) << std::endl;
-        // std::cout << "(HAST CHECK) Environment: " << cloEnvSame << std::endl;
-        // std::cout << "(HAST CHECK) Formals: " << cloForSame << std::endl;
-        // std::cout << "(HAST CHECK) Body: " << cloBodSame << std::endl;
-        // printAST(0,lhs);
-        // #endif
 
         if (cloEnvSame && cloForSame && cloBodSame) {
             SET_CLOENV(rhs, CLOENV(lhs));
@@ -2276,35 +2261,36 @@ bool clsEqImpl(SEXP lhs, SEXP rhs) {
             SET_BODY(rhs, BODY(lhs));
             return true;
         }
-    } else if (TYPEOF(lhs) == LANGSXP && TYPEOF(rhs) == LANGSXP) {
-        size_t lhsLangHast = 0;
-        hash_ast(lhs, lhsLangHast);
-        size_t rhsLangHast = 0;
-        hash_ast(rhs, rhsLangHast);
-        return lhsLangHast == rhsLangHast;
-    } else if (TYPEOF(lhs) == EXTERNALSXP && TYPEOF(rhs) == LANGSXP) {
-        if (DispatchTable::check(lhs)) {
-            size_t h1 = 0;
-            size_t h2 = 0;
-            auto dt = DispatchTable::unpack(lhs);
-            auto src = dt->baseline()->body()->src;
-            auto realBody = src_pool_at(globalContext(), src);
-            hash_ast(realBody, h1);
-            hash_ast(rhs, h2);
-            return h1 == h2;
-        }
-    } else if (TYPEOF(rhs) == EXTERNALSXP && TYPEOF(lhs) == LANGSXP) {
-        if (DispatchTable::check(rhs)) {
-            size_t h1 = 0;
-            size_t h2 = 0;
-            auto dt = DispatchTable::unpack(rhs);
-            auto src = dt->baseline()->body()->src;
-            auto realBody = src_pool_at(globalContext(), src);
-            hash_ast(realBody, h1);
-            hash_ast(lhs, h2);
-            return h1 == h2;
-        }
     }
+    // else if (TYPEOF(lhs) == LANGSXP && TYPEOF(rhs) == LANGSXP) {
+    //     size_t lhsLangHast = 0;
+    //     hash_ast(lhs, lhsLangHast);
+    //     size_t rhsLangHast = 0;
+    //     hash_ast(rhs, rhsLangHast);
+    //     return lhsLangHast == rhsLangHast;
+    // } else if (TYPEOF(lhs) == EXTERNALSXP && TYPEOF(rhs) == LANGSXP) {
+    //     if (DispatchTable::check(lhs)) {
+    //         size_t h1 = 0;
+    //         size_t h2 = 0;
+    //         auto dt = DispatchTable::unpack(lhs);
+    //         auto src = dt->baseline()->body()->src;
+    //         auto realBody = src_pool_at(globalContext(), src);
+    //         hash_ast(realBody, h1);
+    //         hash_ast(rhs, h2);
+    //         return h1 == h2;
+    //     }
+    // } else if (TYPEOF(rhs) == EXTERNALSXP && TYPEOF(lhs) == LANGSXP) {
+    //     if (DispatchTable::check(rhs)) {
+    //         size_t h1 = 0;
+    //         size_t h2 = 0;
+    //         auto dt = DispatchTable::unpack(rhs);
+    //         auto src = dt->baseline()->body()->src;
+    //         auto realBody = src_pool_at(globalContext(), src);
+    //         hash_ast(realBody, h1);
+    //         hash_ast(lhs, h2);
+    //         return h1 == h2;
+    //     }
+    // }
     return false;
 }
 

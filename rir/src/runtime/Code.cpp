@@ -262,7 +262,6 @@ void Code::populateSrcData(size_t parentHast, SEXP map, bool mainSrc, int & inde
 }
 
 void Code::disassemble(std::ostream& out, const std::string& prefix) const {
-    out << "code src: " << src << std::endl;
     if (auto map = pirTypeFeedback()) {
         map->forEachSlot([&](size_t i,
                              const PirTypeFeedback::MDEntry& mdEntry) {
@@ -308,7 +307,6 @@ void Code::disassemble(std::ostream& out, const std::string& prefix) const {
         bc.addMyPromArgsTo(promises);
 
         const size_t OFFSET_WIDTH = 14;
-        out << (uintptr_t)pc << " ";
         out << std::right << std::setw(OFFSET_WIDTH)
             << ((uintptr_t)pc - (uintptr_t)code()) << std::left;
 

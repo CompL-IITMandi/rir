@@ -537,8 +537,6 @@ void checkUserInterrupt() {
 void recordDeoptReason(SEXP val, const DeoptReason& reason) {
     auto pos = reason.pc();
 
-    std::cout << "recordDeoptReason: " << (uintptr_t) pos << std::endl;
-
     switch (reason.reason) {
     case DeoptReason::Unknown:
         break;

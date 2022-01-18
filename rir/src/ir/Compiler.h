@@ -84,8 +84,10 @@ static bool readyForSerialization(DispatchTable* vtable, size_t hast) {
         DispatchTable * oldTab = DispatchTable::unpack(UMap::get(vTableMap, hastSym));
         auto oldRirBody = oldTab->baseline()->body();
 
+        // std::cout << "existing hast: " << hast << std::endl;
+
         if (oldRirBody->src != rirBody->src) {
-            std::cout << "collision: " << hast << " (blacklisting)" << std::endl;
+            // std::cout << "collision: " << hast << " (blacklisting)" << std::endl;
             insertToBlacklist(hast);
             return false;
         }

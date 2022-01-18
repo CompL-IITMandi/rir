@@ -101,18 +101,18 @@
 #define PATCH_OPAQUE_TRUE 1
 
 // Change calculation of PC from start of BC instructions, NEEDED FOR TRY_PATCH_DEOPTREASON and TRY_PATCH_DEOPTMETADATA
-#define TRY_PATCH_DEOPTREASON_PC 1
+#define TRY_PATCH_DEOPTREASON_PC 0
 
 // Try patching DeoptReason
-#define TRY_PATCH_DEOPTREASON 1
+#define TRY_PATCH_DEOPTREASON 0
 
 // Try patching DeoptMetadata
-#define TRY_PATCH_DEOPTMETADATA 1
+#define TRY_PATCH_DEOPTMETADATA 0
 
 // Try patching DeoptMetadata
-#define TRY_PATCH_STATIC_CALL3 1
+#define TRY_PATCH_STATIC_CALL3 0
 
-#define TRY_PATCH_OPT_DISPATCH 1
+#define TRY_PATCH_OPT_DISPATCH 0
 
 
 
