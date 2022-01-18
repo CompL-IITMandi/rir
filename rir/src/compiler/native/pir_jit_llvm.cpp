@@ -1107,7 +1107,6 @@ void PirJitLLVM::initializeLLVM() {
                     UNPROTECT(1);
 
 
-                    std::cout << n << "(PATC): " << nativeTargetContainer << ", " << at << std::endl;
                     NativeBuiltins::targetCaches.push_back(at);
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(

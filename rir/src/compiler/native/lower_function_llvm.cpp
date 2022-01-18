@@ -477,8 +477,6 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
     auto iVal = globalConst(c(cpIndex), t::i32);
     auto iLoad = builder.CreateLoad(iVal);
 
-    std::cout << "cpIndex: " << cpIndex << std::endl;
-
     llvm::Value* pos = builder.CreateLoad(constantpool);
     pos = builder.CreateBitCast(dataPtr(pos, false),
                                 PointerType::get(t::SEXP, 0));
@@ -4344,7 +4342,7 @@ void LowerFunctionLLVM::compile() {
                                 }
                             }
 
-                            std::cout << ss2.str() << "(ORIG): " << nativeTarget->container() << std::endl;
+                            // std::cout << ss2.str() << "(ORIG): " << nativeTarget->container() << std::endl;
 
                             SEXP debugMap = Pool::get(5);
                             if (debugMap == R_NilValue) {
@@ -4354,7 +4352,7 @@ void LowerFunctionLLVM::compile() {
 
                             UMap::insert(debugMap, Rf_install(ss1.str().c_str()), Rf_install(std::to_string((uintptr_t) callee).c_str()));
 
-                            std::cout << "nativeTarget: " << ss1.str() << ", " << ss2.str() << std::endl;
+                            // std::cout << "nativeTarget: " << ss1.str() << ", " << ss2.str() << std::endl;
                             assert(
                                 asmpt.includes(Assumption::StaticallyArgmatched));
                             // auto idx = Pool::makeSpace();
@@ -4671,8 +4669,6 @@ void LowerFunctionLLVM::compile() {
                             auto srcData = getHastAndIndex(fs->code->src);
                             size_t hast = srcData.hast;
                             int index = srcData.index;
-
-                            std::cout << "DeoptMetadata: " << hast << std::endl;
 
                             if (reqMap) {
                                 reqMap->insert(hast);
