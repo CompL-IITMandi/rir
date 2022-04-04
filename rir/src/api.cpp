@@ -83,6 +83,7 @@ REXPORT SEXP rirDisassemble(SEXP what, SEXP verbose) {
 }
 
 REXPORT SEXP rirCompile(SEXP what, SEXP env) {
+    // std::cout << "rirCompile: " << what << std::endl;
     if (TYPEOF(what) == CLOSXP) {
         SEXP body = BODY(what);
         if (TYPEOF(body) == EXTERNALSXP)
@@ -90,6 +91,32 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
 
         // Change the input closure inplace
         Compiler::compileClosure(what);
+
+        // SEXP errDebug = Rf_install("NS:shiny:2175709254059387988");
+
+        // SEXP err2 = Rf_install("NS:base:8300946583594429239");
+
+        // if (errDebug == hast) {
+        //     std::cout << "ERRCASE: " << what << std::endl;
+        //     // printAST(0, env);
+        //     DispatchTable::unpack(BODY(what))->baseline()->disassemble(std::cout);
+        //     // SEXP names = R_lsInternal(env, (Rboolean) false);
+        //     // for (int i = 0; i < Rf_length(names); i++) {
+        //     //     SEXP keySym = Rf_install(CHAR(STRING_ELT(names, i)));
+        //     //     SEXP binding = Rf_findVarInFrame(env, keySym);
+        //     //     if (binding == what) {
+        //     //         std::cout << "ERR BINDING: " << CHAR(PRINTNAME(keySym)) << std::endl;
+        //     //     }
+        //     // }
+
+        //     // vtable->baseline()->body()->disassemble(std::cout);
+        // }
+
+        // if (hast == err2) {
+        //     std::cout << "ERRCASE2: " << what << std::endl;
+        //     // printAST(0, env);
+        //     DispatchTable::unpack(BODY(what))->baseline()->disassemble(std::cout);
+        // }
 
         return what;
     } else {
@@ -147,7 +174,12 @@ void printSYMSXP(int space, SEXP symsxp) {
     auto value = SYMVALUE(symsxp);
     auto internal = INTERNAL(symsxp);
 
-    printType(space, "PNAME", pname);
+    if (symsxp == R_MissingArg) {
+        printType(space, "[PNAME] R_MissingArg", pname);
+    } else {
+        printType(space, "PNAME", pname);
+    }
+
     printAST(space, pname);
 
     printType(space, "VALUE", value);
@@ -584,6 +616,36 @@ REXPORT SEXP loadBitcodes() {
 }
 
 REXPORT SEXP compileStats() {
+    auto map = Pool::get(HAST_DEPENDENCY_MAP);
+    if (map != R_NilValue) {
+        SEXP hastsInEnv = R_lsInternal(map, (Rboolean) false);
+        for (int i = 0; i < Rf_length(hastsInEnv); i++) {
+            SEXP hastKey = Rf_install(CHAR(STRING_ELT(hastsInEnv, i)));
+            SEXP hastEnvMap = Rf_findVarInFrame(map, hastKey);
+            if (hastEnvMap != R_NilValue) {
+                std::cout << "hast: " << CHAR(PRINTNAME(hastKey)) << std::endl;
+                serializerData::iterateOverOffsets(hastEnvMap, [&] (SEXP offsetSymbol, SEXP offsetEnv) {
+                    std::cout << "  offset: " << CHAR(PRINTNAME(offsetSymbol)) << std::endl;
+                    if (offsetEnv != R_NilValue) {
+                        serializerData::iterateOverContexts(offsetEnv, [&] (SEXP contextSym, SEXP cData) {
+                            std::cout << "    context: " << CHAR(PRINTNAME(contextSym)) << std::endl;
+                            for (int j = 0; j < Rf_length(cData); j++) {
+                                SEXP ele = VECTOR_ELT(cData, j);
+                                std::cout << "      [" << j << "]: ";
+                                if (TYPEOF(ele) == SYMSXP) {
+                                    std::cout << CHAR(PRINTNAME(ele)) << std::endl;
+                                } else {
+                                    std::cout << TYPEOF(ele) << std::endl;
+                                }
+                            }
+                        });
+
+                    }
+                });
+
+            }
+        }
+    }
     // std::cout << "==== RUN STATS ====" << std::endl;
     // std::cout << "Bitcode Load Time: " << bitcodeTotalLoadTime << "us" << std::endl;
     // std::cout << "Compiler invocations: " << compilerInvocations << std::endl;
@@ -795,6 +857,7 @@ REXPORT SEXP pirSetDebugFlags(SEXP debugFlags) {
 
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 const pir::DebugOptions& debug) {
+    // std::cout << "pirCompile: " << what << std::endl;
     compilerInvocations++;
     static unsigned int stack = 0;
     stack++;
@@ -1126,6 +1189,7 @@ bool startup() {
     Pool::makeSpace(); // (2) Hast to unlock vector map
     Pool::makeSpace(); // (3) Hast to vtable map
     Pool::makeSpace(); // (4) Hast to closure map
+    Pool::makeSpace(); // (5) Optimistic dispatch unlock map
     #endif
     return true;
 }

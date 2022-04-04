@@ -605,7 +605,47 @@ void PirJitLLVM::deserializeAndAddModule(
     SET_VECTOR_ELT(funDataVec, 0, function.function()->container());
 
     for (int i = 1; i < Rf_length(funDataVec); i++) {
-        SET_VECTOR_ELT(funDataVec, i, VECTOR_ELT(rMap, i-1));
+        SEXP reqHast = VECTOR_ELT(rMap, i-1);
+        auto n = std::string(CHAR(PRINTNAME(reqHast)));
+
+        auto firstDel = n.find('_');
+        if (firstDel != std::string::npos) {
+            // optimistic dispatch case
+            auto secondDel = n.find('_', firstDel + 1);
+
+            auto h1 = n.substr(0, firstDel);
+            unsigned long con = std::stoul(n.substr(firstDel + 1, secondDel - firstDel - 1));
+            unsigned numArgs = std::stoi((n.substr(secondDel + 1)));
+
+            SEXP reqData;
+            PROTECT(reqData = Rf_allocVector(VECSXP, 3));
+
+            // Index 0: hast
+            SET_VECTOR_ELT(reqData, 0, Rf_install(h1.c_str()));
+            SEXP store;
+
+            // Index 1: context
+            PROTECT(store = Rf_allocVector(RAWSXP, sizeof(unsigned long)));
+            unsigned long * t1 = (unsigned long *) DATAPTR(store);
+            *t1 = con;
+            SET_VECTOR_ELT(reqData, 1, store);
+            UNPROTECT(1);
+
+            // Index 2: args size
+            PROTECT(store = Rf_allocVector(RAWSXP, sizeof(unsigned)));
+            unsigned * t2 = (unsigned *) DATAPTR(store);
+            *t2 = numArgs;
+            SET_VECTOR_ELT(reqData, 2, store);
+            UNPROTECT(1);
+
+            SET_VECTOR_ELT(funDataVec, i, reqData);
+
+            UNPROTECT(1);
+
+        } else {
+            // check if
+            SET_VECTOR_ELT(funDataVec, i, reqHast);
+        }
     }
 
     SEXP contextSym = Rf_install(std::to_string(context.toI()).c_str());
@@ -657,7 +697,19 @@ void PirJitLLVM::deserializeAndAddModule(
     // Populate unlock map
     for (int i = 0; i < Rf_length(rMap); i++) {
         SEXP ele = VECTOR_ELT(rMap, i);
-        populateUnlockMap(ele);
+        SEXP hastOfReq = ele;
+
+        auto n = std::string(CHAR(PRINTNAME(ele)));
+
+        auto firstDel = n.find('_');
+        if (firstDel != std::string::npos) {
+            // optimistic dispatch case
+            auto secondDel = n.find('_', firstDel + 1);
+            auto hast = n.substr(firstDel + 1, secondDel - firstDel - 1);
+            hastOfReq = Rf_install(hast.c_str());
+        }
+
+        populateUnlockMap(hastOfReq);
     }
 
     // DeserialDataMap::addFunctionPtr(map, hast, context.toI(), function.function()->container());
@@ -1037,6 +1089,9 @@ void PirJitLLVM::initializeLLVM() {
                         case 111:
                             ptr = R_DimSymbol;
                             break;
+                        case 112:
+                            ptr = R_DotsSymbol;
+                            break;
                     }
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
@@ -1217,7 +1272,15 @@ void PirJitLLVM::initializeLLVM() {
                     }
 
                     if (nativeTarget == nullptr) {
-                        nativeTargetContainer = dt->dispatch(Context(con))->container();
+                        std::cout << "warning: optimistic dispatch failed to dispatch to ideal context" << std::endl;
+                        auto target = dt->dispatch(Context(con));
+                        nativeTargetContainer = target->container();
+                        Context expected(con);
+                        std::cout << "Expected: " << expected << ", nargs: " << numArgs << std::endl;
+                        std::cout << "Got: " << target->context() << ". nargs: " << target->signature().numArguments << std::endl;
+                        if (target->signature().numArguments < numArgs) {
+                            Rf_error("optimistic dispatch patch failed!");
+                        }
                     }
 
                     auto at = Pool::insert(nativeTargetContainer);

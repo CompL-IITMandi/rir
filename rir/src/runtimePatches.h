@@ -5,6 +5,7 @@
 #define HAST_UNLOCK_MAP       2 // (2) Hast to unlock vector map
 #define HAST_VTAB_MAP         3 // (3) Hast to vtable map
 #define HAST_CLOS_MAP         4 // (4) Hast to closure map
+#define OPT_UNLOCK_MAP        5 // (5) Optimistic dispatch unlock map: [table to unlock from, hSym for lookup in dependency map]
 /*************************************/
 // Deserializer specific
 //

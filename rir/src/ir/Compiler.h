@@ -97,6 +97,7 @@ static void tryLinking(DispatchTable* vtable, SEXP hSym) {
     }
 
     if (Rf_findVarInFrame(serMap, hSym) != R_UnboundValue && Rf_findVarInFrame(serMap, hSym) != R_NilValue) {
+        vtable->disableFurtherSpecialization = true;
         #if PRINT_LINKING_STATUS == 1  || PRINT_LINKING_STATUS_OVERRIDE == 1
         std::cout << "symbolExistsInMap: " << CHAR(PRINTNAME(hSym)) << std::endl;
         #endif
@@ -120,10 +121,45 @@ static void tryLinking(DispatchTable* vtable, SEXP hSym) {
                         for (int j = 1; j < Rf_length(cData); j++) {
                             SEXP dep = VECTOR_ELT(cData, j);
                             if (dep == R_NilValue) continue;
-                            if (Rf_findVarInFrame(tabMap, dep) != R_UnboundValue) {
-                                SET_VECTOR_ELT(cData, j, R_NilValue);
+                            if (TYPEOF(dep) == SYMSXP) {
+                                // normal case
+                                if (Rf_findVarInFrame(tabMap, dep) != R_UnboundValue) {
+                                    SET_VECTOR_ELT(cData, j, R_NilValue);
+                                } else {
+                                    allSatisfied = false;
+                                }
                             } else {
-                                allSatisfied = false;
+                                // optimistic dispatch cast
+                                SEXP depHastSym = VECTOR_ELT(dep, 0);
+                                unsigned long* depCon = (unsigned long *) DATAPTR(VECTOR_ELT(dep, 1));
+                                unsigned* numArgs = (unsigned *) DATAPTR(VECTOR_ELT(dep, 2));
+                                if (Rf_findVarInFrame(tabMap, depHastSym) != R_UnboundValue) {
+                                    // check if optimistic dispatch will succeed?
+                                    DispatchTable * dt = DispatchTable::unpack(Rf_findVarInFrame(tabMap, depHastSym));
+
+                                    bool entryFound = false;
+
+                                    for (size_t i = 0; i < dt->size(); i++) {
+                                        auto entry = dt->get(i);
+                                        if (entry->context().toI() == *depCon &&
+                                            entry->signature().numArguments >= *numArgs) {
+                                                entryFound = true;
+                                        }
+                                    }
+
+                                    if (entryFound) {
+                                        #if PRINT_LINKING_STATUS == 1  || PRINT_LINKING_STATUS_OVERRIDE == 1
+                                        std::cout << "      [optimistic dispatch success]" << std::endl;
+                                        #endif
+                                        SET_VECTOR_ELT(cData, j, R_NilValue);
+                                    } else {
+                                        dt->addUnlockDependency(depHastSym, vtable->container(), hSym);
+                                        allSatisfied = false;
+                                    }
+
+                                } else {
+                                    allSatisfied = false;
+                                }
                             }
                         }
                         if (allSatisfied) {
@@ -172,6 +208,7 @@ static void tryLinking(DispatchTable* vtable, SEXP hSym) {
         });
 
         if (allOffsetsDone) {
+            vtable->disableFurtherSpecialization = false;
             Rf_defineVar(hSym, R_NilValue, serMap);
         }
     }

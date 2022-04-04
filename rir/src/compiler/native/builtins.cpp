@@ -2236,17 +2236,17 @@ SEXP makeVectorImpl(int mode, size_t len) {
     return s;
 }
 
-void llDebugMsgImpl(void * ptr, int tag, int location) {
-    #if DEBUG_NATIVE_LOCATIONS == 1
-    if (tag == 1) {
-        SEXP obj = (SEXP) ptr;
-        std::cout << "(" << location << ") TYPEOF OBJ: " << TYPEOF(obj) << " [" << obj <<  "]" << std::endl;
-        // printAST(0, obj);
-        // Print::dumpSexp(obj);
-        return;
-    }
-    std::cout << "At location: " << location << " (" << (char *) ptr << ")"  << std::endl;
-    #endif
+void llDebugMsgImpl(const char * msg, int space, void * obj, int tag) {
+    // #if DEBUG_NATIVE_LOCATIONS == 1
+    // if (tag == 1) {
+    //     SEXP obj = (SEXP) ptr;
+    //     std::cout << "(" << location << ") TYPEOF OBJ: " << TYPEOF(obj) << " [" << obj <<  "]" << std::endl;
+    //     // printAST(0, obj);
+    //     // Print::dumpSexp(obj);
+    //     return;
+    // }
+    // std::cout << "At location: " << location << " (" << (char *) ptr << ")"  << std::endl;
+    // #endif
 
     // switch (tag) {
     // case 0:

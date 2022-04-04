@@ -21,6 +21,7 @@
 #include <libintl.h>
 #include <set>
 #include <unordered_set>
+#include "R/Printing.h"
 
 #define NOT_IMPLEMENTED assert(false)
 
@@ -59,7 +60,7 @@ static void printInterp(Opcode* pc, Code* c, InterpreterInstance* ctx) {
             std::cout << " ...";
             break;
         }
-        std::cout << " " << dumpSexp(sexp);
+        std::cout << " " << Print::dumpSexp(sexp);
     }
     std::cout << "\n";
     printingStackSize = false;
@@ -68,7 +69,7 @@ static void printInterp(Opcode* pc, Code* c, InterpreterInstance* ctx) {
     unsigned sidx = c->getSrcIdxAt(pc, true);
     if (sidx != 0) {
         SEXP src = src_pool_at(ctx, sidx);
-        std::cout << "#; " << dumpSexp(src) << "\n";
+        std::cout << "#; " << Print::dumpSexp(src) << "\n";
     }
     // Print bc
     BC bc = BC::decode(pc, c);
@@ -991,7 +992,7 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
 
         bool skipPirCompilation = getenv("PIR_DISABLE_COMPILATION") ? true : false;
 
-        if (!isDeoptimizing() && RecompileHeuristic(fun) && !skipPirCompilation) {
+        if (!isDeoptimizing() && table->disableFurtherSpecialization == false && RecompileHeuristic(fun) && !skipPirCompilation) {
             Context given = call.givenContext;
             // addDynamicAssumptionForOneTarget compares arguments with the
             // signature of the current dispatch target. There the number of
@@ -1926,10 +1927,16 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
     auto native = c->nativeCode();
     assert((!initialPC || !native) && "Cannot jump into native code");
     if (native) {
-        // std::cout << "executing native code: " << c->getNativecodeHandle() << std::endl;
+        // std::string handle = std::string(c->lazyCodeHandle_);
+        // std::string toCheck = "shiny";
+        // if (handle.find(toCheck) != std::string::npos) {
+            // std::cout << "executing native code: " << c->lazyCodeHandle_ << ", " << c->src << std::endl;
+        // }
         SEXP res = native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
                       callCtxt ? callCtxt->callee : nullptr);
-        // std::cout << "native code end" << std::endl;
+        // if (handle.find(toCheck) != std::string::npos) {
+            // std::cout << "executing native end : " << c->lazyCodeHandle_ << ", " << c->src << std::endl;
+        // }
         return res;
     }
 
@@ -2202,6 +2209,8 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
                 Rf_error("object '%s' not found", CHAR(PRINTNAME(sym)));
             } else if (res == R_MissingArg) {
                 SEXP sym = cp_pool_at(ctx, id);
+                // std::cout << "ERR HERE" << std::endl;
+                // c->disassemble(std::cout);
                 Rf_error("argument \"%s\" is missing, with no default",
                          CHAR(PRINTNAME(sym)));
             }
