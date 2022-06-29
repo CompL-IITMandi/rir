@@ -778,8 +778,6 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
     std::stringstream bcPathSS;
     bcPathSS << prefix << "/" << mainFunName << ".bc";
 
-    std::cout << "bc path: " << bcPathSS.str() << std::endl;
-
     std::string ss = bcPathSS.str();
     llvm::StringRef bcPathRef(ss);
 
