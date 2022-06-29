@@ -355,28 +355,56 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
     // context metadata
     contextData c(cData);
 
+    int indexOffset = std::stoi(CHAR(PRINTNAME(offsetSym)));
+
+    auto hastDepMap = Pool::get(HAST_DEPENDENCY_MAP);
+    SEXP prefSym = Rf_install("prefix");
+    std::string prefix = CHAR(STRING_ELT(Rf_findVarInFrame(hastDepMap, prefSym), 0));
+
+    // Path to the pool
+    std::stringstream poolPath;
+    poolPath << prefix << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << c.getContext() << ".pool";
+
+    // Deserialize the pools
+    FILE *reader;
+    reader = fopen(poolPath.str().c_str(),"r");
+
+    if (!reader) {
+        std::cerr << "deserializer quietly failing, unable to open pool file: " << poolPath.str() << std::endl;
+        return;
+    }
+
+    R_inpstream_st inputStream;
+    R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
+
+    SEXP result;
+    PROTECT(result= R_Unserialize(&inputStream));
+
+    SEXP cPool = VECTOR_ELT(result, 0);
+    SEXP sPool = VECTOR_ELT(result, 1);
+
+    fclose(reader);
+
+
+
     // load bitcode from file, patch and link to
      // Constant Pool patches
-    SEXP cPool = c.getCPool();
+
     std::unordered_map<int64_t, int64_t> poolPatch;
     for (int i = 0; i < Rf_length(cPool); i++) {
         auto ele = VECTOR_ELT(cPool, i);
         poolPatch[i] = Pool::insert(ele);
     }
     // Source Pool patches
-    SEXP sPool = c.getSPool();
     std::unordered_map<int64_t, int64_t> sPoolPatch;
     for (int i = 0; i < Rf_length(sPool); i++) {
         auto ele = VECTOR_ELT(sPool, i);
         sPoolPatch[i] = src_pool_add(globalContext(),ele);
     }
 
-    auto hastDepMap = Pool::get(HAST_DEPENDENCY_MAP);
-    SEXP prefSym = Rf_install("prefix");
-    std::string prefix = CHAR(STRING_ELT(Rf_findVarInFrame(hastDepMap, prefSym), 0));
+
 
     std::stringstream bitcodePath;
-    int indexOffset = std::stoi(CHAR(PRINTNAME(offsetSym)));
     bitcodePath << prefix << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << c.getContext() << ".bc";
 
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> mb = llvm::MemoryBuffer::getFile(bitcodePath.str());
@@ -553,6 +581,8 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
     if (getenv("EAGER_BITCODES")) {
         res->nativeCode();
     }
+
+    UNPROTECT(1);
 }
 
 void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::string> & relevantNames, const std::string & mainFunName) {
@@ -748,6 +778,8 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
     std::stringstream bcPathSS;
     bcPathSS << prefix << "/" << mainFunName << ".bc";
 
+    std::cout << "bc path: " << bcPathSS.str() << std::endl;
+
     std::string ss = bcPathSS.str();
     llvm::StringRef bcPathRef(ss);
 
@@ -815,8 +847,14 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
         SET_VECTOR_ELT(sPool, i, obj);
     }
 
-    conData.addCPool(cPool);
-    conData.addSPool(sPool);
+    // Serialize the pools
+    std::stringstream poolPathSS;
+    poolPathSS << prefix << "/" << mainFunName << ".pool";
+
+    if (!poolSerializeAndDeserialize::serializePools(poolPathSS.str(), cPool, sPool)) {
+        *serializerError = true;
+        DebugMessages::printSerializerErrors("(*) Failed to serialize pools.", 2);
+    }
 
     UNPROTECT(2);
 }

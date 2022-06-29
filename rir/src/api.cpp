@@ -1054,12 +1054,32 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
     SEXP mainFunName = VECTOR_ELT(cData.getFNames(), 0);
 
     // rename temp files
-    std::stringstream bcFName;
-    std::stringstream bcOldName;
-    bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << cData.getContext() << ".bc";
-    bcOldName << prefix << "/" << CHAR(STRING_ELT(mainFunName, 0)) << ".bc";
-    std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
-    DebugMessages::printSerializerMessage("(*) Bitcode written: " + bcFName.str(), 1);
+    {
+        std::stringstream bcFName;
+        std::stringstream bcOldName;
+        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << cData.getContext() << ".bc";
+        bcOldName << prefix << "/" << CHAR(STRING_ELT(mainFunName, 0)) << ".bc";
+        int stat = std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
+        if (stat != 0) {
+            serializerError = true;
+            DebugMessages::printSerializerMessage("(*) serializeClosure failed, unable to rename bitcode.", 1);
+            return;
+        }
+    }
+
+    {
+        std::stringstream bcFName;
+        std::stringstream bcOldName;
+        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << cData.getContext() << ".pool";
+        bcOldName << prefix << "/" << CHAR(STRING_ELT(mainFunName, 0)) << ".pool";
+        int stat = std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
+        if (stat != 0) {
+            serializerError = true;
+            DebugMessages::printSerializerMessage("(*) serializeClosure failed, unable to rename pool.", 1);
+            return;
+        }
+    }
+
 }
 
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,

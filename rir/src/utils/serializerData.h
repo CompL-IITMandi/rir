@@ -127,10 +127,8 @@ namespace rir {
         // 2 (SEXP) Function Names
         // 3 (SEXP) Function Src
         // 4 (SEXP) Function Arglist Order
-        // 5 (SEXP) CPool,
-        // 6 (SEXP) SPool,
-        // 7 (SEXP) Children Data,
-        // 8 (SEXP) reqMapForCompilation
+        // 5 (SEXP) Children Data,
+        // 6 (SEXP) reqMapForCompilation
         // }
         public:
             SEXP getContainer() {
@@ -185,36 +183,23 @@ namespace rir {
                 return VECTOR_ELT(container, 4);
             }
 
-            // ENTRY 5: cPool
-            void addCPool(SEXP data) {
+            // ENTRY 7: childrenData
+            void addFChildren(SEXP data) {
                 SET_VECTOR_ELT(container, 5, data);
             }
 
-            SEXP getCPool() {
-                return VECTOR_ELT(container, 5);
-            }
-
-            // ENTRY 6: sPool
-            void addSPool(SEXP data) {
-                SET_VECTOR_ELT(container, 6, data);
-            }
-
-            SEXP getSPool() {
-                return VECTOR_ELT(container, 6);
-            }
-
-            // ENTRY 7: childrenData
-            void addFChildren(SEXP data) {
-                SET_VECTOR_ELT(container, 7, data);
-            }
-
             SEXP getFChildren() {
-                return VECTOR_ELT(container, 7);
+                return VECTOR_ELT(container, 5);
             }
 
             // ENTRY 8: reqMap
             void addReqMapForCompilation(SEXP data) {
-                SET_VECTOR_ELT(container, 8, data);
+                SET_VECTOR_ELT(container, 6, data);
+            }
+
+            SEXP getReqMapAsVector() {
+                SEXP rMap = VECTOR_ELT(container, 6);
+                return rMap;
             }
 
             void removeEleFromReqMap(SEXP ele) {
@@ -247,131 +232,6 @@ namespace rir {
                 }
             }
 
-            SEXP getReqMapAsVector() {
-                SEXP rMap = VECTOR_ELT(container, 8);
-                return rMap;
-            }
-
-            void printToJson(std::ofstream & jsonOutFile, bool prettyJson = false) {
-
-                // Entry 0: Context
-                jsonOutFile << "\"context\" : \"" << getContext() << "\",";
-                if (prettyJson) jsonOutFile << "\n";
-
-                // Entry 1: Function signature
-                rir::FunctionSignature fs = getFunctionSignature();
-                jsonOutFile << "\"function_signature\" : [";
-                    // fs.envCreation
-                    jsonOutFile << (int)fs.envCreation << ",";
-                    // fs.optimization
-                    jsonOutFile << (int)fs.optimization << ",";
-                    // fs.numArguments
-                    jsonOutFile << fs.numArguments << ",";
-                    // fs.hasDotsFormals
-                    jsonOutFile << fs.hasDotsFormals << ",";
-                    // fs.hasDefaultArgs
-                    jsonOutFile << fs.hasDefaultArgs << ",";
-                    // fs.dotsPosition
-                    jsonOutFile << fs.dotsPosition;
-                jsonOutFile << "],";
-                if (prettyJson) jsonOutFile << "\n";
-
-                // Entry 2: Function names
-                jsonOutFile << "\"function_names\" : [";
-                auto fNames = getFNames();
-                for (int i = 0; i < Rf_length(fNames); i++) {
-                    auto c = VECTOR_ELT(fNames, i);
-
-                    jsonOutFile << "\"" << CHAR(STRING_ELT(c, 0)) << "\"";
-                    if (i+1 != Rf_length(fNames)) jsonOutFile << ",";
-                }
-
-                jsonOutFile << "],";
-                if (prettyJson) jsonOutFile << "\n";
-
-                // Entry 3: Function Sources
-                jsonOutFile << "\"function_sources\" : [";
-                auto fSrc = getFSrc();
-                for (int i = 0; i < Rf_length(fSrc); i++) {
-                    auto c = VECTOR_ELT(fSrc, i);
-                    if (c != R_NilValue) {
-                        jsonOutFile << "[\"" << CHAR(PRINTNAME(VECTOR_ELT(c, 0))) << "\",\"" << *INTEGER(VECTOR_ELT(c, 1)) << "\"]";
-                    } else {
-                        jsonOutFile << "null";
-                    }
-                    if (i+1 != Rf_length(fSrc)) jsonOutFile << ",";
-                }
-
-                jsonOutFile << "],";
-                if (prettyJson) jsonOutFile << "\n";
-
-                // Entry 4: Function Arglist Order
-                jsonOutFile << "\"function_arglist_order\" : [";
-                auto fArg = getFArg();
-                for (int i = 0; i < Rf_length(fArg); i++) {
-                    auto c = VECTOR_ELT(fArg, i);
-                    jsonOutFile << "\"" << TYPEOF(c) << "\"";
-                    if (i+1 != Rf_length(fArg)) jsonOutFile << ",";
-                }
-
-                jsonOutFile << "],";
-                if (prettyJson) jsonOutFile << "\n";
-
-                // Entry 5: Constant Pool
-                jsonOutFile << "\"cpool\" : [";
-                auto cPool = getCPool();
-                for (int i = 0; i < Rf_length(cPool); i++) {
-                    auto c = VECTOR_ELT(cPool, i);
-                    jsonOutFile << "\"" << TYPEOF(c) << "\"";
-                    if (i+1 != Rf_length(cPool)) jsonOutFile << ",";
-                }
-                jsonOutFile << "],";
-                if (prettyJson) jsonOutFile << "\n";
-
-                // Entry 6: Source Pool
-                jsonOutFile << "\"cpool\" : [";
-                auto sPool = getSPool();
-                for (int i = 0; i < Rf_length(sPool); i++) {
-                    auto c = VECTOR_ELT(sPool, i);
-                    jsonOutFile << "\"" << TYPEOF(c) << "\"";
-                    if (i+1 != Rf_length(sPool)) jsonOutFile << ",";
-                }
-                jsonOutFile << "],";
-                if (prettyJson) jsonOutFile << "\n";
-
-                // Entry 7: Children Data
-                jsonOutFile << "\"children\" : [";
-                auto fChildren = getFChildren();
-                for (int i = 0; i < Rf_length(fChildren); i++) {
-                    auto cVector = VECTOR_ELT(fChildren, i);
-
-                    jsonOutFile << "[";
-                    for (int j = 0; j < Rf_length(cVector); j++) {
-                        auto d = VECTOR_ELT(cVector, j);
-
-                        jsonOutFile << Rf_asInteger(d);
-                        if (j+1 != Rf_length(cVector)) jsonOutFile << ",";
-
-                    }
-                    jsonOutFile << "]";
-                    if (i+1 != Rf_length(fChildren)) jsonOutFile << ",";
-                }
-                jsonOutFile << "],";
-                if (prettyJson) jsonOutFile << "\n";
-
-                // Entry 8: Requirement map
-                jsonOutFile << "\"requirements\" : [";
-                auto rData = getReqMapAsVector();
-                for (int i = 0; i < Rf_length(rData); i++) {
-                    SEXP ele = VECTOR_ELT(rData, i);
-                    jsonOutFile << "\"" << CHAR(PRINTNAME(ele)) << "\"";
-                    if (i+1 != Rf_length(rData)) jsonOutFile << ",";
-                }
-
-                jsonOutFile << "]";
-                if (prettyJson) jsonOutFile << "\n";
-
-            }
 
             void print() {
                 print(0);
@@ -418,28 +278,10 @@ namespace rir {
                 std::cout << "]" << std::endl;
 
                 printSpace(space);
-                auto cPool = getCPool();
-                std::cout << "ENTRY(5)[CPool]: (" << Rf_length(cPool) << ") [ ";
-                for (int i = 0; i < Rf_length(cPool); i++) {
-                    auto c = VECTOR_ELT(cPool, i);
-                    std::cout << TYPEOF(c) << " ";
-                }
-                std::cout << "]" << std::endl;
-
-                printSpace(space);
-                auto sPool = getSPool();
-                std::cout << "ENTRY(6)[SPool]: (" << Rf_length(sPool) << ") [ ";
-                for (int i = 0; i < Rf_length(sPool); i++) {
-                    auto c = VECTOR_ELT(sPool, i);
-                    std::cout << TYPEOF(c) << " ";
-                }
-                std::cout << "]" << std::endl;
-
-                printSpace(space);
                 #if PRINT_EXTENDED_CHILDREN == 1
-                std::cout << "ENTRY(7)[children Data]" << std::endl;
+                std::cout << "ENTRY(5)[children Data]" << std::endl;
                 #else
-                std::cout << "ENTRY(7)[children Data]: ";
+                std::cout << "ENTRY(5)[children Data]: ";
                 #endif
                 auto fChildren = getFChildren();
                 for (int i = 0; i < Rf_length(fChildren); i++) {
@@ -472,7 +314,7 @@ namespace rir {
 
                 auto rData = getReqMapAsVector();
                 printSpace(space);
-                std::cout << "ENTRY(8)[reqMapForCompilation]: <";
+                std::cout << "ENTRY(6)[reqMapForCompilation]: <";
                 for (int i = 0; i < Rf_length(rData); i++) {
                     SEXP ele = VECTOR_ELT(rData, i);
                     std::cout << CHAR(PRINTNAME(ele)) << " ";
@@ -568,67 +410,10 @@ namespace rir {
                 }
             }
 
-            void printToJson(std::ofstream & jsonOutFile, bool prettyJson = false) {
-                SEXP maskSym = Rf_install("mask");
-                jsonOutFile << "\"hast\": \"" << CHAR(PRINTNAME(getHastData())) << "\",";
-                if (prettyJson) jsonOutFile << "\n";
-
-                jsonOutFile << "\"name\": \"" << getNameData() << "\",";
-                if (prettyJson) jsonOutFile << "\n";
-
-                jsonOutFile << "\"offsetMap\": {";
-                if (prettyJson) jsonOutFile << "\n";
-
-                REnvHandler offsetMap(VECTOR_ELT(container, 2));
-                int i = 0;
-                offsetMap.iterate([&](SEXP offsetSymbol, SEXP cMap) {
-                    i++;
-
-                    jsonOutFile << "\"" << CHAR(PRINTNAME(offsetSymbol)) << "\" : {";
-                    if (prettyJson) jsonOutFile << "\n";
-
-                    REnvHandler contextMap(cMap);
-                    int j = 0;
-                    int numCon = contextMap.size();
-                    if (contextMap.get(maskSym)) --numCon;
-                    contextMap.iterate([&](SEXP conSym, SEXP cData) {
-                        j++;
-                        if (conSym == maskSym) {
-                            return;
-                        }
-
-                        jsonOutFile << "\"" << CHAR(PRINTNAME(conSym)) << "\" : {";
-                        if (prettyJson) jsonOutFile << "\n";
-
-                        contextData c(cData);
-                        c.printToJson(jsonOutFile, prettyJson);
-
-
-                        jsonOutFile << "}";
-                        if (j < numCon) {
-                            jsonOutFile << ",";
-                        }
-                        if (prettyJson) jsonOutFile << "\n";
-                    });
-
-                    jsonOutFile << "}";
-                    if (i < offsetMap.size()) {
-                        jsonOutFile << ",";
-                    }
-                    if (prettyJson) jsonOutFile << "\n";
-
-                });
-
-                jsonOutFile << "}";
-                if (prettyJson) jsonOutFile << "\n";
-
-
-            }
 
             void print() {
                 print(0);
             }
-
 
             void print(int space) {
                 printSpace(space);
@@ -652,5 +437,33 @@ namespace rir {
                     });
                 });
             }
+    };
+
+
+    class poolSerializeAndDeserialize {
+        public:
+        static bool serializePools(const std::string & path, SEXP cPool, SEXP sPool) {
+            // Create a container
+            SEXP poolsContainer;
+            PROTECT(poolsContainer = Rf_allocVector(VECSXP, 2));
+
+            SET_VECTOR_ELT(poolsContainer, 0, cPool);
+            SET_VECTOR_ELT(poolsContainer, 1, sPool);
+
+            // Write pools to file
+            R_outpstream_st outputStream;
+            FILE *fptr;
+            fptr = fopen(path.c_str(),"w");
+            if (!fptr) {
+                return false;
+            }
+            R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
+            R_Serialize(poolsContainer, &outputStream);
+            fclose(fptr);
+
+            UNPROTECT(1);
+
+            return true;
+        }
     };
 };;
