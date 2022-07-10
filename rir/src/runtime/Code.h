@@ -78,7 +78,7 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
                      size_t locals, size_t bindingCache);
     static Code* New(Immediate ast);
 
-    constexpr static size_t MAX_CODE_HANDLE_LENGTH = 64;
+    constexpr static size_t MAX_CODE_HANDLE_LENGTH = 80;
 
   private:
     NativeCode nativeCode_;
@@ -90,6 +90,7 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
         assert(h != "");
         auto l = h.length() + 1;
         if (l > MAX_CODE_HANDLE_LENGTH) {
+            std::cout << "l > MAX_CODE_HANDLE_LENGTH: (" << l << ")" << h << std::endl;
             assert(false);
             l = MAX_CODE_HANDLE_LENGTH;
         }

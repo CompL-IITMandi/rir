@@ -85,6 +85,14 @@ namespace rir {
     public:
         static bool enabled;
 
+        static unsigned getInstIdx() {
+            return BCidx;
+        }
+
+        static unsigned getCheckpointIdx() {
+            return checkpoint;
+        }
+
         static void startDebugMessages() {
             enabled = true;
             lastCheckpointTime = lastInstructionTime = high_resolution_clock::now(); // setting epoch

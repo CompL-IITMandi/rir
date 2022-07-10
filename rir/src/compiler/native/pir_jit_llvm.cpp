@@ -352,9 +352,6 @@ void PirJitLLVM::finalizeAndFixup() {
 }
 
 void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offsetSym, DispatchTable * vtab) {
-    // context metadata
-    contextData c(cData);
-
     int indexOffset = std::stoi(CHAR(PRINTNAME(offsetSym)));
 
     auto hastDepMap = Pool::get(HAST_DEPENDENCY_MAP);
@@ -363,7 +360,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
 
     // Path to the pool
     std::stringstream poolPath;
-    poolPath << prefix << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << c.getContext() << ".pool";
+    poolPath << prefix << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << ".pool";
 
     // Deserialize the pools
     FILE *reader;
@@ -376,16 +373,15 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
 
     R_inpstream_st inputStream;
     R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
+    Protect protecc;
 
     SEXP result;
-    PROTECT(result= R_Unserialize(&inputStream));
+    protecc(result= R_Unserialize(&inputStream));
 
-    SEXP cPool = VECTOR_ELT(result, 0);
-    SEXP sPool = VECTOR_ELT(result, 1);
+    SEXP cPool = SerializedPool::getCpool(result);
+    SEXP sPool = SerializedPool::getSpool(result);
 
     fclose(reader);
-
-
 
     // load bitcode from file, patch and link to
      // Constant Pool patches
@@ -402,10 +398,8 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
         sPoolPatch[i] = src_pool_add(globalContext(),ele);
     }
 
-
-
     std::stringstream bitcodePath;
-    bitcodePath << prefix << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << c.getContext() << ".bc";
+    bitcodePath << prefix << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << ".bc";
 
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> mb = llvm::MemoryBuffer::getFile(bitcodePath.str());
     rir::pir::PirJitLLVM jit("f");
@@ -432,14 +426,9 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
         auto namc = globalName.substr(0,6) == "named_";
 
         if (namc) {
-            // auto con = global.getInitializer();
-
             uint64_t addr = (uint64_t)globalContext();
 
             llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(64,addr));
-
-            // llvm::outs() << *con << "\n";
-            // llvm::outs() << "replacement: " << *replacementValue << "\n";
 
             global.setInitializer(replacementValue);
         }
@@ -509,17 +498,18 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
         }
     }
 
+
     // Insert native code into the JIT
     auto TSM = llvm::orc::ThreadSafeModule(std::move(llModuleHolder.get()), TSC);
     ExitOnErr(JIT->addIRModule(std::move(TSM)));
 
     // Constructing code objects
-    auto fs = c.getFunctionSignature();
-    SEXP fNames = c.getFNames();
-    SEXP fSrc = c.getFSrc();
-    SEXP fArg = c.getFArg();
-    SEXP fChildren = c.getFChildren();
+    auto fs = SerializedPool::getFS(result);
 
+    SEXP fNames = SerializedPool::getFNames(result);
+    SEXP fSrc = SerializedPool::getFSrc(result);
+    SEXP fArg = SerializedPool::getFArg(result);
+    SEXP fChildren = SerializedPool::getFChildren(result);
 
     // Start function writer
     FunctionWriter function;
@@ -529,6 +519,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
     }
 
     std::vector<rir::Code *> codeObjs;
+
 
     for (int i = 0; i < Rf_length(fNames); i++) {
         // AST Data
@@ -542,6 +533,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
             int offsetIndex = *INTEGER(VECTOR_ELT(astData, 1));
             unsigned calc = BitcodeLinkUtil::getSrcPoolIndexAtOffset(depHast, offsetIndex);
             p = rir::Code::New(calc);
+            protecc(p->container());
         }
 
         // ARG Data
@@ -570,7 +562,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
     }
 
     auto res = codeObjs[0];
-    function.finalize(res, fs, Context(c.getContext()));
+    function.finalize(res, fs, Context(contextData::getContext(cData)));
 
     for (auto& item : codeObjs) {
         item->function(function.function());
@@ -582,10 +574,9 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
         res->nativeCode();
     }
 
-    UNPROTECT(1);
 }
 
-void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::string> & relevantNames, const std::string & mainFunName) {
+void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName) {
     auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : "bitcodes";
 
     std::vector<int64_t> cpEntries;
@@ -605,7 +596,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
 
         if (namc || pre || srp) {
             global.setExternallyInitialized(false);
-            global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
+            // global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
         }
     }
 
@@ -658,7 +649,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
 
         if (namc || pre || srp) {
             global.setExternallyInitialized(false);
-            global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
+            // global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
         }
 
         if (srp) {
@@ -683,6 +674,15 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
                 global.setInitializer(replacementValue);
             }
         }
+        // llvm::outs() << global.getName().str()  << " used at \n";
+        // for (llvm::User *user : global.users()) {
+        //     // if (llvm::CallBase * cbInst = llvm::dyn_cast<llvm::CallInst>(user)) {
+        //     //     auto calledFun = cbInst->getCalledFunction()->getName().str();
+        //     //     std::cout << global.getName().str() << " constant used at " << calledFun << std::endl;
+        //     // }
+        //     llvm::outs() << "   " << *user << "\n";
+        // }
+
         // All constant pool references have a copool prefix
         if (pre) {
             llvm::raw_os_ostream ost(std::cout);
@@ -711,6 +711,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
                         // If already seen, just use the previously patched value
                         replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, cpAlreadySeen[val]));
                     }
+                    // std::cout << "[low] cPool, from: " << val << ", to: " << cpAlreadySeen[val] << std::endl;
                     patchedIndices.push_back(replacementValue);
 
                 }
@@ -736,7 +737,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
                     // If already seen, just use the previously patched value
                     replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, cpAlreadySeen[val]));
                 }
-
+                // std::cout << "[low] cPool, from: " << val << ", to: " << cpAlreadySeen[val] << std::endl;
                 global.setInitializer(replacementValue);
             } else if (auto * v = llvm::dyn_cast<llvm::ConstantAggregateZero>(con)) {
                 // Constant data array
@@ -762,6 +763,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
                         // If already seen, just use the previously patched value
                         replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, cpAlreadySeen[val]));
                     }
+                    // std::cout << "[low] cPool, from: " << val << ", to: " << cpAlreadySeen[val] << std::endl;
                     patchedIndices.push_back(replacementValue);
 
                 }
@@ -776,7 +778,7 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
 
     // SERIALIZE THE LLVM MODULE
     std::stringstream bcPathSS;
-    bcPathSS << prefix << "/" << mainFunName << ".bc";
+    bcPathSS << prefix << "/" << contextData::getContext(cData) << ".bc";
 
     std::string ss = bcPathSS.str();
     llvm::StringRef bcPathRef(ss);
@@ -819,15 +821,14 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
         std::cout << "Retry for LLVM writing succeeded!" << std::endl;
     }
 
-    // Creating a vector containing all pool references
-    contextData conData(cData);
-
     SEXP cPool, sPool;
-    PROTECT(cPool = Rf_allocVector(VECSXP, cpEntries.size()));
-    PROTECT(sPool = Rf_allocVector(VECSXP, spEntries.size()));
-
+    Protect protecc;
+    protecc(cPool = Rf_allocVector(VECSXP, cpEntries.size()));
+    protecc(sPool = Rf_allocVector(VECSXP, spEntries.size()));
+    // std::cout << "  -- SERIALIZED POOL FOR " << mainFunName << std::endl;
     for (int i = 0; i < Rf_length(cPool); i++) {
         SEXP obj = Pool::get(cpEntries[i]);
+        // std::cout << "    cpool[" << i << "]" << TYPEOF(obj) << " -- Loaded from CPOOL: " << cpEntries[i] << std::endl;
         // Dont serialize external code, we serialize the original AST
         if (TYPEOF(obj) == CLOSXP && TYPEOF(BODY(obj)) != BCODESXP) {
             *serializerError = true;
@@ -842,19 +843,27 @@ void PirJitLLVM::serializeModule(rir::Code * code, SEXP cData, std::vector<std::
 
     for (int i = 0; i < Rf_length(sPool); i++) {
         SEXP obj = src_pool_at(globalContext(), spEntries[i]);
+        // std::cout << "    spool[" << i << "]" << TYPEOF(obj) << std::endl;
         SET_VECTOR_ELT(sPool, i, obj);
     }
 
-    // Serialize the pools
+    SerializedPool::addCpool(serializedPoolData, cPool);
+    SerializedPool::addSpool(serializedPoolData, sPool);
+
+    // Serialize the poolData
     std::stringstream poolPathSS;
-    poolPathSS << prefix << "/" << mainFunName << ".pool";
+    poolPathSS << prefix << "/" << contextData::getContext(cData) << ".pool";
 
-    if (!poolSerializeAndDeserialize::serializePools(poolPathSS.str(), cPool, sPool)) {
-        *serializerError = true;
-        DebugMessages::printSerializerErrors("(*) Failed to serialize pools.", 2);
+    // Write pools to file
+    R_outpstream_st outputStream;
+    FILE *fptr;
+    fptr = fopen(poolPathSS.str().c_str(),"w");
+    if (!fptr) {
+        return;
     }
-
-    UNPROTECT(2);
+    R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
+    R_Serialize(serializedPoolData, &outputStream);
+    fclose(fptr);
 }
 
 void PirJitLLVM::updateFunctionNameInModule(std::string oldName, std::string newName) {
@@ -1343,6 +1352,7 @@ void PirJitLLVM::initializeLLVM() {
                             reinterpret_cast<uintptr_t>(addr)),
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
                 }  else if (optd) {
+                    Protect protecc;
 
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
@@ -1376,11 +1386,10 @@ void PirJitLLVM::initializeLLVM() {
                     NativeBuiltins::targetCaches.push_back(at);
 
                     SEXP store;
-                    PROTECT(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx)));
+                    protecc(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx)));
                     BC::PoolIdx * tmp = (BC::PoolIdx *) DATAPTR(store);
                     *tmp = at;
                     Pool::insert(store);
-                    UNPROTECT(1);
 
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
@@ -1389,6 +1398,7 @@ void PirJitLLVM::initializeLLVM() {
                         JITSymbolFlags::Exported | (JITSymbolFlags::None));
 
                 } else if (pluu) {
+                    Protect protecc;
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 
@@ -1398,11 +1408,10 @@ void PirJitLLVM::initializeLLVM() {
                     unsigned idx = BitcodeLinkUtil::getSrcPoolIndexAtOffset(Rf_install(hast.c_str()), index);
 
                     SEXP store;
-                    PROTECT(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx)));
+                    protecc(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx)));
                     BC::PoolIdx * tmp = (BC::PoolIdx *) DATAPTR(store);
                     *tmp = idx;
                     Pool::insert(store);
-                    UNPROTECT(1);
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(

@@ -37,8 +37,12 @@ namespace rir {
 
 SEXP BitcodeLinkUtil::getHast(SEXP body, SEXP env) {
     std::stringstream qHast;
+    static bool skipGlobalBc = getenv("SKIP_GLOBAL_BC") ? true : false;
     SEXP x = env;
     if (x == R_GlobalEnv) {
+        if (skipGlobalBc) {
+            return R_NilValue;
+        }
         qHast << "GE:";
     } else if (x == R_BaseEnv) {
         qHast << "BE:";
@@ -492,13 +496,12 @@ void BitcodeLinkUtil::addToWorklistOne(SEXP hastOfReq, SEXP unlockMeta) {
 
 void BitcodeLinkUtil::linkBitcode(SEXP cData, SEXP hSym, SEXP offsetSymbol, DispatchTable * vtab) {
     auto start = high_resolution_clock::now();
-    contextData c(cData);
     // if this context was already added due to unexpected compilation at runtime, skip addition, this can result in duplicate LLVM symbols
     for (size_t i = 0; i < vtab->size(); i++) {
         auto entry = vtab->get(i);
-        if (entry->context().toI() == c.getContext()) {
+        if (entry->context().toI() == contextData::getContext(cData)) {
             #if PRINT_LINKING_STATUS == 1
-            std::cout << "duplicate linkage: " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSymbol)) << "_" << c.getContext() << std::endl;
+            std::cout << "duplicate linkage: " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSymbol)) << "_" << contextData::getContext(cData) << std::endl;
             #endif
             return;
         }
@@ -507,7 +510,7 @@ void BitcodeLinkUtil::linkBitcode(SEXP cData, SEXP hSym, SEXP offsetSymbol, Disp
     pir::Module* m = new pir::Module;
     pir::StreamLogger logger(pir::DebugOptions::DefaultDebugOptions);
     std::stringstream ss;
-    ss << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSymbol)) << "_" << c.getContext();
+    ss << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSymbol)) << "_" << contextData::getContext(cData);
     std::string name = ss.str();
     logger.title("Deserializing " + name);
     pir::Compiler cmp(m, logger);
@@ -528,7 +531,6 @@ static inline void doLinking(SEXP unlockMeta, SEXP linkageSymbol) {
 
     // Entry 1: linking  Metadata
     SEXP cData = VECTOR_ELT(unlockMeta, 1);
-    contextData c(cData);
 
     // Entry 2: hast we are unlocking
     SEXP hSym = VECTOR_ELT(unlockMeta, 2);
@@ -547,7 +549,7 @@ static inline void doLinking(SEXP unlockMeta, SEXP linkageSymbol) {
             Rf_error("bitcode linking, dispatch table corrupted!");
         }
         #if PRINT_LINKING_STATUS == 1
-        std::cout << "  linking  (" << *counter << "): " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << c.getContext() << std::endl;
+        std::cout << "  linking  (" << *counter << "): " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << contextData::getContext(cData) << std::endl;
         #endif
         // Remove the linkageSymbol to prevent infinite linking recursion
         linkageMap.remove(linkageSymbol);
@@ -558,11 +560,11 @@ static inline void doLinking(SEXP unlockMeta, SEXP linkageSymbol) {
         // DispatchTable::unpack(vtabContainer)->disableFurtherSpecialization = false;
     } else {
         #if PRINT_LINKING_STATUS == 1
-        std::cout << "  counting (" << *counter << "): " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << c.getContext() << std::endl;
+        std::cout << "  counting (" << *counter << "): " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << contextData::getContext(cData) << std::endl;
         #endif
-        // if (!DispatchTable::check(vtabContainer)) {
-        //     Rf_error("bitcode linking, dispatch table corrupted! (was still counting)");
-        // }
+        if (!DispatchTable::check(vtabContainer)) {
+            Rf_error("bitcode linking, dispatch table corrupted! (was still counting)");
+        }
         // DispatchTable::unpack(vtabContainer)->disableFurtherSpecialization = true;
     }
     #if PRINT_LINKING_STATUS == 1
@@ -724,19 +726,19 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
             #if PRINT_LINKING_STATUS == 1
             std::cout << "  offset[" << CHAR(PRINTNAME(offsetSym)) << "]" << std::endl;
             #endif
+            assert(TYPEOF(offsetEnv) == ENVSXP);
             int reqOffset = std::stoi(CHAR(PRINTNAME(offsetSym)));
             DispatchTable * requiredVtab = getVtableAtOffset(vtab,reqOffset);
             REnvHandler offsetMap(offsetEnv);
 
             offsetMap.iterate([&] (SEXP contextSym, SEXP cData) {
-                if (maskSym == contextSym) {
+                if (contextSym == maskSym) {
                     // Add mask to dispatch table
                     unsigned long* res = (unsigned long *) DATAPTR(cData);
                     // std::cout << "found mask: " << Context(*res) << std::endl;
                     requiredVtab->mask = Context(*res);
                 } else {
-                    contextData c(cData);
-                    SEXP rMap = c.getReqMapAsVector();
+                    SEXP rMap = contextData::getReqMapAsVector(cData);
                     int rMapSize = Rf_length(rMap);
 
                     #if PRINT_LINKING_STATUS == 1
@@ -874,7 +876,7 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
 
                             UNPROTECT(1);
                             #if PRINT_LINKING_STATUS == 1
-                            std::cout << "      (*) [Not linked yet: " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << c.getContext() << "]" << std::endl;
+                            std::cout << "      (*) [Not linked yet: " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << CHAR(PRINTNAME(contextSym)) << "]" << std::endl;
                             std::cout << "      (*) (waiting for " << *tmp << " dependencies)" << std::endl;
                             #endif
 

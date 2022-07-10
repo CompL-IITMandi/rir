@@ -4233,9 +4233,13 @@ void LowerFunctionLLVM::compile() {
                 b->eachCallArg([&](Value* v) { args.push_back(v); });
                 Context asmpt = b->inferAvailableAssumptions();
 
+                // std::cout << "NAMES STORE - namedcall" << std::endl;
                 std::vector<BC::PoolIdx> names;
-                for (size_t i = 0; i < b->names.size(); ++i)
-                    names.push_back(Pool::insert((b->names[i])));
+                for (size_t i = 0; i < b->names.size(); ++i) {
+                    auto r = Pool::insert((b->names[i]));
+                    // std::cout << "  name_idx: " << r << std::endl;
+                    names.push_back(r);
+                }
                 auto namesConst = c(names);
                 auto namesStore = globalConst(namesConst);
 
@@ -5040,12 +5044,16 @@ void LowerFunctionLLVM::compile() {
                 auto mkenv = MkEnv::Cast(i);
                 auto parent = loadSxp(mkenv->env());
 
+                // std::cout << "NAMES STORE - MkEnv" << std::endl;
                 std::vector<BC::PoolIdx> names;
                 for (size_t i = 0; i < mkenv->nLocals(); ++i) {
                     auto n = mkenv->varName[i];
                     if (mkenv->missing[i])
                         n = CONS_NR(n, R_NilValue);
-                    names.push_back(Pool::insert(n));
+
+                    auto r = Pool::insert(n);
+                    // std::cout << "  name_idx: " << r << std::endl;
+                    names.push_back(r);
                 }
                 auto namesConst = c(names);
                 auto namesStore = globalConst(namesConst);

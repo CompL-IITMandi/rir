@@ -28,6 +28,7 @@
 #define NOT_IMPLEMENTED assert(false)
 #define DEBUG_BC_INSN 0
 #define DEBUG_CHECKPOINTS 0
+#define DEBUG_BUILTINS 0
 #undef eval
 
 extern "C" {
@@ -374,6 +375,13 @@ struct ArglistView {
 
         // Sometimes we loose the name and have to restore it from the ast
         // TODO: why? and why do we even keep the names separately then?
+        #if DEBUG_BUILTINS == 1
+        if (names) {
+            std::cout << "      names exist: " << names[i] << ", TYPE: " << TYPEOF(cp_pool_at(ctx, names[i])) <<  std::endl;
+        } else {
+            std::cout << "      astName TYPE: " << TYPEOF(astName) <<  std::endl;
+        }
+        #endif
         auto name = names ? cp_pool_at(ctx, names[i]) : astName;
         return {arg, name};
     }
@@ -397,6 +405,9 @@ SEXP createLegacyArglist(ArglistOrder::CallId id, size_t length,
     assert(id == ArglistOrder::NOT_REORDERED || reordering);
     assert((!recreateOriginalPromargs || ast) &&
            "need ast to recreate promargs");
+    #if DEBUG_BUILTINS == 1
+    std::cout << "  createLegacyArglist START" << std::endl;
+    #endif
     SEXP result = R_NilValue;
     SEXP pos = result;
 
@@ -408,23 +419,46 @@ SEXP createLegacyArglist(ArglistOrder::CallId id, size_t length,
     size_t actualLength = (reorder && id != ArglistOrder::NOT_REORDERED)
                               ? reordering->originalArglistLength(id)
                               : length;
+    #if DEBUG_BUILTINS == 1
+    std::cout << "      reorder: " << reorder << std::endl;
+    std::cout << "      actualLength: " << actualLength << std::endl;
+    #endif
     auto a = ast;
     for (size_t i = 0; i < length; ++i) {
         a = CDR(a);
         auto getArg = args.getArgAndName(i, reorder, TAG(a));
         auto arg = getArg.first;
         auto name = getArg.second;
+        #if DEBUG_BUILTINS == 1
+        std::cout << "          i: " << i << " START" << std::endl;
+        std::cout << "          TYPEOF(arg): " << TYPEOF(arg) << std::endl;
+        std::cout << "          TYPEOF(name): " << TYPEOF(name) << std::endl;
+        if (TYPEOF(name) == SYMSXP) {
+            std::cout << "          name: " << CHAR(PRINTNAME(name)) << std::endl;
+        }
+        if (TYPEOF(TAG(a)) == RAWSXP) {
+            std::cout << "Name was corruputed, corrected it to " << CHAR(PRINTNAME(TAG(a))) << std::endl;
+            // name = TAG(a);
+        }
+        #endif
 
         // This can happen if context dispatch padded the call with "synthetic"
         // missings to be able to call a version which expects more args
         if (recreateOriginalPromargs && arg == R_MissingArg &&
-            i >= actualLength)
-            continue;
+            i >= actualLength) {
+                #if DEBUG_BUILTINS == 1
+                std::cout << "          i: " << i << " CONTINUE - 1" << std::endl;
+                #endif
+                continue;
+            }
 
         // This can happen if we materialize the lazy arglist of a statically
         // argmatched call, where dots gets pre-created by the caller.
         if (recreateOriginalPromargs && TYPEOF(arg) == DOTSXP && reorder &&
             args.isStaticallyMatchedDots(i)) {
+            #if DEBUG_BUILTINS == 1
+            std::cout << "          CASE 1" << std::endl;
+            #endif
             i--;
             while (arg != R_NilValue) {
                 i++;
@@ -437,17 +471,27 @@ SEXP createLegacyArglist(ArglistOrder::CallId id, size_t length,
                 __listAppend(&result, &pos, v, TAG(arg));
                 arg = CDR(arg);
             }
+            #if DEBUG_BUILTINS == 1
+            std::cout << "          i: " << i << " CONTINUE - 2" << std::endl;
+            #endif
             continue;
         }
 
-        if (eagerCallee && TYPEOF(arg) == PROMSXP)
+        if (eagerCallee && TYPEOF(arg) == PROMSXP) {
+            #if DEBUG_BUILTINS == 1
+            std::cout << "          CASE 2" << std::endl;
+            #endif
             arg = evaluatePromise(arg, ctx);
+        }
 
         // This is to ensure we pass named arguments to GNU-R builtins because
         // who knows what assumptions does GNU-R do??? We SHOULD test this.
         if (TYPEOF(arg) != PROMSXP)
             ENSURE_NAMED(arg);
         __listAppend(&result, &pos, arg, name);
+        #if DEBUG_BUILTINS == 1
+        std::cout << "          i: " << i << " END" << std::endl;
+        #endif
     }
 
     if (result != R_NilValue)
@@ -893,21 +937,34 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
     }
 
     case BUILTINSXP: {
+        #if DEBUG_BUILTINS == 1
+        std::cout << "BUILTINSXP CALL Builtin no: " << getBuiltinNr(call.callee) << ", name: " << getBuiltinName(getBuiltinNr(call.callee)) << std::endl;
+        #endif
         if (SEXP res = tryFastBuiltinCall(call, ctx)) {
+            #if DEBUG_BUILTINS == 1
+            std::cout << "  (BUILTINSXP-1/1) tryFastBuiltinCall START" << std::endl;
+            #endif
             int flag = getFlag(call.callee);
             if (flag < 2)
                 R_Visible = static_cast<Rboolean>(flag != 1);
             if (popArgs)
                 ostack_popn(ctx, call.passedArgs - call.suppliedArgs);
+            #if DEBUG_BUILTINS == 1
+            std::cout << "  (BUILTINSXP-1/1) tryFastBuiltinCall END" << std::endl;
+            #endif
             return res;
         }
 #ifdef DEBUG_SLOWCASES
         SlowcaseCounter::count("builtin", call, ctx);
 #endif
-
+        #if DEBUG_BUILTINS == 1
+        std::cout << "  (BUILTINSXP-1/3) createPromargsFromStackValues START" << std::endl;
+        #endif
         SEXP arglist = createPromargsFromStackValues(call, ctx);
         PROTECT(arglist);
-
+        #if DEBUG_BUILTINS == 1
+        std::cout << "  (BUILTINSXP-1/3) createPromargsFromStackValues END" << std::endl;
+        #endif
         // Make sure the RHS NAMED value is 0 or NAMEDMAX for when the RHS value
         // is part of the LHS object. See FIXUP_RHS_NAMED in eval.c
         switch (call.callee->u.primsxp.offset) {
@@ -951,13 +1008,27 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
         int flag = getFlag(call.callee);
         if (flag < 2)
             R_Visible = static_cast<Rboolean>(flag != 1);
+        #if DEBUG_BUILTINS == 1
+        std::cout << "  (BUILTINSXP-2/3) materializeCallerEnv START" << std::endl;
+        #endif
+        auto matEnv = materializeCallerEnv(call, ctx);
+        #if DEBUG_BUILTINS == 1
+        std::cout << "  (BUILTINSXP-2/3) materializeCallerEnv END" << std::endl;
+        std::cout << "  (BUILTINSXP-3/3) GCODE START" << std::endl;
+        #endif
         SEXP res =
-            f(call.ast, call.callee, arglist, materializeCallerEnv(call, ctx));
+            f(call.ast, call.callee, arglist, matEnv);
+        #if DEBUG_BUILTINS == 1
+        std::cout << "  (BUILTINSXP-3/3) GCODE END" << std::endl;
+        #endif
         if (flag < 2)
             R_Visible = static_cast<Rboolean>(flag != 1);
         UNPROTECT(1);
         if (popArgs)
             ostack_popn(ctx, call.passedArgs - call.suppliedArgs);
+        #if DEBUG_BUILTINS == 1
+        std::cout << "doCall BUILTINSXP end" << std::endl;
+        #endif
         return res;
     }
 
@@ -1940,8 +2011,12 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
         #if DEBUG_CHECKPOINTS == 1
         DebugCheckpoints::updateCheckpoint(c->lazyCodeHandle_);
         #endif
-        return native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
+        auto res = native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
                       callCtxt ? callCtxt->callee : nullptr);
+        #if DEBUG_CHECKPOINTS == 1
+        DebugCheckpoints::updateCheckpoint(c->lazyCodeHandle_ + std::string(" END"));
+        #endif
+        return res;
     }
 
 #ifdef THREADED_CODE
@@ -2456,6 +2531,12 @@ SEXP evalRirCode(Code* c, InterpreterInstance* ctx, SEXP env,
                     return res;
                 }
             }
+
+            #if DEBUG_BC_INSN == 1
+            DebugCheckpoints::printInstruction("call_ END", [&] (){
+                // std::cout << "    dummy" << std::endl;
+            });
+            #endif
 
             NEXT();
         }

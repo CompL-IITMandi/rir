@@ -54,6 +54,11 @@ static SEXP forcePromiseImpl(SEXP prom) {
     #endif
     SLOWASSERT(TYPEOF(prom) == PROMSXP);
     auto res = evaluatePromise(prom);
+    #if DEBUG_BI_INSN == 1
+    DebugCheckpoints::printInstruction("forcePromiseImpl END", [&] (){
+        // std::cout << "    dummy" << std::endl;
+    });
+    #endif
     return res;
 }
 
@@ -363,6 +368,11 @@ SEXP chkfunImpl(SEXP sym, SEXP res) {
     default:
         Rf_error("attempt to apply non-function");
     }
+    #if DEBUG_BI_INSN == 1
+    DebugCheckpoints::printInstruction("chkfunImpl END", [&] (){
+        // std::cout << "    dummy" << std::endl;
+    });
+    #endif
     return res;
 }
 
@@ -403,6 +413,11 @@ SEXP ldfunImpl(SEXP sym, SEXP env) {
         assert(false && "Missing argument");
 
     chkfunImpl(sym, res);
+    #if DEBUG_BI_INSN == 1
+    DebugCheckpoints::printInstruction("ldfunImpl END", [&] (){
+        // std::cout << "    dummy" << std::endl;
+    });
+    #endif
     return res;
 }
 
@@ -454,6 +469,11 @@ static SEXP callBuiltinImpl(rir::Code* c, Immediate ast, SEXP callee, SEXP env,
     SLOWASSERT(ctx);
     auto res = doCall(call, ctx);
     SLOWASSERT(res);
+    #if DEBUG_BI_INSN == 1
+    DebugCheckpoints::printInstruction("callBuiltinImpl END", [&] (){
+        // std::cout << "    dummy" << std::endl;
+    });
+    #endif
     return res;
 }
 
@@ -461,7 +481,7 @@ static SEXP callImpl(ArglistOrder::CallId callId, rir::Code* c, Immediate ast,
                      SEXP callee, SEXP env, size_t nargs,
                      unsigned long available) {
     #if DEBUG_BI_INSN == 1
-    DebugCheckpoints::printInstruction("callImpl", [&] (){
+    DebugCheckpoints::printInstruction("callImpl START", [&] (){
         // std::cout << "    dummy" << std::endl;
     });
     #endif
@@ -473,15 +493,25 @@ static SEXP callImpl(ArglistOrder::CallId callId, rir::Code* c, Immediate ast,
     SLOWASSERT(env == symbol::delayedEnv || TYPEOF(env) == ENVSXP ||
                LazyEnvironment::check(env) || env == R_NilValue);
     SLOWASSERT(ctx);
-    return doCall(call, globalContext(), true);
+
+    auto res = doCall(call, globalContext(), true);
+    #if DEBUG_BI_INSN == 1
+    DebugCheckpoints::printInstruction("callImpl END", [&] (){
+        // std::cout << "    dummy" << std::endl;
+    });
+    #endif
+    return res;
 }
 
 static SEXP namedCallImpl(ArglistOrder::CallId callId, rir::Code* c,
                           Immediate ast, SEXP callee, SEXP env, size_t nargs,
                           Immediate* names, unsigned long available) {
     #if DEBUG_BI_INSN == 1
-    DebugCheckpoints::updateCheckpoint("namedCallImpl:CP");
+    DebugCheckpoints::updateCheckpoint("namedCallImp<l:CP");
     DebugCheckpoints::printInstruction("namedCallImpl", [&] (){
+        if (DebugCheckpoints::getInstIdx() == 35895) {
+            std::cout << "  At 35786" << std::endl;
+        }
         std::cout << "    callId: " << callId << std::endl;
         std::cout << "    code: " << c << std::endl;
         std::cout << "    ast: " << ast << std::endl;
@@ -507,7 +537,16 @@ static SEXP namedCallImpl(ArglistOrder::CallId callId, rir::Code* c,
     SLOWASSERT(env == symbol::delayedEnv || TYPEOF(env) == ENVSXP ||
                LazyEnvironment::check(env));
     SLOWASSERT(ctx);
-    return doCall(call, ctx, true);
+    auto res = doCall(call, ctx, true);
+
+    #if DEBUG_BI_INSN == 1
+    // DebugCheckpoints::updateCheckpoint("namedCallImpl:CP END");
+    DebugCheckpoints::printInstruction("namedCallImpl:CP END", [&] (){
+
+    });
+    #endif
+
+    return res;
 }
 
 static SEXP dotsCallImpl(ArglistOrder::CallId callId, rir::Code* c,
@@ -559,6 +598,11 @@ SEXP createPromiseImpl(SEXP expr, SEXP env) {
     #endif
     SEXP res = Rf_mkPROMISE(expr, env);
     SET_PRVALUE(res, R_UnboundValue);
+    #if DEBUG_BI_INSN == 1
+    DebugCheckpoints::printInstruction("createPromiseImpl END", [&] (){
+        // std::cout << "    dummy" << std::endl;
+    });
+    #endif
     return res;
 }
 
@@ -2677,6 +2721,12 @@ void initClosureContextImpl(ArglistOrder::CallId callId, rir::Code* c, SEXP ast,
     else
         Rf_begincontext(cntxt, CTXT_RETURN, ast, symbol::delayedEnv, sysparent,
                         lazyArglist, op);
+
+    #if DEBUG_BI_INSN == 1
+    DebugCheckpoints::printInstruction("initClosureContextImpl END", [&] (){
+        // std::cout << "    dummy" << std::endl;
+    });
+    #endif
 }
 
 static void endClosureContextImpl(RCNTXT* cntxt, SEXP result) {
