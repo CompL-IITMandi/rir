@@ -1061,12 +1061,13 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
         serializerData::print(sDataContainer, 2);
     }
 
+    contextData::addCI(cData);
 
     // rename temp files
     {
         std::stringstream bcFName;
         std::stringstream bcOldName;
-        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << ".bc";
+        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << "_" << contextData::getCI(cData) << ".bc";
         bcOldName << prefix << "/" << contextData::getContext(cData) << ".bc";
         int stat = std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
         if (stat != 0) {
@@ -1079,7 +1080,7 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
     {
         std::stringstream bcFName;
         std::stringstream bcOldName;
-        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << ".pool";
+        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << "_" << contextData::getCI(cData) << ".pool";
         bcOldName << prefix << "/" << contextData::getContext(cData) << ".pool";
         int stat = std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
         if (stat != 0) {

@@ -68,6 +68,8 @@ namespace rir {
         static SEXP getVtableContainerAtOffset(SEXP hastSym, int offset);
         static DispatchTable * getVtableAtOffset(DispatchTable * vtab, int offset);
         static void printSources(DispatchTable* vtable, SEXP hastSym);
+
+        static void populateTypeFeedbackData(SEXP container, DispatchTable * vtab);
     };
 
 }

@@ -389,6 +389,12 @@ static void updateFunctionMetas(std::vector<std::string> & relevantNames,
     }
 }
 
+static SEXP getVtableContainer(SEXP hastSym) {
+    SEXP lMap = Pool::get(HAST_VTAB_MAP);
+    auto resolvedContainer = Rf_findVarInFrame(lMap, hastSym);
+    return resolvedContainer;
+}
+
 rir::Function* Backend::doCompile(ClosureVersion* cls,
                                   ClosureStreamLogger& log) {
     // TODO: keep track of source ast indices in the source pool
@@ -674,6 +680,15 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
                 }
 
                 contextData::addReqMapForCompilation(cData, rData);
+
+                SEXP vtabContainer = getVtableContainer(hast);
+                if (!DispatchTable::check(vtabContainer)) {
+                    *serializerError = true;
+                    DebugMessages::printSerializerMessage("(E) Backend, Unexpected dispatch table unpacking failure!", 1);
+                }
+
+                DispatchTable* dt = DispatchTable::unpack(vtabContainer);
+                BitcodeLinkUtil::populateTypeFeedbackData(cData, dt);
 
                 if (DebugMessages::serializerDebugLevel() > 1) {
                     contextData::print(cData, 2);

@@ -5,6 +5,7 @@
 #include "ir/BC.h"
 #include "utils/UMap.h"
 
+#include "runtime/TypeFeedback.h"
 #include <fstream>
 
 #define PRINT_EXTENDED_CHILDREN 0
@@ -219,10 +220,16 @@ namespace rir {
         // 0 (unsigned long) unsigned long
         // 1 (SEXP) reqMapForCompilation
 
+        // 2 (SEXP) Type Feedback Info
+        // It is stored as a linearized list of the TypeFeedback from the mainCodeObj.
+
+        // 3 (unsigned int) creationIndex
+        // Within a run this index is unique, handle merging across program runs this is invalid.
+
         public:
             // Misc functions
             static unsigned getStorageSize() {
-                return 2;
+                return 4;
             }
 
             static void addSEXP(SEXP container, SEXP data, const int & index) {
@@ -240,6 +247,7 @@ namespace rir {
                 }
             }
 
+            static void addObservedValueToVector(SEXP container, ObservedValues * observedVal);
             // ENTRY 0: Con
             static void addContext(SEXP container, const unsigned long & data) {
                 SEXP store;
@@ -296,6 +304,32 @@ namespace rir {
                 }
             }
 
+            // ENTRY 2: TypeFeedbackData
+            static void addTF(SEXP container, SEXP data) {
+                addSEXP(container, data, 2);
+            }
+
+            static SEXP getTF(SEXP container) {
+                return getSEXP(container, 2);
+            }
+
+            // ENTRY 3: creationIndex
+            static void addCI(SEXP container) {
+                static unsigned int CI = 0;
+                SEXP store;
+                PROTECT(store = Rf_allocVector(RAWSXP, sizeof(unsigned int)));
+                unsigned int * tmp = (unsigned int *) DATAPTR(store);
+                *tmp = CI++;
+                SET_VECTOR_ELT(container, 3, store);
+                UNPROTECT(1);
+            }
+
+            static unsigned int getCI(SEXP container) {
+                SEXP dataContainer = VECTOR_ELT(container, 3);
+                unsigned int* res = (unsigned int *) DATAPTR(dataContainer);
+                return *res;
+            }
+
             static void print(SEXP container, unsigned int space) {
                 printSpace(space);
                 std::cout << "== contextData ==" << std::endl;
@@ -313,7 +347,18 @@ namespace rir {
                     std::cout << CHAR(PRINTNAME(ele)) << " ";
                 }
                 std::cout << ">" << std::endl;
-                std::cout << "Print Done" << std::endl;
+                printSpace(space);
+                SEXP tfContainer = getTF(container);
+                std::cout << "ENTRY(2)[Type Feedback Info](" << Rf_length(tfContainer) / (int) sizeof(ObservedValues) << " Entries): <";
+                ObservedValues * tmp = (ObservedValues *) DATAPTR(tfContainer);
+                for (int i = 0; i < Rf_length(tfContainer) / (int) sizeof(ObservedValues); i++) {
+                    tmp[i].print(std::cout);
+                    if (i + 1 != Rf_length(tfContainer) / (int) sizeof(ObservedValues)) {
+                        std::cout << ", ";
+                    }
+                }
+                std::cout << ">" << std::endl;
+                std::cout << "ENTRY(3)[Creation Index]: " << getCI(container) << std::endl;
             }
     };
 
