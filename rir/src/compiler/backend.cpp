@@ -449,6 +449,29 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
     };
     lowerAndScanForPromises(cls);
 
+    Code * mainFunCodeObj = nullptr;
+    SEXP hast = R_NilValue;
+
+    if (SerializerFlags::serializerEnabled && cData) {
+        // Find the head code object
+        mainFunCodeObj = findFunCodeObj(promMap);
+        hast = getHastAndIndex(mainFunCodeObj->rirSrc()->src).hast;
+
+        if (hast == R_NilValue) {
+            *serializerError = true;
+            DebugMessages::printSerializerMessage("(E) Backend, main src hast is blacklisted.", 1);
+        } else {
+            SEXP vtabContainer = getVtableContainer(hast);
+            if (!DispatchTable::check(vtabContainer)) {
+                *serializerError = true;
+                DebugMessages::printSerializerMessage("(E) Backend, Unexpected dispatch table unpacking failure!", 1);
+            } else {
+                DispatchTable* dt = DispatchTable::unpack(vtabContainer);
+                BitcodeLinkUtil::populateTypeFeedbackData(cData, dt);
+            }
+        }
+    }
+
     if (MEASURE_COMPILER_BACKEND_PERF) {
         Measuring::countTimer("backend.cpp: lowering");
         Measuring::startTimer("backend.cpp: pir2llvm");
@@ -492,18 +515,9 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
     };
     auto body = compile(cls);
 
-    if (SerializerFlags::serializerEnabled && cData) {
-        // Find the head code object
-        Code * mainFunCodeObj = findFunCodeObj(promMap);
-        SEXP hast = getHastAndIndex(done[mainFunCodeObj]->src).hast;
+    if (SerializerFlags::serializerEnabled && cData && *serializerError == false) {
 
-        // If lowering failed, skip further serialization process
-        if (*serializerError == true) {
-            DebugMessages::printSerializerMessage("(E) Lowering patches failed, skipping further serialization process.", 1);
-        } else if (hast == R_NilValue) {
-            *serializerError = true;
-            DebugMessages::printSerializerMessage("(E) Backend, main src hast is blacklisted.", 1);
-        } else {
+        {
 
             // 1: Generate a unique prefix [also makes it easy to keep track]
             // (to prevent collisions in the JIT when serializing and deserializing together)
@@ -681,16 +695,19 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
 
                 contextData::addReqMapForCompilation(cData, rData);
 
-                SEXP vtabContainer = getVtableContainer(hast);
-                if (!DispatchTable::check(vtabContainer)) {
-                    *serializerError = true;
-                    DebugMessages::printSerializerMessage("(E) Backend, Unexpected dispatch table unpacking failure!", 1);
-                }
+                //
+                // Collect type feedback before lowering as lowering may update some slots
+                //
+                // SEXP vtabContainer = getVtableContainer(hast);
+                // if (!DispatchTable::check(vtabContainer)) {
+                //     *serializerError = true;
+                //     DebugMessages::printSerializerMessage("(E) Backend, Unexpected dispatch table unpacking failure!", 1);
+                // }
 
-                DispatchTable* dt = DispatchTable::unpack(vtabContainer);
-                BitcodeLinkUtil::populateTypeFeedbackData(cData, dt);
+                // DispatchTable* dt = DispatchTable::unpack(vtabContainer);
+                // BitcodeLinkUtil::populateTypeFeedbackData(cData, dt);
 
-                if (DebugMessages::serializerDebugLevel() > 1) {
+                if (DebugMessages::serializerDebugLevel() > 2) {
                     contextData::print(cData, 2);
                 }
                 // }

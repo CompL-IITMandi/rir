@@ -1042,7 +1042,7 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
     std::string conStr(std::to_string(contextData::getContext(cData)));
     SEXP contextSym = Rf_install(conStr.c_str());
 
-    serializerData::addBitcodeData(sDataContainer, offsetSym, contextSym, cData);
+    SEXP epoch = serializerData::addBitcodeData(sDataContainer, offsetSym, contextSym, cData);
 
     // 2. Write updated metadata
     R_outpstream_st outputStream;
@@ -1061,13 +1061,11 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
         serializerData::print(sDataContainer, 2);
     }
 
-    contextData::addCI(cData);
-
     // rename temp files
     {
         std::stringstream bcFName;
         std::stringstream bcOldName;
-        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << "_" << contextData::getCI(cData) << ".bc";
+        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << CHAR(PRINTNAME(epoch)) << ".bc";
         bcOldName << prefix << "/" << contextData::getContext(cData) << ".bc";
         int stat = std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
         if (stat != 0) {
@@ -1080,7 +1078,7 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
     {
         std::stringstream bcFName;
         std::stringstream bcOldName;
-        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << "_" << contextData::getCI(cData) << ".pool";
+        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << CHAR(PRINTNAME(epoch)) << ".pool";
         bcOldName << prefix << "/" << contextData::getContext(cData) << ".pool";
         int stat = std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
         if (stat != 0) {

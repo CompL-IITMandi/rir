@@ -10,6 +10,7 @@
 
 #define PRINT_EXTENDED_CHILDREN 0
 
+#include <chrono>
 namespace rir {
     class SerializedPool {
         // 0 (rir::FunctionSignature) Function Signature
@@ -319,7 +320,8 @@ namespace rir {
                 SEXP store;
                 PROTECT(store = Rf_allocVector(RAWSXP, sizeof(unsigned int)));
                 unsigned int * tmp = (unsigned int *) DATAPTR(store);
-                *tmp = CI++;
+                *tmp = CI;
+                CI++;
                 SET_VECTOR_ELT(container, 3, store);
                 UNPROTECT(1);
             }
@@ -352,12 +354,15 @@ namespace rir {
                 std::cout << "ENTRY(2)[Type Feedback Info](" << Rf_length(tfContainer) / (int) sizeof(ObservedValues) << " Entries): <";
                 ObservedValues * tmp = (ObservedValues *) DATAPTR(tfContainer);
                 for (int i = 0; i < Rf_length(tfContainer) / (int) sizeof(ObservedValues); i++) {
+                    std::cout << " [";
                     tmp[i].print(std::cout);
                     if (i + 1 != Rf_length(tfContainer) / (int) sizeof(ObservedValues)) {
-                        std::cout << ", ";
+                        std::cout << "]";
                     }
                 }
                 std::cout << ">" << std::endl;
+
+                printSpace(space);
                 std::cout << "ENTRY(3)[Creation Index]: " << getCI(container) << std::endl;
             }
     };
@@ -437,7 +442,8 @@ namespace rir {
             }
 
             // ENTRY 2: Add Context Data
-            static void addBitcodeData(SEXP container, SEXP offsetSym, SEXP context, SEXP cData) {
+            static SEXP addBitcodeData(SEXP container, SEXP offsetSym, SEXP context, SEXP cData) {
+                using namespace std::chrono;
                 SEXP offsetEnvContainer = ensureAndGetOffsetEnv(container, offsetSym);
 
                 REnvHandler currMap(offsetEnvContainer);
@@ -447,7 +453,13 @@ namespace rir {
                     ss << CHAR(PRINTNAME(getHast(container))) << "_" << CHAR(PRINTNAME(context));
                     contextData::removeEleFromReqMap(cData, Rf_install(ss.str().c_str()));
                 }
-                currMap.set(context, cData);
+
+                contextData::addCI(cData);
+
+                SEXP conKey = Rf_install(std::to_string(system_clock::now().time_since_epoch().count()).c_str());
+                currMap.set(conKey, cData);
+
+                return conKey;
             }
 
             // static void addBitcodeData(SEXP container, int offset, std::string context, SEXP cData) {
@@ -505,7 +517,7 @@ namespace rir {
                 iterate(container, [&](SEXP offsetSym, SEXP conSym, SEXP cData, bool isMask) {
                     if (!isMask) {
                         printSpace(space);
-                        std::cout << "At Offset: " << CHAR(PRINTNAME(offsetSym)) << ", Context: " << CHAR(PRINTNAME(conSym)) << std::endl;
+                        std::cout << "At Offset: " << CHAR(PRINTNAME(offsetSym)) << ", Epoch: " << CHAR(PRINTNAME(conSym)) << std::endl;
                         contextData::print(cData, space+2);
                     } else {
                         printSpace(space);
