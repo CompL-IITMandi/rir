@@ -33,6 +33,9 @@
 #include "dirent.h"
 
 #include "utils/SerializerFlags.h"
+#include "utils/DeserializerConsts.h"
+#include "utils/deserializerData.h"
+#include "utils/WorklistManager.h"
 
 using namespace std::chrono;
 using namespace rir;
@@ -381,120 +384,96 @@ void hash_ast(SEXP ast, size_t & hast) {
 }
 
 
-SEXP deserializeFromFile(std::string metaDataPath) {
+static void loadMetadata(std::string metaDataPath) {
     Protect protecc;
     // Disable contextual compilation during deserialization as R_Unserialize
     // will lead to a lot of unnecessary compilation otherwise
     bool oldVal = BitcodeLinkUtil::contextualCompilationSkip;
     BitcodeLinkUtil::contextualCompilationSkip = true;
 
-    std::string prefix = "";
-
-    auto lastSlash = metaDataPath.find_last_of("/");
-
-    if (lastSlash != metaDataPath.npos) {
-        prefix = metaDataPath.substr(0, lastSlash + 1);
-    }
-
     FILE *reader;
     reader = fopen(metaDataPath.c_str(),"r");
 
     if (!reader) {
         DebugMessages::printDeserializerErrors("Unable to open meta for deserialization" + metaDataPath, 0);
-        return R_NilValue;
+        return;
     }
 
     // Initialize the deserializing stream
     R_inpstream_st inputStream;
     R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
 
-    SEXP serDataContainer;
-    protecc(serDataContainer = R_Unserialize(&inputStream));
+    SEXP ddContainer;
+    protecc(ddContainer = R_Unserialize(&inputStream));
 
     fclose(reader);
 
-    SEXP clone;
 
-    protecc(clone = Rf_allocVector(VECSXP, serializerData::getStorageSize()));
+    // // Add to hast dependency map
+    // REnvHandler hastDependencyMap(HAST_DEPENDENCY_MAP);
+    // hastDependencyMap.set(serializerData::getHast(clone), serializerData::getBitcodeMap(clone));
 
-    serializerData::copy(serDataContainer, clone);
-
-    // Number of bitcodes
-    serializerData::iterate(clone, [&](SEXP offsetSym, SEXP conSym, SEXP cData, bool isMask) {
-        if (!isMask) SerializerFlags::loadedFunctions++;
-    });
-
-    // Add to hast dependency map
-    REnvHandler hastDependencyMap(HAST_DEPENDENCY_MAP);
-    hastDependencyMap.set(serializerData::getHast(clone), serializerData::getBitcodeMap(clone));
+    GeneralWorklist::insert(ddContainer);
 
 
     DebugMessages::printDeserializerMessage("loaded bitcode metadata for : " + metaDataPath, 0);
     if (DebugMessages::deserializerDebugLevel() > 1) {
-        serializerData::print(clone, 2);
+        deserializerData::print(ddContainer, 2);
     }
 
-    #if CREATE_DOT_GRAPH == 1
-    REnvHandler mainMap(sData.getContextMap());
-    std::cout << "DOT_GRAPH: " << CHAR(PRINTNAME(hastSym)) << std::endl;
-    std::ofstream outfile ("dependencies.DOT", std::ios_base::app);
+    // #if CREATE_DOT_GRAPH == 1
+    // REnvHandler mainMap(sData.getContextMap());
+    // std::cout << "DOT_GRAPH: " << CHAR(PRINTNAME(hastSym)) << std::endl;
+    // std::ofstream outfile ("dependencies.DOT", std::ios_base::app);
 
-    SEXP maskSym = Rf_install("mask");
+    // SEXP maskSym = Rf_install("mask");
 
-    mainMap.iterate([&] (SEXP offsetKey, SEXP offsetEnv) {
-        // std::cout << "  " << CHAR(PRINTNAME(offsetKey)) << ":" << std::endl;
-        REnvHandler offsetContextMap(offsetEnv);
-        offsetContextMap.iterate([&] (SEXP contextKey, SEXP cData) {
-            if (contextKey == maskSym) {
-                std::cout << "skipping mask" << std::endl;
-                return;
-            }
-            // std::cout << "    " << CHAR(PRINTNAME(contextKey)) << std::endl;
-            contextData c(cData);
+    // mainMap.iterate([&] (SEXP offsetKey, SEXP offsetEnv) {
+    //     // std::cout << "  " << CHAR(PRINTNAME(offsetKey)) << ":" << std::endl;
+    //     REnvHandler offsetContextMap(offsetEnv);
+    //     offsetContextMap.iterate([&] (SEXP contextKey, SEXP cData) {
+    //         if (contextKey == maskSym) {
+    //             std::cout << "skipping mask" << std::endl;
+    //             return;
+    //         }
+    //         // std::cout << "    " << CHAR(PRINTNAME(contextKey)) << std::endl;
+    //         contextData c(cData);
 
-            SEXP rData = c.getReqMapAsVector();
-            std::stringstream currSym;
-            currSym << CHAR(PRINTNAME(hastSym)) << "_" << CHAR(PRINTNAME(offsetKey)) << "_" << CHAR(PRINTNAME(contextKey));
+    //         SEXP rData = c.getReqMapAsVector();
+    //         std::stringstream currSym;
+    //         currSym << CHAR(PRINTNAME(hastSym)) << "_" << CHAR(PRINTNAME(offsetKey)) << "_" << CHAR(PRINTNAME(contextKey));
 
-            for (int i = 0; i < Rf_length(rData); i++) {
+    //         for (int i = 0; i < Rf_length(rData); i++) {
 
-                SEXP ele = VECTOR_ELT(rData, i);
-                auto n = std::string(CHAR(PRINTNAME(ele)));
+    //             SEXP ele = VECTOR_ELT(rData, i);
+    //             auto n = std::string(CHAR(PRINTNAME(ele)));
 
-                auto firstDel = n.find('_');
-                if (firstDel != std::string::npos) {
-                    // optimistic dispatch case
-                    auto secondDel = n.find('_', firstDel + 1);
-                    auto hast = n.substr(0, firstDel);
-                    auto context = n.substr(firstDel + 1, secondDel - firstDel - 1);
-                    // auto nargs = n.substr(secondDel + 1);
-                    outfile << "\"" << currSym.str() << "\" -> \"" << hast << "_0_" << context << "\"" << std::endl;
+    //             auto firstDel = n.find('_');
+    //             if (firstDel != std::string::npos) {
+    //                 // optimistic dispatch case
+    //                 auto secondDel = n.find('_', firstDel + 1);
+    //                 auto hast = n.substr(0, firstDel);
+    //                 auto context = n.substr(firstDel + 1, secondDel - firstDel - 1);
+    //                 // auto nargs = n.substr(secondDel + 1);
+    //                 outfile << "\"" << currSym.str() << "\" -> \"" << hast << "_0_" << context << "\"" << std::endl;
 
-                } else {
-                    outfile << "\"" << currSym.str() << "\" -> \"" << CHAR(PRINTNAME(ele)) << "\"" << std::endl;
-                }
-            }
+    //             } else {
+    //                 outfile << "\"" << currSym.str() << "\" -> \"" << CHAR(PRINTNAME(ele)) << "\"" << std::endl;
+    //             }
+    //         }
 
 
 
-            outfile << "\"" << currSym.str() << "\" -> \"" << CHAR(PRINTNAME(hastSym)) << "\"" << std::endl;
+    //         outfile << "\"" << currSym.str() << "\" -> \"" << CHAR(PRINTNAME(hastSym)) << "\"" << std::endl;
 
-        });
-    });
-    outfile << std::endl;
-    outfile.close();
-    #endif
-
-    // TODO: handle prefix separately to allow different bitcodes to load from different locations
-    // Install a prefix
-    static SEXP prefSym = Rf_install("prefix");
-    if (!hastDependencyMap.get(prefSym)) {
-        hastDependencyMap.set(prefSym, Rf_mkString(prefix.c_str()));
-    }
+    //     });
+    // });
+    // outfile << std::endl;
+    // outfile.close();
+    // #endif
 
     BitcodeLinkUtil::contextualCompilationSkip = oldVal;
 
-    return R_FalseValue;
 }
 
 REXPORT SEXP applyMask(SEXP path) {
@@ -646,66 +625,56 @@ REXPORT SEXP applyMask(SEXP path) {
 
 }
 
-REXPORT SEXP loadBitcodes() {
+REXPORT SEXP printGeneralWorklist() {
+    GeneralWorklist::print(2);
+    return R_NilValue;
+}
+
+REXPORT SEXP loadBitcodes(SEXP pathToBc) {
+
+    if (DeserializerConsts::bitcodesLoaded) {
+        Rf_error("Bitcodes already loaded, only allowed to load from one location in a session!");
+    }
+
+    if (pathToBc != R_NilValue) {
+        assert(TYPEOF(pathToBc) == STRSXP);
+        DeserializerConsts::bitcodesPath = CHAR(STRING_ELT(pathToBc, 0));
+    }
+
     Protect prot;
     DIR *dir;
     struct dirent *ent;
 
-    auto path = getenv("PIR_DESERIALIZE_PREFIX") ? getenv("PIR_DESERIALIZE_PREFIX") : "./bitcodes/";
+    int metasFound = 0;
 
-    std::stringstream ss;
-    ss << path;
+    if ((dir = opendir (DeserializerConsts::bitcodesPath)) != NULL) {
 
-    #if CREATE_DOT_GRAPH == 1
-    std::ofstream outfile ("dependencies.DOT");
-    outfile << "digraph {" << std::endl << "rankdir=BT;" << std::endl;
-    outfile.close();
-    #endif
-
-    if ((dir = opendir (ss.str().c_str())) != NULL) {
         while ((ent = readdir (dir)) != NULL) {
             std::string fName = ent->d_name;
             if (fName.find(".meta") != std::string::npos) {
-                deserializeFromFile(ss.str() + "/" + fName);
+                metasFound++;
+                loadMetadata(std::string(DeserializerConsts::bitcodesPath) + "/" + fName);
             }
         }
 
         closedir (dir);
 
-        #if PRINT_DEPENDENCY_MAP == 1
-        REnvHandler hastDependencyMap(HAST_DEPENDENCY_MAP);
-        SEXP prefixSymbol = Rf_install("prefix");
-        std::cout << "Hast Dependency Map" << std::endl;
-        hastDependencyMap.iterate([&] (SEXP key, SEXP val) {
-            if (key == prefixSymbol) return;
-            std::cout << "Hast: " << CHAR(PRINTNAME(key)) << std::endl;
-            REnvHandler offsetMap(val);
-            offsetMap.iterate([&] (SEXP key, SEXP val) {
-                std::cout << "  offset[" << CHAR(PRINTNAME(key)) << "]" << std::endl;
-                REnvHandler contextMap(val);
-                contextMap.iterate([&] (SEXP key, SEXP val) {
-                    std::cout << "    context[" << CHAR(PRINTNAME(key)) << "]" << std::endl;
-                });
-            });
-        });
-        #endif
+        if (metasFound > 0) {
+            DeserializerConsts::bitcodesLoaded = true;
+        }
+
+        return Rf_mkString("Load Bitcodes Success");
     } else {
         DebugMessages::printDeserializerErrors("unable to open bitcodes directory", 0);
+        return Rf_mkString("Load Bitcodes Failed");
     }
-    #if CREATE_DOT_GRAPH == 1
-    std::ofstream outfile1 ("dependencies.DOT", std::ios_base::app);
-    outfile1 << "}" << std::endl;
-    outfile1.close();
-    #endif
-    return R_TrueValue;
 }
 
 REXPORT SEXP rirCompile(SEXP what, SEXP env) {
     static bool initializeBitcodes = false;
-    static bool earlyLoadBitcodes = getenv("EARLY_BITCODES") ? true : false;
-    if (!initializeBitcodes && earlyLoadBitcodes) {
+    if (!initializeBitcodes && DeserializerConsts::earlyBitcodes) {
         auto start = high_resolution_clock::now();
-        loadBitcodes();
+        loadBitcodes(R_NilValue);
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(stop - start);
         bitcodeTotalLoadTime = duration.count();

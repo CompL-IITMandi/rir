@@ -22,8 +22,9 @@
 #include "compiler/compiler.h"
 #include "compiler/backend.h"
 #include "utils/BitcodeLinkUtility.h"
+#include "utils/WorklistManager.h"
 
-#define DEBUG_TABLE_ENTRIES 0
+#define DEBUG_TABLE_ENTRIES 1
 #define ONLY_APPLY_MASK 0
 #include <chrono>
 using namespace std::chrono;
@@ -137,25 +138,53 @@ class Compiler {
         // Set the closure fields.
         SET_BODY(inClosure, vtable->container());
 
-        static bool normalRun = getenv("NORMAL_RUN") ? true : false;
+        static bool normalRshRun = getenv("NORMAL_RSH_RUN") ? getenv("NORMAL_RSH_RUN")[0] == '1' : false;
+        if (normalRshRun) return;
 
-        if (normalRun) return;
+        // Only Serializer run
+        static bool onlySerializerRun = getenv("ONLY_SERIALIZER_RUN") ? getenv("ONLY_SERIALIZER_RUN")[0] == '1' : false;
+
+        // Only Deserializer Run
+        static bool onlyDeserializerRun = getenv("ONLY_DESERIALIZER_RUN") ? getenv("ONLY_DESERIALIZER_RUN")[0] == '1' : false;
 
         if (hast != R_NilValue && BitcodeLinkUtil::readyForSerialization(inClosure, vtable, hast)) {
             #if DEBUG_TABLE_ENTRIES == 1
             std::cout << "(R) Hast: " << CHAR(PRINTNAME(hast)) << " (Adding table, closure and populating src Map): " << (uintptr_t)inClosure << std::endl;
             BitcodeLinkUtil::printSources(vtable, hast);
             #endif
+
             vtable->hast = hast;
             BitcodeLinkUtil::insertVTable(vtable, hast);
-            BitcodeLinkUtil::populateHastSrcData(vtable, hast);
             BitcodeLinkUtil::insertClosObj(inClosure, hast);
-            #if ONLY_APPLY_MASK == 1
-            BitcodeLinkUtil::applyMask(vtable, hast);
-            #else
-            BitcodeLinkUtil::tryLinking(vtable, hast);
-            BitcodeLinkUtil::tryUnlocking(hast);
-            #endif
+
+            // Hast Src data is not needed in pure deserializer run
+            if (onlySerializerRun) {
+                BitcodeLinkUtil::populateHastSrcData(vtable, hast);
+            } else if (onlyDeserializerRun) {
+                #if ONLY_APPLY_MASK == 1
+                BitcodeLinkUtil::applyMask(vtable, hast);
+                #else
+                BitcodeLinkUtil::tryLinking(vtable, hast);
+                BitcodeLinkUtil::tryUnlocking(hast);
+                #endif
+            } else {
+                BitcodeLinkUtil::populateHastSrcData(vtable, hast);
+
+                if (GeneralWorklist::get(hast)) {
+                    // Bitcode is available for this hast, do worklist
+                    #if ONLY_APPLY_MASK == 1
+                    BitcodeLinkUtil::applyMask(vtable, hast);
+                    #else
+                    // Tries to link available bitcodes, if they are not unlocked then adds them to either worklist1 or worklist2
+                    BitcodeLinkUtil::tryLinking(vtable, hast);
+                    // Do work on worklist1 (if work exists).
+                    BitcodeLinkUtil::tryUnlocking(hast);
+                    #endif
+
+                    // Remove entry from general worklist after work is complete
+                    GeneralWorklist::remove(hast);
+                }
+            }
         } else {
             #if DEBUG_TABLE_ENTRIES == 1
             std::cout << "(BLACK) Hast: " << CHAR(PRINTNAME(hast)) << " (Adding table, closure and populating src Map): " << (uintptr_t)inClosure << std::endl;

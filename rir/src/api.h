@@ -40,7 +40,10 @@ void printAST(int space, int val);
 hastAndIndex getHastAndIndex(unsigned src, bool constantPool = false);
 REXPORT SEXP startSerializer();
 REXPORT SEXP stopSerializer();
-REXPORT SEXP loadBitcodes();
+REXPORT SEXP loadBitcodes(SEXP path);
+
+REXPORT SEXP printGeneralWorklist();
+
 REXPORT SEXP compileStats();
 REXPORT SEXP startDebugMessages();
 REXPORT SEXP stopDebugMessages();

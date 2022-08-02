@@ -81,13 +81,19 @@ pir.tests <- function() {
     invisible(.Call("pirTests"))
 }
 
-# loadup bitcode
-f.loadBitcodes <- function() {
-    .Call("loadBitcodes")
+#
+# Loading Bitcodes
+#
+f.loadBitcodes <- function(path = NULL) {
+    invisible(.Call("loadBitcodes", path))
 }
 
-f.compileStats <- function() {
-    .Call("compileStats")
+#
+# Worklist Methods
+#
+
+f.printGeneralWorklist <- function() {
+    invisible(.Call("printGeneralWorklist"))
 }
 
 f.startDebugMessages <- function() {
