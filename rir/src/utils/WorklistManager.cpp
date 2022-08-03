@@ -42,10 +42,10 @@ void GeneralWorklist::print(const unsigned int & space) {
 //
 // UnlockingElement
 //
-BC::PoolIdx UnlockingElement::createWorklistElement(const char *  pathPrefix, SEXP vtabContainer, const int & versioningInfo, const int & counter) {
+BC::PoolIdx UnlockingElement::createWorklistElement(const char *  pathPrefix, SEXP vtabContainer, const int & versioningInfo, const int & counter, unsigned long context) {
     SEXP store;
     Protect protecc;
-    protecc(store = Rf_allocVector(VECSXP, 4));
+    protecc(store = Rf_allocVector(VECSXP, 6));
 
 
     SEXP pathPrefixCont;
@@ -63,43 +63,91 @@ BC::PoolIdx UnlockingElement::createWorklistElement(const char *  pathPrefix, SE
     *tmp = counter;
     generalUtil::addSEXP(store, counterStore, 3);
 
-    auto res = Pool::insert(store);
+    generalUtil::addSEXP(store, R_NilValue, 4);
 
-    return res;
+    generalUtil::addUnsignedLong(store, context, 5);
+
+    BC::PoolIdx ueIdx = Pool::insert(store);
+
+    return ueIdx;
 }
 
-const char * UnlockingElement::getPathPrefix(BC::PoolIdx idx) {
-
-    SEXP pathPrefixCont = generalUtil::getSEXP(Pool::get(idx), 0);
+const char * UnlockingElement::getPathPrefix(SEXP container) {
+    SEXP pathPrefixCont = generalUtil::getSEXP(container, 0);
     return CHAR(pathPrefixCont);
 }
 
-SEXP UnlockingElement::getVtableContainer(BC::PoolIdx idx) { return generalUtil::getSEXP(Pool::get(idx), 1); }
+SEXP UnlockingElement::getVtableContainer(SEXP container) { return generalUtil::getSEXP(container, 1); }
 
-int UnlockingElement::getVersioningInfo(BC::PoolIdx idx) { return generalUtil::getInt(Pool::get(idx), 2); }
+int UnlockingElement::getVersioningInfo(SEXP container) { return generalUtil::getInt(container, 2); }
 
-int * UnlockingElement::getCounter(BC::PoolIdx idx) {
-    auto counterStore = generalUtil::getSEXP(Pool::get(idx), 3);
+int * UnlockingElement::getCounter(SEXP container) {
+    auto counterStore = generalUtil::getSEXP(container, 3);
     return (int *) DATAPTR(counterStore);
 }
 
-void UnlockingElement::print(BC::PoolIdx idx, const int & space) {
-    generalUtil::printSpace(space);
-    std::cout << "Unlocking Element" << std::endl;
+void UnlockingElement::addNumArgs(SEXP container, unsigned numArgs) {
+    Protect protecc;
 
-    generalUtil::printSpace(space + 2);
-    std::cout << "PathPrefix: " << getPathPrefix(idx) << std::endl;
+    SEXP store;
+    protecc(store = Rf_allocVector(RAWSXP, sizeof(unsigned)));
+    unsigned * tmp = (unsigned *) DATAPTR(store);
+    *tmp = numArgs;
 
-    generalUtil::printSpace(space + 2);
-    std::cout << "getVtableContainer: " << getVtableContainer(idx) << std::endl;
-
-    generalUtil::printSpace(space + 2);
-    std::cout << "Versioning: " << getVersioningInfo(idx) << std::endl;
-
-    generalUtil::printSpace(space + 2);
-    std::cout << "Counter: " << *getCounter(idx) << std::endl;
-
+    generalUtil::addSEXP(container, store, 4);
 }
 
+unsigned * UnlockingElement::getNumArgs(SEXP container) {
+    auto store = generalUtil::getSEXP(container, 4);
+    return (store == R_NilValue) ? nullptr : (unsigned *) DATAPTR(store);
+}
+
+unsigned long UnlockingElement::getContext(SEXP container) {
+    return generalUtil::getUnsignedLong(container, 5);
+}
+
+
+void UnlockingElement::remove(BC::PoolIdx ueIdx) {
+    Pool::patch(ueIdx, R_NilValue);
+}
+
+void UnlockingElement::print(BC::PoolIdx idx, const int & space) {
+    print(Pool::get(idx), space);
+}
+
+void UnlockingElement::print(SEXP container, const int & space) {
+    generalUtil::printSpace(space);
+    std::cout << "[Unlocking Element]" << std::endl;
+
+    generalUtil::printSpace(space + 2);
+    std::cout << "├─(ENTRY 0, PathPrefix    ): " << getPathPrefix(container) << std::endl;
+
+    generalUtil::printSpace(space + 2);
+    std::cout << "├─(ENTRY 1, VtabContainer ): " << getVtableContainer(container) << std::endl;
+
+    generalUtil::printSpace(space + 2);
+    std::cout << "├─(ENTRY 2, Versioning    ): " << getVersioningInfo(container) << std::endl;
+
+    generalUtil::printSpace(space + 2);
+    std::cout << "├─(ENTRY 3, Counter       ): " << *getCounter(container) << std::endl;
+
+    generalUtil::printSpace(space + 2);
+    std::cout << "└─(ENTRY 4, numArgs       ): " << (getNumArgs(container) ? *getNumArgs(container) : 'N') << std::endl;
+}
+
+//
+// Worklists
+//
+
+std::unordered_map<SEXP, std::vector<BC::PoolIdx>> Worklist1::worklist;
+std::unordered_map<SEXP, std::vector<BC::PoolIdx>> Worklist2::worklist;
+
+void Worklist1::remove(SEXP key) {
+    worklist.erase(key);
+}
+
+void Worklist2::remove(SEXP key) {
+    worklist.erase(key);
+}
 
 }

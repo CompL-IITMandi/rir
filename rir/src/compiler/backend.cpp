@@ -739,8 +739,8 @@ Backend::LastDestructor::LastDestructor() {
     }
 }
 
-void Backend::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offsetSym, DispatchTable * vtab) {
-    jit.deserializeAndPopulateBitcode(cData, hast, offsetSym, vtab);
+void Backend::deserializeAndPopulateBitcode(SEXP uEleContainer) {
+    jit.deserializeAndPopulateBitcode(uEleContainer);
 }
 
 rir::Function* Backend::getOrCompile(ClosureVersion* cls) {

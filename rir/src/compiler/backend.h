@@ -23,7 +23,7 @@ class Backend {
 
     rir::Function* getOrCompile(ClosureVersion* cls);
 
-    void deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offsetSym, DispatchTable * vtab);
+    void deserializeAndPopulateBitcode(SEXP uEleContainer);
 
     // void deserialize(
     //   SEXP cPool, SEXP sPool,

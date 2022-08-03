@@ -145,7 +145,7 @@ class PirJitLLVM {
     void updateFunctionNameInModule(std::string, std::string);
     void patchFixupHandle(const std::string & newName, Code * code);
     void printModule();
-    void deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offsetSym, DispatchTable * vtab);
+    void deserializeAndPopulateBitcode(SEXP uEleContainer);
 };
 
 } // namespace pir

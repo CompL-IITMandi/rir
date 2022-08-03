@@ -4448,6 +4448,18 @@ void LowerFunctionLLVM::compile() {
 
                 #if DISABLE_OPTIMISTIC_DISPATCH == 0
                 if (target == bestTarget) {
+                    //
+                    // We see that this dispatch table can only be at offset 0
+                    //  as BODY(callee) -> offset 0
+                    //  other offsets can occur as src_pool entries inside the code of BODY(callee) only
+                    //
+                    // So during deserializer unlock, adding hast to vtable at offset 0
+                    // is enough, so it can be reduced to the form:
+                    //      HAST_CONTEXT_NUMARGS
+                    //      HAST    -> Used to get the closure obj
+                    //      CONTEXT -> Ensuring that certain context exists
+                    //      NUMARGS -> Making sure numargs of dispatch are compatibble
+                    //
                     auto callee = target->owner()->rirClosure();
                     auto dt = DispatchTable::check(BODY(callee));
                     rir::Function* nativeTarget = nullptr;

@@ -33,42 +33,21 @@ namespace rir {
         static bool contextualCompilationSkip;
         static size_t linkTime;
         static SEXP getHast(SEXP body, SEXP env);
-
         static void populateHastSrcData(DispatchTable* vtable, SEXP hastSym);
-
         static void insertVTable(DispatchTable* vtable, SEXP hastSym);
-
         static void insertClosObj(SEXP clos, SEXP hastSym);
-
-        static void insertToBlacklist(SEXP hastSym);
-
         static bool readyForSerialization(SEXP clos, DispatchTable* vtable, SEXP hastSym);
-
-        static SEXP getOptUnlockMap();
-
-        static void addToWorklistTwo(SEXP hastOfReq, unsigned long & con, int & nargs, SEXP unlockMetaSym);
-
-        // This worklist get called when a hast is initially compiled.
-        // If the counter becomes zero, we also link the dependent bitcodes.
-        static void addToWorklistOne(SEXP hastOfReq, SEXP unlockMeta);
-
-        static void linkBitcode(SEXP cData, SEXP hSym, SEXP offsetSymbol, DispatchTable * vtab);
 
         static void tryUnlocking(SEXP currHastSym);
         static void tryUnlockingOpt(SEXP currHastSym, const unsigned long & con, const int & nargs);
-
         static void applyMask(DispatchTable * vtab, SEXP hSym);
         static void tryLinking(DispatchTable * vtab, SEXP hSym);
-
-
         static void markStale(SEXP currHastSym, const unsigned long & con);
-
         static Code * getCodeObjectAtOffset(SEXP hastSym, int offset);
         static unsigned getSrcPoolIndexAtOffset(SEXP hastSym, int offset);
         static SEXP getVtableContainerAtOffset(SEXP hastSym, int offset);
         static DispatchTable * getVtableAtOffset(DispatchTable * vtab, int offset);
         static void printSources(DispatchTable* vtable, SEXP hastSym);
-
         static void populateTypeFeedbackData(SEXP container, DispatchTable * vtab);
     };
 

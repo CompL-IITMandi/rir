@@ -432,7 +432,7 @@ void BitcodeLinkUtil::insertClosObj(SEXP clos, SEXP hastSym) {
     closMap.set(hastSym, clos);
 }
 
-void BitcodeLinkUtil::insertToBlacklist(SEXP hastSym) {
+static void insertToBlacklist(SEXP hastSym) {
     REnvHandler blacklistMap(BL_MAP);
     if (!blacklistMap.get(hastSym)) {
         blacklistMap.set(hastSym, R_TrueValue);
@@ -454,357 +454,191 @@ bool BitcodeLinkUtil::readyForSerialization(SEXP clos, DispatchTable* vtable, SE
     return true;
 }
 
-SEXP BitcodeLinkUtil::getOptUnlockMap() {
-    SEXP tabMap = Pool::get(OPT_UNLOCK_MAP);
-    if (tabMap == R_NilValue) {
-        SEXP tmp;
-        PROTECT(tmp = R_NewEnv(R_EmptyEnv,0,0));
-        Pool::patch(OPT_UNLOCK_MAP, tmp);
-        UNPROTECT(1);
-        tabMap = Pool::get(OPT_UNLOCK_MAP);
-    }
-    return tabMap;
-}
-
-void BitcodeLinkUtil::addToWorklistTwo(SEXP hastOfReq, unsigned long & con, int & nargs, SEXP unlockMetaSym) {
-    std::stringstream ss;
-    ss << CHAR(PRINTNAME(hastOfReq)) << "_" << con;
-    SEXP optMapKey = Rf_install(ss.str().c_str());
-    #if PRINT_LINKING_STATUS == 1
-    std::cout << "Add to worklist two: " << ss.str() << std::endl;
-    #endif
-    REnvHandler optUnlockMap(OPT_UNLOCK_MAP);
-
-    SEXP worklistElement;
-    PROTECT(worklistElement = Rf_allocVector(VECSXP, 2));
-    SET_VECTOR_ELT(worklistElement, 0, Rf_ScalarInteger(nargs));
-    SET_VECTOR_ELT(worklistElement, 1, unlockMetaSym);
-
-    if (SEXP existingWorklist = optUnlockMap.get(optMapKey)) {
-        int freeSpaceAt = -1;
-        for (int i = 0; i < Rf_length(existingWorklist); i++) {
-            auto ele = VECTOR_ELT(existingWorklist, i);
-            if (ele == R_NilValue) {
-                freeSpaceAt = i;
-                break;
-            }
-        }
-
-        if (freeSpaceAt != -1) {
-            SET_VECTOR_ELT(existingWorklist, freeSpaceAt, worklistElement);
-        } else {
-            // grow vector
-            SEXP oldVec = existingWorklist;
-            auto oldSize = Rf_length(oldVec);
-
-            SEXP newWorkVec;
-            PROTECT(newWorkVec = Rf_allocVector(VECSXP, oldSize + GROWTHRATE));
-            memcpy(DATAPTR(newWorkVec), DATAPTR(oldVec), oldSize * sizeof(SEXP));
-            SET_VECTOR_ELT(newWorkVec, oldSize, worklistElement);
-            optUnlockMap.set(optMapKey, newWorkVec);
-            UNPROTECT(1);
-        }
-
-    } else {
-        SEXP worklist;
-        PROTECT(worklist = Rf_allocVector(VECSXP, GROWTHRATE));
-        SET_VECTOR_ELT(worklist, 0, worklistElement);
-        optUnlockMap.set(optMapKey, worklist);
-        UNPROTECT(1);
-    }
-
-    UNPROTECT(1);
-}
-
-// This worklist get called when a hast is initially compiled.
-// If the counter becomes zero, we also link the dependent bitcodes.
-void BitcodeLinkUtil::addToWorklistOne(SEXP hastOfReq, SEXP unlockMeta) {
-    REnvHandler hastUnlockMap(HAST_UNLOCK_MAP);
-
-    // SEXP existingEntry = Rf_findVarInFrame(unlockMap, hastOfReq);
-    if (SEXP worklist = hastUnlockMap.get(hastOfReq)) {
-        // worklist already exists for this hast, all to it
-
-        int freeSpaceAt = -1;
-        for (int i = 0; i < Rf_length(worklist); i++) {
-            auto ele = VECTOR_ELT(worklist, i);
-            if (ele == R_NilValue) {
-                freeSpaceAt = i;
-                break;
-            }
-        }
-
-        if (freeSpaceAt != -1) {
-            SET_VECTOR_ELT(worklist, freeSpaceAt, unlockMeta);
-        } else {
-            // grow vector
-            SEXP oldVec = worklist;
-            auto oldSize = Rf_length(oldVec);
-
-            SEXP newWorkVec;
-            PROTECT(newWorkVec = Rf_allocVector(VECSXP, oldSize + GROWTHRATE));
-            memcpy(DATAPTR(newWorkVec), DATAPTR(oldVec), oldSize * sizeof(SEXP));
-            SET_VECTOR_ELT(newWorkVec, oldSize, unlockMeta); // set the first free index to unlock metadata
-            hastUnlockMap.set(hastOfReq, newWorkVec); // update the worklist vector
-            UNPROTECT(1);
-        }
-
-    } else {
-        SEXP worklistContainerVector;
-        PROTECT(worklistContainerVector = Rf_allocVector(VECSXP, GROWTHRATE)); // create a vector of initial size GROWTHRATE
-        SET_VECTOR_ELT(worklistContainerVector, 0, unlockMeta); // set the first free index to unlock metadata
-        hastUnlockMap.set(hastOfReq, worklistContainerVector); // update the worklist vector
-        UNPROTECT(1);
-    }
-}
-
-void BitcodeLinkUtil::linkBitcode(SEXP cData, SEXP hSym, SEXP offsetSymbol, DispatchTable * vtab) {
+static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime) {
     auto start = high_resolution_clock::now();
-    // if this context was already added due to unexpected compilation at runtime, skip addition, this can result in duplicate LLVM symbols
-    for (size_t i = 0; i < vtab->size(); i++) {
-        auto entry = vtab->get(i);
-        if (entry->context().toI() == contextData::getContext(cData)) {
-            #if PRINT_LINKING_STATUS == 1
-            std::cout << "duplicate linkage: " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSymbol)) << "_" << contextData::getContext(cData) << std::endl;
-            #endif
-            return;
-        }
-    }
+
+    // // if this context was already added due to unexpected compilation at runtime, skip addition, this can result in duplicate LLVM symbols
+    // for (size_t i = 0; i < vtab->size(); i++) {
+    //     auto entry = vtab->get(i);
+    //     if (entry->context().toI() == contextData::getContext(cData)) {
+    //         #if PRINT_LINKING_STATUS == 1
+    //         std::cout << "duplicate linkage: " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSymbol)) << "_" << contextData::getContext(cData) << std::endl;
+    //         #endif
+    //         return;
+    //     }
+    // }
+
+    std::string name(UnlockingElement::getPathPrefix(uEleContainer));
+
+    pir::StreamLogger logger(pir::DebugOptions::DefaultDebugOptions);
+    logger.title("Deserializing " + name);
 
     pir::Module* m = new pir::Module;
-    pir::StreamLogger logger(pir::DebugOptions::DefaultDebugOptions);
-    std::stringstream ss;
-    ss << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSymbol)) << "_" << contextData::getContext(cData);
-    std::string name = ss.str();
-    logger.title("Deserializing " + name);
+
     pir::Compiler cmp(m, logger);
     pir::Backend backend(m, logger, name);
-    backend.deserializeAndPopulateBitcode(cData, hSym, offsetSymbol, vtab);
+
+    backend.deserializeAndPopulateBitcode(uEleContainer);
     delete m;
+
+
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     linkTime += duration.count();
+
     logger.title("Deserialized " + name);
 }
 
-static inline void doLinking(SEXP unlockMeta, SEXP linkageSymbol) {
-    REnvHandler linkageMap(LINKAGE_MAP);
-    // Entry 0: counter, when this becomes zero all dependencies are satisfied
-    SEXP counterContainer = VECTOR_ELT(unlockMeta, 0);
-    int* counter = (int *) DATAPTR(counterContainer);
+static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, size_t & linkTime, bool nargsPassed = false, const unsigned & nargs = 0) {
+    std::vector<unsigned int> toRemove;
+    for (unsigned int i = 0; i < wlElementVec.size(); i++) {
 
-    // Entry 1: linking  Metadata
-    SEXP cData = VECTOR_ELT(unlockMeta, 1);
+        BC::PoolIdx ueIdx = wlElementVec[i];
+        SEXP uEleContainer = Pool::get(ueIdx);
 
-    // Entry 2: hast we are unlocking
-    SEXP hSym = VECTOR_ELT(unlockMeta, 2);
-
-    // Entry 3: offset at which we are unlocking
-    SEXP offsetSym = VECTOR_ELT(unlockMeta, 3);
-
-    // Entry 4: vtable which we are unlocking
-    SEXP vtabContainer = VECTOR_ELT(unlockMeta, 4);
-
-    *counter = *counter - 1;
-
-    // all dependencies are satisfied
-    if (*counter == 0) {
-        if (!DispatchTable::check(vtabContainer)) {
-            Rf_error("bitcode linking, dispatch table corrupted!");
+        //
+        // If this was an optimistic unlock, then make sure that the
+        // (numargs of available >= numargs of expected)
+        // If not, we cannot remove the worklist element
+        //
+        if (nargsPassed) {
+            if (unsigned * numArgs = UnlockingElement::getNumArgs(uEleContainer)) {
+                if (nargs < *numArgs) {
+                    //
+                    // Optimistic unlock worst case fail
+                    // ?TODO: If this case happens, find out why it does
+                    //
+                    std::cerr << "[TO DEBUG] Optimistic unlock worst case fail" << std::endl;
+                    continue;
+                }
+            }
         }
-        #if PRINT_LINKING_STATUS == 1
-        std::cout << "  linking  (" << *counter << "): " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << contextData::getContext(cData) << std::endl;
-        #endif
-        // Remove the linkageSymbol to prevent infinite linking recursion
-        linkageMap.remove(linkageSymbol);
 
-        // link the unlocked bitcode
-        BitcodeLinkUtil::linkBitcode(cData, hSym, offsetSym, DispatchTable::unpack(vtabContainer));
+        // Processed indices can be removed
+        toRemove.push_back(i);
 
-        // DispatchTable::unpack(vtabContainer)->disableFurtherSpecialization = false;
-    } else {
-        #if PRINT_LINKING_STATUS == 1
-        std::cout << "  counting (" << *counter << "): " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << contextData::getContext(cData) << std::endl;
-        #endif
-        if (!DispatchTable::check(vtabContainer)) {
-            Rf_error("bitcode linking, dispatch table corrupted! (was still counting)");
+        int * counter = UnlockingElement::getCounter(uEleContainer);
+        *counter = *counter - 1;
+
+        if (*counter == 0) {
+            //
+            // Do unlocking if counter becomes 0
+            //
+            doUnlockingElement(uEleContainer, linkTime);
+            UnlockingElement::remove(ueIdx);
         }
-        // DispatchTable::unpack(vtabContainer)->disableFurtherSpecialization = true;
     }
-    #if PRINT_LINKING_STATUS == 1
-    std::cout << "doLinking end" << std::endl;
-    #endif
+
+    // https://stackoverflow.com/questions/35055227/how-to-erase-multiple-elements-from-stdvector-by-index-using-erase-function
+    // Sorting toRemove is ascending order is needed but
+    // due to the order of creation they are already sorted
+    // std::sort(toRemove.begin(), toRemove.end());
+
+    //
+    // Traverse the remove list in decreasing order,
+    // When we remove those indices from the wlElementVec
+    // the relative order of indices to remove does not change
+    //
+
+    for (std::vector<unsigned int>::reverse_iterator i = toRemove.rbegin(); i != toRemove.rend(); ++ i) {
+        wlElementVec.erase(wlElementVec.begin() + *i);
+    }
 }
 
-static inline void doWorklistOpt(SEXP worklist, const int & nargs) {
-    REnvHandler linkageMap(LINKAGE_MAP);
-    for (int i = 0; i < Rf_length(worklist); i++) {
-        auto ele = VECTOR_ELT(worklist, i);
-        if (ele == R_NilValue) continue;
-
-        int * nargsExpected = INTEGER(VECTOR_ELT(ele, 0));
-        if (nargs < *nargsExpected) {
-            #if PRINT_LINKING_STATUS == 1
-            std::cout << "  optimistic linking failure, nargs less than expected" << std::endl;
-            #endif
-            // Free slot from worklist
-            SET_VECTOR_ELT(worklist, i, R_NilValue);
-            continue;
-        }
-
-        SEXP linkageSymbol = VECTOR_ELT(ele, 1);
-
-        if (SEXP unlockMeta = linkageMap.get(linkageSymbol)) {
-            doLinking(unlockMeta, linkageSymbol);
-        } else {
-            #if PRINT_LINKING_STATUS == 1
-            std::cout << "  stale: " << CHAR(PRINTNAME(linkageSymbol)) << std::endl;
-            #endif
-        }
-
-        // Free slot from worklist
-        SET_VECTOR_ELT(worklist, i, R_NilValue);
-
-    }
-    #if PRINT_LINKING_STATUS == 1
-    std::cout << "doWorklistOpt end" << std::endl;
-    #endif
-}
-
-static inline void doWorklist(SEXP worklist) {
-    REnvHandler linkageMap(LINKAGE_MAP);
-    for (int i = 0; i < Rf_length(worklist); i++) {
-        auto linkageSymbol = VECTOR_ELT(worklist, i);
-        if (linkageSymbol == R_NilValue) continue;
-
-        if (SEXP unlockMeta = linkageMap.get(linkageSymbol)) {
-            doLinking(unlockMeta, linkageSymbol);
-        } else {
-            #if PRINT_LINKING_STATUS == 1
-            std::cout << "  stale: " << CHAR(PRINTNAME(linkageSymbol)) << std::endl;
-            #endif
-        }
-
-        // Free slot from worklist
-        SET_VECTOR_ELT(worklist, i, R_NilValue);
-
-    }
-    #if PRINT_LINKING_STATUS == 1
-    std::cout << "doWorklist end" << std::endl;
-    #endif
-}
-
+//
+// Check if Worklist1 has work for the current hast
+//
 void BitcodeLinkUtil::tryUnlocking(SEXP currHastSym) {
-    // REnvHandler hastUnlockMap(HAST_UNLOCK_MAP);
+    if (Worklist1::worklist.count(currHastSym) > 0) {
+        std::vector<BC::PoolIdx> & wl = Worklist1::worklist[currHastSym];
+        processWorklistElements(wl, linkTime);
 
-    // if (SEXP worklist = hastUnlockMap.get(currHastSym)) {
-    //     #if PRINT_LINKING_STATUS == 1
-    //     std::cout << "[worklist: " << CHAR(PRINTNAME(currHastSym)) << "]" << std::endl;
-    //     #endif
-    //     doWorklist(worklist);
-    //     // remove entry from the worklist
-    //     hastUnlockMap.remove(currHastSym);
-    // }
-
-    // #if PRINT_LINKING_STATUS == 1
-    // std::cout << "tryUnlocking end" << std::endl;
-    // #endif
+        if (wl.size() == 0) {
+            Worklist1::remove(currHastSym);
+        }
+    }
 }
 
+//
+// Check if Worklist2 has work for the current hast_context
+//
 void BitcodeLinkUtil::tryUnlockingOpt(SEXP currHastSym, const unsigned long & con, const int & nargs) {
     std::stringstream ss;
     ss << CHAR(PRINTNAME(currHastSym)) << "_" << con;
-    SEXP optMapKey = Rf_install(ss.str().c_str());
+    SEXP worklistKey = Rf_install(ss.str().c_str());
 
-    REnvHandler optUnlockMap(OPT_UNLOCK_MAP);
+    if (Worklist2::worklist.count(worklistKey) > 0) {
+        std::vector<BC::PoolIdx> & wl = Worklist2::worklist[worklistKey];
+        processWorklistElements(wl, linkTime, true, nargs);
 
-    if (SEXP worklist = optUnlockMap.get(optMapKey)) {
-        #if PRINT_LINKING_STATUS == 1
-        std::cout << "[opt worklist: " << CHAR(PRINTNAME(optMapKey)) << "]" << std::endl;
-        #endif
-        doWorklistOpt(worklist, nargs);
-        // remove entry from the worklist
-        optUnlockMap.remove(currHastSym);
+        if (wl.size() == 0) {
+            Worklist2::remove(worklistKey);
+        }
     }
 }
 
 void BitcodeLinkUtil::markStale(SEXP currHastSym, const unsigned long & con) {
-    std::stringstream ss;
-    ss << CHAR(PRINTNAME(currHastSym)) << "_" << con;
-    SEXP optMapKey = Rf_install(ss.str().c_str());
+    // std::stringstream ss;
+    // ss << CHAR(PRINTNAME(currHastSym)) << "_" << con;
+    // SEXP optMapKey = Rf_install(ss.str().c_str());
 
-    REnvHandler linkageMap(LINKAGE_MAP);
+    // REnvHandler linkageMap(LINKAGE_MAP);
 
-    if (linkageMap.get(optMapKey)) {
-        #if PRINT_LINKING_STATUS == 1
-        std::cout << "  MARKED STALE: " << ss.str() << std::endl;
-        #endif
-        linkageMap.remove(optMapKey);
-    }
-}
-
-void BitcodeLinkUtil::applyMask(DispatchTable * vtab, SEXP hSym) {
-    // REnvHandler hastDepMap(HAST_DEPENDENCY_MAP);
-    // if (hastDepMap.isEmpty()) return;
-
-    // SEXP hastEnv = hastDepMap.get(hSym);
-    // SEXP maskSym = Rf_install("mask");
-
-    // if (hastEnv) {
-    //     REnvHandler hastVtabMap(HAST_VTAB_MAP);
-    //     REnvHandler hastEnvMap(hastEnv);
-    //     hastEnvMap.iterate([&] (SEXP offsetSym, SEXP offsetEnv) {
-    //         int reqOffset = std::stoi(CHAR(PRINTNAME(offsetSym)));
-    //         DispatchTable * requiredVtab = getVtableAtOffset(vtab,reqOffset);
-    //         REnvHandler offsetMap(offsetEnv);
-
-    //         offsetMap.iterate([&] (SEXP contextSym, SEXP cData) {
-    //             if (maskSym == contextSym) {
-    //                 // Add mask to dispatch table
-    //                 unsigned long* res = (unsigned long *) DATAPTR(cData);
-    //                 // std::cout << "found mask: " << Context(*res) << std::endl;
-    //                 requiredVtab->mask = Context(*res);
-    //             }
-    //         });
-    //     });
-
-    //     // remove the metadata after processing it
-    //     hastDepMap.remove(hSym);
+    // if (linkageMap.get(optMapKey)) {
+    //     #if PRINT_LINKING_STATUS == 1
+    //     std::cout << "  MARKED STALE: " << ss.str() << std::endl;
+    //     #endif
+    //     linkageMap.remove(optMapKey);
     // }
 }
 
+void BitcodeLinkUtil::applyMask(DispatchTable * vtab, SEXP hSym) {
+
+}
+
+//
 // Removes already satisfied dependencies and returns number of unsatisfied ones
+//
 static std::pair<int, std::vector<int>> reduceReqMap(SEXP rMap) {
     int unsatisfiedDependencies = 0;
     std::vector<int> optimisticIdx;
 
+    // // Original Requirement Map
+    // std::cout << "ORIGINAL REQ_MAP: (" << Rf_length(rMap) << "): [ ";
+    // for (int i = 0; i < Rf_length(rMap); i++) {
+    //     std::cout << CHAR(PRINTNAME(VECTOR_ELT(rMap, i))) << " ";
+    // }
+    // std::cout << "]" << std::endl;
+
+
     REnvHandler hastVtabMap(HAST_VTAB_MAP);
     for (int i = 0; i < Rf_length(rMap); i++) {
-        SEXP ele = VECTOR_ELT(rMap, i);
+        SEXP dep = VECTOR_ELT(rMap, i);
 
         SEXP hastOfReq;
         unsigned long con;
         int numArgs;
 
         bool optimisticCase = false;
-        std::string n(CHAR(PRINTNAME(ele)));
+        std::string n(CHAR(PRINTNAME(dep)));
 
         auto firstDel = n.find('_');
         if (firstDel != std::string::npos) {
-            // optimistic dispatch case
+            auto n = std::string(CHAR(PRINTNAME(dep)));
+            auto firstDel = n.find('_');
             auto secondDel = n.find('_', firstDel + 1);
             auto hast = n.substr(0, firstDel);
             auto context = n.substr(firstDel + 1, secondDel - firstDel - 1);
             auto nargs = n.substr(secondDel + 1);
 
+            hastOfReq = Rf_install(hast.c_str());
             con = std::stoul(context);
             numArgs = std::stoi(nargs);
-            hastOfReq = Rf_install(hast.c_str());
 
             optimisticIdx.push_back(i);
             optimisticCase = true;
         } else {
-            hastOfReq = ele;
+            hastOfReq = dep;
         }
 
         if (!optimisticCase) {
@@ -847,50 +681,35 @@ static std::pair<int, std::vector<int>> reduceReqMap(SEXP rMap) {
 
     }
 
-    return std::pair<int, std::vector<int>>(unsatisfiedDependencies, optimisticIdx);
+    // // Reduced Requirement Map
+    // std::cout << "REDUCED REQ_MAP: (" << Rf_length(rMap) << "): [ ";
+    // for (int i = 0; i < Rf_length(rMap); i++) {
+    //     if (VECTOR_ELT(rMap, i) != R_NilValue)
+    //     std::cout << CHAR(PRINTNAME(VECTOR_ELT(rMap, i))) << " ";
+    // }
+    // std::cout << "]" << std::endl;
 
+    return std::pair<int, std::vector<int>>(unsatisfiedDependencies, optimisticIdx);
 }
 
-// // Count number of non null elements
-// static int reqMapSize() {
-
-//     return 0;
-// }
-
 void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
-
-
     SEXP ddCont = GeneralWorklist::get(hSym);
+    //
+    // Add hast to the dispatch table as we know this is the 0th offset by default.
+    //
+
+    SEXP hastSym  = deserializerData::getHast(ddCont);
+    vtab->hast = hastSym;
 
     deserializerData::iterateOverUnits(ddCont, [&](SEXP ddContainer, SEXP offsetUnitContainer, SEXP contextUnitContainer, SEXP binaryUnitContainer) {
-        // // Original Requirement Map
-        // SEXP rMap = binaryUnit::getReqMap(binaryUnitContainer);
-        // std::cout << "ORIGINAL REQ_MAP: (" << Rf_length(rMap) << "): [ ";
-        // for (int i = 0; i < Rf_length(rMap); i++) {
-        //     std::cout << CHAR(PRINTNAME(VECTOR_ELT(rMap, i))) << " ";
-        // }
-        // std::cout << "]" << std::endl;
-
-        // Reduced Requirement Map
-
-
-        // // Reduced Requirement Map
-        // std::cout << "REDUCED REQ_MAP: (" << Rf_length(rMap) << "): [ ";
-        // for (int i = 0; i < Rf_length(rMap); i++) {
-        //     if (VECTOR_ELT(rMap, i) != R_NilValue)
-        //     std::cout << CHAR(PRINTNAME(VECTOR_ELT(rMap, i))) << " ";
-        // }
-        // std::cout << "]" << std::endl;
-
         //
         // Creating the UnlockElement
         //
 
-        // 0. PathPrefix
-        SEXP hastSym  = deserializerData::getHast(ddContainer);
         int offsetIdx = offsetUnit::getOffsetIdxAsInt(offsetUnitContainer);
         SEXP epoch    = binaryUnit::getEpoch(binaryUnitContainer);
 
+        // 0. PathPrefix
         std::stringstream pathPrefix;
         pathPrefix << CHAR(PRINTNAME(hastSym)) << "_" << offsetIdx << "_" << CHAR(PRINTNAME(epoch));
 
@@ -900,229 +719,86 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
         // 2. Versioning
         int versioning = contextUnit::getVersioningAsInt(contextUnitContainer);
 
-        // 4. Counter Value
+        // 3. Counter Value
+        SEXP rMap = binaryUnit::getReqMap(binaryUnitContainer);
         auto reduceRes = reduceReqMap(rMap);
 
-        auto ueIdx = UnlockingElement::createWorklistElement(pathPrefix.str().c_str(), requiredVtab->container(), versioning, reduceRes.first);
+        // 4. nArgs - conditionally added
 
+        // 5. context
+        unsigned long con = contextUnit::getContextAsUnsignedLong(contextUnitContainer);
+
+        auto ueIdx = UnlockingElement::createWorklistElement(
+            pathPrefix.str().c_str(),
+            requiredVtab->container(),
+            versioning,
+            reduceRes.first,
+            con);
         // UnlockingElement::print(wlIdx, 0);
 
         // Early linking case, no worklist used
-        if (unsatisfiedDeps == 0) {
+        if (reduceRes.first == 0) {
             //
             // Do linking here using the unlock element
             //
 
+            doUnlockingElement(Pool::get(ueIdx), linkTime);
+
             Pool::patch(ueIdx, R_NilValue);
+            return;
         }
+
+        std::vector<int> & optIdx = reduceRes.second;
 
         for (int i = 0; i < Rf_length(rMap); i++) {
             if (VECTOR_ELT(rMap, i) != R_NilValue) {
-                bool optimisticCase = false;
-                if (reduceRes.second.find(i) != reduceRes.end()) {
-                    optimisticCase = true;
-                }
+                SEXP dep = VECTOR_ELT(rMap, i);
+                bool optimisticCase = std::find(optIdx.begin(), optIdx.end(), i) != optIdx.end();
 
                 if (optimisticCase) {
                     //
+                    // Key: HAST_CONTEXT
+                    // When function gets inserted into the vtable, we create this key
+                    // using the stored hast and inserted context.
+                    // We do work on worklist two if the key exists
+                    //
+                    SEXP hastKey;
+
+                    {
+                        //
+                        // In optimistic case the DEP_HAST is
+                        // HAST_CONTEXT_NARGS
+                        //
+                        auto n = std::string(CHAR(PRINTNAME(dep)));
+                        auto firstDel = n.find('_');
+                        auto secondDel = n.find('_', firstDel + 1);
+                        auto hast = n.substr(0, firstDel);
+                        auto context = n.substr(firstDel + 1, secondDel - firstDel - 1);
+                        auto nargs = n.substr(secondDel + 1);
+
+                        hastKey = Rf_install(n.substr(0, secondDel - firstDel - 1).c_str());
+
+                        UnlockingElement::addNumArgs(Pool::get(ueIdx), std::stoi(nargs));
+                    }
+
+                    //
                     // Add to worklist2
                     //
+
+                    Worklist2::worklist[hastKey].push_back(ueIdx);
                 } else {
                     //
                     // Add to worklist1
                     //
+
+                    Worklist1::worklist[dep].push_back(ueIdx);
                 }
             }
         }
     });
 
-
-    // REnvHandler hastDepMap(HAST_DEPENDENCY_MAP);
-    // if (hastDepMap.isEmpty()) return;
-
-    // SEXP hastEnv = hastDepMap.get(hSym);
-    // SEXP maskSym = Rf_install("mask");
-
-    // if (hastEnv) {
-    //     #if PRINT_LINKING_STATUS == 1
-    //     std::cout << "[linking    : " << CHAR(PRINTNAME(hSym)) << "]" << std::endl;
-    //     #endif
-    //     REnvHandler hastVtabMap(HAST_VTAB_MAP);
-    //     REnvHandler hastEnvMap(hastEnv);
-    //     hastEnvMap.iterate([&] (SEXP offsetSym, SEXP offsetEnv) {
-    //         #if PRINT_LINKING_STATUS == 1
-    //         std::cout << "  offset[" << CHAR(PRINTNAME(offsetSym)) << "]" << std::endl;
-    //         #endif
-    //         assert(TYPEOF(offsetEnv) == ENVSXP);
-    //         int reqOffset = std::stoi(CHAR(PRINTNAME(offsetSym)));
-    //         DispatchTable * requiredVtab = getVtableAtOffset(vtab,reqOffset);
-    //         REnvHandler offsetMap(offsetEnv);
-
-    //         offsetMap.iterate([&] (SEXP contextSym, SEXP cData) {
-    //             if (contextSym == maskSym) {
-    //                 // Add mask to dispatch table
-    //                 unsigned long* res = (unsigned long *) DATAPTR(cData);
-    //                 // std::cout << "found mask: " << Context(*res) << std::endl;
-    //                 requiredVtab->mask = Context(*res);
-    //             } else {
-    //                 SEXP rMap = contextData::getReqMapAsVector(cData);
-    //                 int rMapSize = Rf_length(rMap);
-
-    //                 #if PRINT_LINKING_STATUS == 1
-    //                 std::cout << "    context[" << CHAR(PRINTNAME(contextSym)) << "]" << std::endl;
-    //                 #endif
-
-    //                 if (rMapSize == 0) {
-    //                     #if PRINT_LINKING_STATUS == 1
-    //                     std::cout << "      (*) [Early linking]" << std::endl;
-    //                     #endif
-    //                     // early linking possible, no dependencies
-    //                     linkBitcode(cData, hSym, offsetSym, requiredVtab);
-    //                     // remove context entry from offsetEnv upon successful linking
-    //                     offsetMap.remove(contextSym);
-    //                 } else {
-    //                     std::stringstream ss;
-    //                     ss << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << CHAR(PRINTNAME(contextSym));
-    //                     SEXP linkageMapSym = Rf_install(ss.str().c_str());
-    //                     int unsatisfiedDependencies = 0;
-    //                     bool allDepsSatisfied = true;
-    //                     #if PRINT_WORKLIST_ENTRIES == 1
-    //                     std::vector<SEXP> currWorklist;
-    //                     #endif
-
-    //                     for (int i = 0; i < rMapSize; i++) {
-
-    //                         SEXP ele = VECTOR_ELT(rMap, i);
-
-    //                         SEXP hastOfReq;
-    //                         unsigned long con;
-    //                         int numArgs;
-
-    //                         bool optimisticCase = false;
-    //                         auto n = std::string(CHAR(PRINTNAME(ele)));
-
-    //                         auto firstDel = n.find('_');
-    //                         if (firstDel != std::string::npos) {
-    //                             // optimistic dispatch case
-    //                             auto secondDel = n.find('_', firstDel + 1);
-    //                             auto hast = n.substr(0, firstDel);
-    //                             auto context = n.substr(firstDel + 1, secondDel - firstDel - 1);
-    //                             auto nargs = n.substr(secondDel + 1);
-
-    //                             con = std::stoul(context);
-    //                             numArgs = std::stoi(nargs);
-    //                             hastOfReq = Rf_install(hast.c_str());
-    //                             optimisticCase = true;
-    //                         } else {
-    //                             hastOfReq = ele;
-    //                         }
-
-    //                         // check if the dependency is already satisfied
-    //                         if (!optimisticCase) {
-    //                             // check in hast is satisfied already
-    //                             if (!hastVtabMap.get(hastOfReq)) {
-    //                                 unsatisfiedDependencies++;
-    //                                 #if PRINT_WORKLIST_ENTRIES == 1
-    //                                 currWorklist.push_back(ele);
-    //                                 #endif
-
-    //                                 // hast is not satisfied yet, add to worklist
-    //                                 addToWorklistOne(hastOfReq, linkageMapSym);
-    //                                 allDepsSatisfied = false;
-    //                             }
-
-    //                         } else {
-    //                             // optimistic case
-
-    //                             // check if optimistic site already exists
-    //                             if (SEXP vtabContainer = hastVtabMap.get(hastOfReq)) {
-    //                                 if (!DispatchTable::check(vtabContainer)) {
-    //                                     Rf_error("linking error, corrupted vtable");
-    //                                 }
-
-    //                                 bool optimisticSiteExists = false;
-    //                                 DispatchTable * requiredVtab = DispatchTable::unpack(vtabContainer);
-    //                                 for (size_t i = 0; i < requiredVtab->size(); i++) {
-    //                                     auto entry = requiredVtab->get(i);
-    //                                     if (entry->context().toI() == con &&
-    //                                         entry->signature().numArguments >= (unsigned)numArgs) {
-    //                                             optimisticSiteExists = true;
-    //                                             break;
-    //                                     }
-    //                                 }
-
-    //                                 if (!optimisticSiteExists) {
-    //                                     unsatisfiedDependencies++;
-    //                                     #if PRINT_WORKLIST_ENTRIES == 1
-    //                                     currWorklist.push_back(ele);
-    //                                     #endif
-
-    //                                     // hast is not satisfied yet, add to worklist
-    //                                     addToWorklistTwo(hastOfReq, con, numArgs, linkageMapSym);
-    //                                     allDepsSatisfied = false;
-    //                                 }
-
-    //                             } else {
-    //                                 unsatisfiedDependencies++;
-    //                                 #if PRINT_WORKLIST_ENTRIES == 1
-    //                                 currWorklist.push_back(ele);
-    //                                 #endif
-
-    //                                 // hast is not satisfied yet, add to worklist
-    //                                 addToWorklistTwo(hastOfReq, con, numArgs, linkageMapSym);
-    //                                 allDepsSatisfied = false;
-
-    //                             }
-    //                         }
-    //                     }
-    //                     if (allDepsSatisfied) {
-    //                         #if PRINT_LINKING_STATUS == 1
-    //                         std::cout << "      (*) [Early linking, all dependencies already satisfied]" << std::endl;
-    //                         #endif
-    //                         // early linking possible, no dependencies
-    //                         linkBitcode(cData, hSym, offsetSym, requiredVtab);
-    //                         // remove context entry from offsetEnv upon successful linking
-    //                         offsetMap.remove(contextSym);
-    //                     } else {
-    //                         // update linkage map
-    //                         SEXP unlockMeta;
-    //                         PROTECT(unlockMeta = Rf_allocVector(VECSXP, 5));
-    //                         SEXP counter;
-    //                         PROTECT(counter = Rf_allocVector(RAWSXP, sizeof(int)));
-    //                         int * tmp = (int *) DATAPTR(counter);
-    //                         *tmp = unsatisfiedDependencies;
-    //                         SET_VECTOR_ELT(unlockMeta, 0, counter);
-    //                         UNPROTECT(1);
-    //                         SET_VECTOR_ELT(unlockMeta, 1, cData);
-    //                         SET_VECTOR_ELT(unlockMeta, 2, hSym);
-    //                         SET_VECTOR_ELT(unlockMeta, 3, offsetSym);
-    //                         SET_VECTOR_ELT(unlockMeta, 4, requiredVtab->container());
-
-    //                         REnvHandler linkageMap(LINKAGE_MAP);
-    //                         linkageMap.set(linkageMapSym, unlockMeta);
-
-    //                         UNPROTECT(1);
-    //                         #if PRINT_LINKING_STATUS == 1
-    //                         std::cout << "      (*) [Not linked yet: " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSym)) << "_" << CHAR(PRINTNAME(contextSym)) << "]" << std::endl;
-    //                         std::cout << "      (*) (waiting for " << *tmp << " dependencies)" << std::endl;
-    //                         #endif
-
-    //                         #if PRINT_WORKLIST_ENTRIES == 1
-    //                         std::cout << "      [";
-    //                         for (auto & ele : currWorklist) {
-    //                             std::cout << CHAR(PRINTNAME(ele)) << " ";
-    //                         }
-    //                         std::cout << "]" << std::endl;
-    //                         #endif
-    //                     }
-    //                 }
-    //             }
-    //         });
-    //     });
-
-    //     // remove the metadata after processing it
-    //     hastDepMap.remove(hSym);
-    // }
+    // Remove the generalWorklistElement
+    GeneralWorklist::remove(hSym);
 }
 
 size_t BitcodeLinkUtil::linkTime = 0;

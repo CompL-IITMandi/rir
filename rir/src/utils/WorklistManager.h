@@ -33,41 +33,64 @@ class GeneralWorklist {
 //
 class UnlockingElement {
   public:
-    static BC::PoolIdx createWorklistElement(const char * pathPrefix, SEXP vtabContainer, const int & versioningInfo, const int & counter);
+    static BC::PoolIdx createWorklistElement(const char * pathPrefix, SEXP vtabContainer, const int & versioningInfo, const int & counter, unsigned long context);
 
     //
     // 0: Path prefix to load [bc|pool]
     //
-    static const char * getPathPrefix(BC::PoolIdx idx);
+    static const char * getPathPrefix(SEXP);
 
     //
     // 1: Vtable container
     //
-    static SEXP getVtableContainer(BC::PoolIdx idx);
+    static SEXP getVtableContainer(SEXP);
 
     //
     // 2: Versioning info
     //
-    static int getVersioningInfo(BC::PoolIdx idx);
+    static int getVersioningInfo(SEXP);
 
     //
     // 3: Counter
     //
-    static int * getCounter(BC::PoolIdx idx);
+    static int * getCounter(SEXP);
+
+    //
+    // 4: Nargs?
+    //
+    static void addNumArgs(SEXP, unsigned);
+    static unsigned * getNumArgs(SEXP);
+
+    //
+    // 5: Context
+    //
+    static unsigned long getContext(SEXP);
+
+
+    static void remove(BC::PoolIdx);
 
     static void print(BC::PoolIdx idx, const int & space);
+    static void print(SEXP, const int & space);
 };
 
 //
-// Mapping from hast -> vector of worklist indices
+// Mapping from hast -> vector of UnlockingElements
+//  Only separated out for logical reasons,
+//    Worklist1 is worked on when Bytecode is compiled
+//    Worklist2 is worked on when elements are inserted into the dispatch table
 //
 class Worklist1 {
-  static std::unordered_map<SEXP, std::vector<BC::PoolIdx>> worklist1;
-
   public:
-    static void addToWorklist() {
+  static std::unordered_map<SEXP, std::vector<BC::PoolIdx>> worklist;
 
-    }
+  static void remove(SEXP);
+};
+
+class Worklist2 {
+  public:
+  static std::unordered_map<SEXP, std::vector<BC::PoolIdx>> worklist;
+
+  static void remove(SEXP);
 };
 
 }

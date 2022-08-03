@@ -41,6 +41,10 @@
 #include <thread>
 #include <chrono>
 
+#include "utils/WorklistManager.h"
+#include "utils/deserializerData.h"
+#include "utils/DeserializerConsts.h"
+
 #define PRINT_DESERIALIZER_PROGRESS 1
 #define PRINT_DESERIALIZED_MODULE_BEFORE_PATCH 0
 #define PRINT_DESERIALIZED_MODULE_AFTER_PATCH 0
@@ -351,16 +355,11 @@ void PirJitLLVM::finalizeAndFixup() {
         fix.second.first->lazyCodeHandle(fix.second.second);
 }
 
-void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offsetSym, DispatchTable * vtab) {
-    int indexOffset = std::stoi(CHAR(PRINTNAME(offsetSym)));
-
-    auto hastDepMap = Pool::get(HAST_DEPENDENCY_MAP);
-    SEXP prefSym = Rf_install("prefix");
-    std::string prefix = CHAR(STRING_ELT(Rf_findVarInFrame(hastDepMap, prefSym), 0));
+void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
     // Path to the pool
     std::stringstream poolPath;
-    poolPath << prefix << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << ".pool";
+    poolPath << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".pool";
 
     // Deserialize the pools
     FILE *reader;
@@ -399,7 +398,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
     }
 
     std::stringstream bitcodePath;
-    bitcodePath << prefix << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << contextData::getContext(cData) << ".bc";
+    bitcodePath << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".bc";
 
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> mb = llvm::MemoryBuffer::getFile(bitcodePath.str());
     rir::pir::PirJitLLVM jit("f");
@@ -408,8 +407,8 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
     llvm::Expected<std::unique_ptr<llvm::Module>> llModuleHolder = llvm::parseBitcodeFile(mb->get()->getMemBufferRef(), jit.getContext());
 
     if (std::error_code ec = errorToErrorCode(llModuleHolder.takeError())) {
-        std::stringstream errMsg;
-        errMsg << "Error reading module from bitcode : " << bitcodePath.str() << std::endl;
+        std::cerr << "deserializer quietly failing, error reading module from bitcode: " << bitcodePath.str() << std::endl;
+        return;
     }
 
     std::set<std::string> existingFunctionHandles;
@@ -561,18 +560,40 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP cData, SEXP hast, SEXP offse
         }
     }
 
+    int versioning = UnlockingElement::getVersioningInfo(uEleContainer);
+    unsigned long con = UnlockingElement::getContext(uEleContainer);
+
     auto res = codeObjs[0];
-    function.finalize(res, fs, Context(contextData::getContext(cData)));
+    function.finalize(res, fs, Context(con));
 
     for (auto& item : codeObjs) {
         item->function(function.function());
     }
 
-    function.function()->inheritFlags(vtab->baseline());
-    vtab->insert(function.function());
-    if (getenv("EAGER_BITCODES")) {
-        res->nativeCode();
+    DispatchTable * vtab;
+
+    if (!DispatchTable::check(UnlockingElement::getVtableContainer(uEleContainer))) {
+        std::cerr << "deserializer quietly failing, unable to open pool file: " << poolPath.str() << std::endl;
+        return;
     }
+
+    vtab = DispatchTable::unpack(UnlockingElement::getVtableContainer(uEleContainer));
+
+    function.function()->inheritFlags(vtab->baseline());
+
+    generalUtil::printSpace(2);
+    std::cout << "Versioning: " << versioning << std::endl;
+    if (versioning == 0) {
+        vtab->insert(function.function());
+    } else if (versioning == 1) {
+        std::cout << "Versioning 1: Skipping TODO" << std::endl;
+    } else if (versioning == 2) {
+        std::cout << "Versioning 2: Skipping TODO" << std::endl;
+    }
+
+    // if (getenv("EAGER_BITCODES")) {
+    //     res->nativeCode();
+    // }
 
 }
 
