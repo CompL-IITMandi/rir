@@ -586,7 +586,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     if (versioning == 0) {
         vtab->insert(function.function());
     } else if (versioning == 1) {
-        std::cout << "Versioning 1: Skipping TODO" << std::endl;
+        vtab->insertL2(function.function());
     } else if (versioning == 2) {
         std::cout << "Versioning 2: Skipping TODO" << std::endl;
     }

@@ -493,9 +493,14 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
     std::vector<unsigned int> toRemove;
     for (unsigned int i = 0; i < wlElementVec.size(); i++) {
 
+
+
         BC::PoolIdx ueIdx = wlElementVec[i];
         SEXP uEleContainer = Pool::get(ueIdx);
 
+        // generalUtil::printSpace(2);
+        // std::cout << "processWorklistElements" << std::endl;
+        // UnlockingElement::print(uEleContainer, 4);
         //
         // If this was an optimistic unlock, then make sure that the
         // (numargs of available >= numargs of expected)
@@ -776,10 +781,12 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
                         auto context = n.substr(firstDel + 1, secondDel - firstDel - 1);
                         auto nargs = n.substr(secondDel + 1);
 
-                        hastKey = Rf_install(n.substr(0, secondDel - firstDel - 1).c_str());
+                        hastKey = Rf_install(n.substr(0, secondDel).c_str());
 
                         UnlockingElement::addNumArgs(Pool::get(ueIdx), std::stoi(nargs));
                     }
+
+                    std::cout << "Adding to worklist2: " << CHAR(PRINTNAME(hastKey)) << std::endl;
 
                     //
                     // Add to worklist2

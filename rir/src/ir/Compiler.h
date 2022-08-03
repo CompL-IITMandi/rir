@@ -170,20 +170,25 @@ class Compiler {
             } else {
                 BitcodeLinkUtil::populateHastSrcData(vtable, hast);
 
+                // #if ONLY_APPLY_MASK == 1
+                // BitcodeLinkUtil::applyMask(vtable, hast);
+                // #else
+                // #endif
+
                 if (GeneralWorklist::get(hast)) {
                     // Bitcode is available for this hast, do worklist
-                    #if ONLY_APPLY_MASK == 1
-                    BitcodeLinkUtil::applyMask(vtable, hast);
-                    #else
+
                     // Tries to link available bitcodes, if they are not unlocked then adds them to either worklist1 or worklist2
                     BitcodeLinkUtil::tryLinking(vtable, hast);
-                    // Do work on worklist1 (if work exists).
-                    BitcodeLinkUtil::tryUnlocking(hast);
-                    #endif
 
                     // Remove entry from general worklist after work is complete
                     GeneralWorklist::remove(hast);
                 }
+
+                // Non serialized code can also have work to do
+                // Do work on worklist1 (if work exists).
+                BitcodeLinkUtil::tryUnlocking(hast);
+
             }
         } else {
             #if DEBUG_TABLE_ENTRIES == 1

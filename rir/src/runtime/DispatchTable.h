@@ -12,6 +12,10 @@
 #include "compiler/compiler.h"
 #include "compiler/backend.h"
 #include "utils/BitcodeLinkUtility.h"
+
+#include "R/Protect.h"
+
+#include "runtime/L2Dispatch.h"
 namespace rir {
 
 #define DISPATCH_TABLE_MAGIC (unsigned)0xd7ab1e00
@@ -31,6 +35,15 @@ struct DispatchTable
 
     Function* get(size_t i) const {
         assert(i < capacity());
+
+        // If there exists a L2 dispatch table at this index,
+        // then check if there is a possible dispatch available
+        SEXP funContainer = getEntry(i);
+
+        if (L2Dispatch::check(funContainer)) {
+            L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+            return l2vt->dispatch();
+        }
         return Function::unpack(getEntry(i));
     }
 
@@ -102,36 +115,86 @@ struct DispatchTable
 
     void tryLinking(SEXP currHastSym, const unsigned long & con, const int & nargs);
 
-    // insert function ordered by increasing number of assumptions
     void insert(Function* fun) {
-        // TODO: we might need to grow the DT here!
-        assert(size() > 0);
         assert(fun->signature().optimization !=
                FunctionSignature::OptimizationLevel::Baseline);
-        auto assumptions = fun->context();
+        int idx = negotiateSlot(fun->context());
+        SEXP idxContainer = getEntry(idx);
+
+        if (idxContainer == R_NilValue) {
+            setEntry(idx, fun->container());
+            return;
+        } else {
+            if (Function::check(idxContainer)) {
+                // Already existing container, do what is meant to be done
+                if (idx != 0) {
+                    // Remember deopt counts across recompilation to avoid
+                    // deopt loops
+                    Function * old = Function::unpack(idxContainer);
+                    fun->addDeoptCount(old->deoptCount());
+                    setEntry(idx, fun->container());
+                    assert(get(idx) == fun);
+                }
+            } else if (L2Dispatch::check(idxContainer)) {
+                L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+                l2vt->insert(fun);
+            } else {
+                Rf_error("Dispatch table insertion error, corrupted slot!!");
+            }
+        }
+
+        if (hast) {
+            tryLinking(hast, fun->context().toI(), fun->signature().numArguments);
+        }
+    }
+
+    void insertL2(Function* fun) {
+        assert(fun->signature().optimization !=
+               FunctionSignature::OptimizationLevel::Baseline);
+        int idx = negotiateSlot(fun->context());
+
+        SEXP idxContainer = getEntry(idx);
+
+        if (idxContainer == R_NilValue) {
+            Protect p;
+            L2Dispatch * l2vt = L2Dispatch::create(fun, p);
+            setEntry(idx, l2vt->container());
+        } else {
+            if (Function::check(idxContainer)) {
+                Protect p;
+                Function * old = Function::unpack(idxContainer);
+                L2Dispatch * l2vt = L2Dispatch::create(old, p);
+                setEntry(idx, l2vt->container());
+                l2vt->insert(fun);
+            } else if (L2Dispatch::check(idxContainer)) {
+                L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+                l2vt->insert(fun);
+            } else {
+                Rf_error("Dispatch table L2insertion error, corrupted slot!!");
+            }
+        }
+
+        if (hast) {
+            tryLinking(hast, fun->context().toI(), fun->signature().numArguments);
+        }
+    }
+
+    // Function slot negotiation
+    int negotiateSlot(const Context& assumptions) {
+        assert(size() > 0);
         size_t i;
         for (i = size() - 1; i > 0; --i) {
             auto old = get(i);
             if (old->context() == assumptions) {
-                if (i != 0) {
-                    // Remember deopt counts across recompilation to avoid
-                    // deopt loops
-                    fun->addDeoptCount(old->deoptCount());
-                    setEntry(i, fun->container());
-                    assert(get(i) == fun);
-                }
-                // hast only exists for parent closures, no hast depends on inner function's vtables
-                if (hast) {
-                    tryLinking(hast, assumptions.toI(), fun->signature().numArguments);
-                }
-                return;
+                // We already gave this context, dont delete it, just return the index
+                return i;
             }
             if (!(assumptions < get(i)->context())) {
                 break;
             }
         }
         i++;
-        assert(!contains(fun->context()));
+        assert(!contains(assumptions));
         if (size() == capacity()) {
 #ifdef DEBUG_DISPATCH
             std::cout << "Tried to insert into a full Dispatch table. Have: \n";
@@ -150,17 +213,16 @@ struct DispatchTable
                 setEntry(pos, getEntry(pos + 1));
                 pos++;
             }
-            // hast only exists for parent closures, no hast depends on inner function's vtables
-            if (hast) {
-                tryLinking(hast, assumptions.toI(), fun->signature().numArguments);
-            }
-            return insert(fun);
+            return negotiateSlot(assumptions);
         }
 
         for (size_t j = size(); j > i; --j)
             setEntry(j, getEntry(j - 1));
         size_++;
-        setEntry(i, fun->container());
+
+        // Slot i is now available for insertion of context now
+        setEntry(i, R_NilValue);
+        return i;
 
 #ifdef DEBUG_DISPATCH
         std::cout << "Added version to DT, new order is: \n";
@@ -176,11 +238,86 @@ struct DispatchTable
         }
         assert(contains(fun->context()));
 #endif
-        // hast only exists for parent closures, no hast depends on inner function's vtables
-        if (hast) {
-            tryLinking(hast, assumptions.toI(), fun->signature().numArguments);
-        }
     }
+    // insert function ordered by increasing number of assumptions
+//     void insert(Function* fun) {
+//         // TODO: we might need to grow the DT here!
+//         assert(size() > 0);
+//         assert(fun->signature().optimization !=
+//                FunctionSignature::OptimizationLevel::Baseline);
+//         auto assumptions = fun->context();
+//         size_t i;
+//         for (i = size() - 1; i > 0; --i) {
+//             auto old = get(i);
+//             if (old->context() == assumptions) {
+//                 if (i != 0) {
+//                     // Remember deopt counts across recompilation to avoid
+//                     // deopt loops
+//                     fun->addDeoptCount(old->deoptCount());
+//                     setEntry(i, fun->container());
+//                     assert(get(i) == fun);
+//                 }
+//                 // hast only exists for parent closures, no hast depends on inner function's vtables
+//                 if (hast) {
+//                     tryLinking(hast, assumptions.toI(), fun->signature().numArguments);
+//                 }
+//                 return;
+//             }
+//             if (!(assumptions < get(i)->context())) {
+//                 break;
+//             }
+//         }
+//         i++;
+//         assert(!contains(fun->context()));
+//         if (size() == capacity()) {
+// #ifdef DEBUG_DISPATCH
+//             std::cout << "Tried to insert into a full Dispatch table. Have: \n";
+//             for (size_t i = 0; i < size(); ++i) {
+//                 auto e = getEntry(i);
+//                 std::cout << "* " << Function::unpack(e)->context() << "\n";
+//             }
+//             std::cout << "\n";
+//             std::cout << "Tried to insert: " << assumptions << "\n";
+//             Rf_error("dispatch table overflow");
+// #endif
+//             // Evict one element and retry
+//             auto pos = 1 + (Random::singleton()() % (size() - 1));
+//             size_--;
+//             while (pos < size()) {
+//                 setEntry(pos, getEntry(pos + 1));
+//                 pos++;
+//             }
+//             // hast only exists for parent closures, no hast depends on inner function's vtables
+//             if (hast) {
+//                 tryLinking(hast, assumptions.toI(), fun->signature().numArguments);
+//             }
+//             return insert(fun);
+//         }
+
+//         for (size_t j = size(); j > i; --j)
+//             setEntry(j, getEntry(j - 1));
+//         size_++;
+//         setEntry(i, fun->container());
+
+// #ifdef DEBUG_DISPATCH
+//         std::cout << "Added version to DT, new order is: \n";
+//         for (size_t i = 0; i < size(); ++i) {
+//             auto e = getEntry(i);
+//             std::cout << "* " << Function::unpack(e)->context() << "\n";
+//         }
+//         std::cout << "\n";
+//         for (size_t i = 0; i < size() - 1; ++i) {
+//             assert(get(i)->context() < get(i + 1)->context());
+//             assert(get(i)->context() != get(i + 1)->context());
+//             assert(!(get(i + 1)->context() < get(i)->context()));
+//         }
+//         assert(contains(fun->context()));
+// #endif
+//         // hast only exists for parent closures, no hast depends on inner function's vtables
+//         if (hast) {
+//             tryLinking(hast, assumptions.toI(), fun->signature().numArguments);
+//         }
+//     }
 
     static DispatchTable* create(size_t capacity = 20) {
         size_t sz =
