@@ -24,7 +24,7 @@
 #include "utils/BitcodeLinkUtility.h"
 #include "utils/WorklistManager.h"
 
-#define DEBUG_TABLE_ENTRIES 1
+#define DEBUG_TABLE_ENTRIES 0
 #define ONLY_APPLY_MASK 0
 #include <chrono>
 using namespace std::chrono;

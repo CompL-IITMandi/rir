@@ -49,6 +49,7 @@ namespace rir {
         static DispatchTable * getVtableAtOffset(DispatchTable * vtab, int offset);
         static void printSources(DispatchTable* vtable, SEXP hastSym);
         static void populateTypeFeedbackData(SEXP container, DispatchTable * vtab);
+        static void getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<ObservedValues*> & res, DispatchTable * vtab);
     };
 
 }

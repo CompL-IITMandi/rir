@@ -66,6 +66,18 @@ class UnlockingElement {
     //
     static unsigned long getContext(SEXP);
 
+    //
+    // 6: TFSlotInfo
+    //
+    static void addTFSlotInfo(SEXP, SEXP);
+    static SEXP getTFSlotInfo(SEXP);
+
+    //
+    // 7: FunTFInfo
+    //
+    static void addFunTFInfo(SEXP, SEXP);
+    static SEXP getFunTFInfo(SEXP);
+
 
     static void remove(BC::PoolIdx);
 

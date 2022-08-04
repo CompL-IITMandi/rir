@@ -11,11 +11,12 @@
 #include "compiler/log/stream_logger.h"
 #include "compiler/compiler.h"
 #include "compiler/backend.h"
-#include "utils/BitcodeLinkUtility.h"
 
 #include "R/Protect.h"
 
 #include "runtime/L2Dispatch.h"
+#include "utils/WorklistManager.h"
+#include "utils/deserializerData.h"
 namespace rir {
 
 #define DISPATCH_TABLE_MAGIC (unsigned)0xd7ab1e00
@@ -59,7 +60,11 @@ struct DispatchTable
         return f;
     }
 
-    Function* dispatch(Context a) const {
+    Function* dispatch(Context a) {
+        if (doFeedbackRun) {
+            doFeedbackRun = false;
+            return baseline();
+        }
         if (!a.smaller(userDefinedContext_)) {
 #ifdef DEBUG_DISPATCH
             std::cout << "DISPATCH trying: " << a
@@ -148,7 +153,10 @@ struct DispatchTable
         }
     }
 
-    void insertL2(Function* fun) {
+    void insertL2V2(Function* fun, SEXP uEleContainer);
+
+    void insertL2V1(Function* fun) {
+        doFeedbackRun = true;
         assert(fun->signature().optimization !=
                FunctionSignature::OptimizationLevel::Baseline);
         int idx = negotiateSlot(fun->context());
@@ -370,7 +378,7 @@ struct DispatchTable
         return userDefinedContext_ | anotherContext;
     }
 
-    // bool disableFurtherSpecialization = false;
+    bool doFeedbackRun = false;
     SEXP hast = nullptr;
 
     Context mask = Context(0ul);

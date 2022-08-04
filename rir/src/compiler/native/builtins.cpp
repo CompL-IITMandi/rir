@@ -25,6 +25,7 @@
 #include <random>
 
 #include "utils/DebugMessages.h"
+#include "utils/BitcodeLinkUtility.h"
 
 #define DEBUG_BI_INSN 0
 namespace rir {

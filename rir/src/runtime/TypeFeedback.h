@@ -120,6 +120,7 @@ struct ObservedValues {
         } else {
             out << "<?>";
         }
+        out << "{{" << this << "}}{{" << *((uint32_t *)this) << "}}\n";
     };
 
     inline void record(SEXP e) {

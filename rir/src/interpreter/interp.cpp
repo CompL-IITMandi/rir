@@ -24,6 +24,7 @@
 #include "R/Printing.h"
 
 #include "utils/DebugMessages.h"
+#include "utils/BitcodeLinkUtility.h"
 
 #define NOT_IMPLEMENTED assert(false)
 #define DEBUG_BC_INSN 0

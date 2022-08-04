@@ -40,6 +40,7 @@
 #include "api.h"
 #include "utils/DebugMessages.h"
 #include "utils/SerializerFlags.h"
+#include "utils/BitcodeLinkUtility.h"
 
 #define DISABLE_OPTIMISTIC_DISPATCH 0
 #define USE_BINDINGS_CACHE 1

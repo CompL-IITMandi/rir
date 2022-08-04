@@ -1167,10 +1167,10 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 auto body = BODY(cls);
                 auto dt = DispatchTable::unpack(body);
                 if (dt->contains(c->context())) {
-                    auto other = dt->dispatch(c->context());
-                    assert(other != dt->baseline());
-                    assert(other->context() == c->context());
-                    if (other->body()->isCompiled())
+                    // auto other = dt->dispatch(c->context());
+                    // assert(other != dt->baseline());
+                    // assert(other->context() == c->context());
+                    // if (other->body()->isCompiled())
                         return;
                 }
                 // Don't lower functions that have not been called often, as

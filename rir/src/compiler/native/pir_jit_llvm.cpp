@@ -388,7 +388,8 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     std::unordered_map<int64_t, int64_t> poolPatch;
     for (int i = 0; i < Rf_length(cPool); i++) {
         auto ele = VECTOR_ELT(cPool, i);
-        poolPatch[i] = Pool::insert(ele);
+        poolPatch[i] = Pool::makeSpace();
+        Pool::patch(poolPatch[i], ele);
     }
     // Source Pool patches
     std::unordered_map<int64_t, int64_t> sPoolPatch;
@@ -581,14 +582,19 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
     function.function()->inheritFlags(vtab->baseline());
 
-    generalUtil::printSpace(2);
-    std::cout << "Versioning: " << versioning << std::endl;
+    // generalUtil::printSpace(2);
+    // std::cout << "Versioning: " << versioning << std::endl;
     if (versioning == 0) {
         vtab->insert(function.function());
-    } else if (versioning == 1) {
-        vtab->insertL2(function.function());
-    } else if (versioning == 2) {
-        std::cout << "Versioning 2: Skipping TODO" << std::endl;
+    }
+    else if (versioning == 1) {
+        vtab->insertL2V1(function.function());
+    }
+    else if (versioning == 2) {
+        // generalUtil::printSpace(2);
+        // std::cout << "Versioning 2 Unlock Element STUB" << std::endl;
+        // UnlockingElement::print(uEleContainer, 4);
+        vtab->insertL2V2(function.function(), uEleContainer);
     }
 
     // if (getenv("EAGER_BITCODES")) {
@@ -1403,14 +1409,16 @@ void PirJitLLVM::initializeLLVM() {
                         nativeTargetContainer = dt->dispatch(Context(con))->container();
                     }
 
-                    auto at = Pool::insert(nativeTargetContainer);
+                    auto at = Pool::makeSpace();
+                    Pool::patch(at, nativeTargetContainer);
                     NativeBuiltins::targetCaches.push_back(at);
 
                     SEXP store;
                     protecc(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx)));
                     BC::PoolIdx * tmp = (BC::PoolIdx *) DATAPTR(store);
                     *tmp = at;
-                    Pool::insert(store);
+
+                    Pool::patch(Pool::makeSpace(),store);
 
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
@@ -1432,7 +1440,7 @@ void PirJitLLVM::initializeLLVM() {
                     protecc(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx)));
                     BC::PoolIdx * tmp = (BC::PoolIdx *) DATAPTR(store);
                     *tmp = idx;
-                    Pool::insert(store);
+                    Pool::patch(Pool::makeSpace(),store);
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(

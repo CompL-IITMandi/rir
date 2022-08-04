@@ -32,6 +32,7 @@
 #include "api.h"
 
 #include "utils/SerializerFlags.h"
+#include "utils/BitcodeLinkUtility.h"
 
 namespace rir {
 namespace pir {
