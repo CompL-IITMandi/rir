@@ -120,72 +120,11 @@ struct DispatchTable
 
     void tryLinking(SEXP currHastSym, const unsigned long & con, const int & nargs);
 
-    void insert(Function* fun) {
-        assert(fun->signature().optimization !=
-               FunctionSignature::OptimizationLevel::Baseline);
-        int idx = negotiateSlot(fun->context());
-        SEXP idxContainer = getEntry(idx);
-
-        if (idxContainer == R_NilValue) {
-            setEntry(idx, fun->container());
-            return;
-        } else {
-            if (Function::check(idxContainer)) {
-                // Already existing container, do what is meant to be done
-                if (idx != 0) {
-                    // Remember deopt counts across recompilation to avoid
-                    // deopt loops
-                    Function * old = Function::unpack(idxContainer);
-                    fun->addDeoptCount(old->deoptCount());
-                    setEntry(idx, fun->container());
-                    assert(get(idx) == fun);
-                }
-            } else if (L2Dispatch::check(idxContainer)) {
-                L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
-                l2vt->insert(fun);
-            } else {
-                Rf_error("Dispatch table insertion error, corrupted slot!!");
-            }
-        }
-
-        if (hast) {
-            tryLinking(hast, fun->context().toI(), fun->signature().numArguments);
-        }
-    }
+    void insert(Function* fun);
 
     void insertL2V2(Function* fun, SEXP uEleContainer);
 
-    void insertL2V1(Function* fun) {
-        doFeedbackRun = true;
-        assert(fun->signature().optimization !=
-               FunctionSignature::OptimizationLevel::Baseline);
-        int idx = negotiateSlot(fun->context());
-
-        SEXP idxContainer = getEntry(idx);
-
-        if (idxContainer == R_NilValue) {
-            Protect p;
-            L2Dispatch * l2vt = L2Dispatch::create(fun, p);
-            setEntry(idx, l2vt->container());
-        } else {
-            if (Function::check(idxContainer)) {
-                Protect p;
-                Function * old = Function::unpack(idxContainer);
-                L2Dispatch * l2vt = L2Dispatch::create(old, p);
-                setEntry(idx, l2vt->container());
-                l2vt->insert(fun);
-            } else if (L2Dispatch::check(idxContainer)) {
-                L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
-                l2vt->insert(fun);
-            } else {
-                Rf_error("Dispatch table L2insertion error, corrupted slot!!");
-            }
-        }
-
-        if (hast) {
-            tryLinking(hast, fun->context().toI(), fun->signature().numArguments);
-        }
-    }
+    void insertL2V1(Function* fun);
 
     // Function slot negotiation
     int negotiateSlot(const Context& assumptions) {

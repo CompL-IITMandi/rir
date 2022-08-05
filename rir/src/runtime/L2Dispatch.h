@@ -7,12 +7,13 @@ namespace rir {
 
 typedef SEXP L2DispatchEntry;
 
-#define ENTRIES_SIZE 3
+#define ENTRIES_SIZE 4
 #define GROWTH_RATE 5
 
 #define BCVEC 0
 #define FVEC 1
 #define TVEC 2
+#define GENESIS 3
 /*
  * A level 2 dispatcher for type versioning.
  *
@@ -21,6 +22,7 @@ typedef SEXP L2DispatchEntry;
  * [Idx 0]: (aka CVector) (RAWSXP holding 'n' ObservedValues*) These are pointers to TypeFeedbackSlots in the Bytecode
  * [Idx 1]: (aka FunctionVector) Vector of (RAWSXP holding Function*)
  * [Idx 2]: (aka TFVector) Vector of (RAWSXP holding ObservedValues*)
+ * [Idx 3]: [Used in the case if V = 2]Gensis fallback function, initially null. But if JIT compiles something, that is put here.
  *
  * Size of vectors at [Idx 1] and [Idx 2] is always the same and they are meant to be used together
  * in type versioning
@@ -32,14 +34,20 @@ typedef SEXP L2DispatchEntry;
 struct L2Dispatch
     : public RirRuntimeObject<L2Dispatch, L2_DISPATCH_MAGIC> {
 
-		static L2Dispatch* create(Function* genesis, const std::vector<ObservedValues> & TVals, const std::vector<ObservedValues*> & BCTFSlots, Protect & p) {
+		//
+		// Constructor For V = 2
+		//
+		static L2Dispatch* create(Function* genesis, const std::vector<ObservedValues*> & BCTFSlots, Protect & p) {
 			size_t sz =
 					sizeof(L2Dispatch) + (ENTRIES_SIZE * sizeof(L2DispatchEntry));
 			SEXP s;
 			p(s = Rf_allocVector(EXTERNALSXP, sz));
-			return new (INTEGER(s)) L2Dispatch(genesis, TVals, BCTFSlots);
+			return new (INTEGER(s)) L2Dispatch(genesis, BCTFSlots);
     	}
 
+		//
+		// Constructor For V = 1
+		//
 		static L2Dispatch* create(Function* genesis, Protect & p) {
 			size_t sz =
 					sizeof(L2Dispatch) + (ENTRIES_SIZE * sizeof(L2DispatchEntry));
@@ -48,24 +56,32 @@ struct L2Dispatch
 			return new (INTEGER(s)) L2Dispatch(genesis);
     	}
 
+		SEXP getGenesisFunctionContainer() {
+			return getEntry(GENESIS);
+		}
 
+		//
+		// V = 1 dispatch, Here we only dispatch to the latest unlocked binary and move towards more generic ones if we deopt
+		//
 		Function * V1Dispatch() {
 			SEXP functionVector = getEntry(FVEC);
-			// In this dispatch, only one type version is assumed so latest linked and available method is dispatched
 			for (int i = _last; i >= 0; i--) {
 				SEXP currFunHolder = VECTOR_ELT(functionVector, i);
 				Function * currFun = Function::unpack(currFunHolder);
 				if (!currFun->disabled()) {
-					// std::cout << "V1 HIT" << std::endl;
+					std::cout << "V1 HIT" << std::endl;
 					return currFun;
 				}
 			}
 
-			// std::cout << "V1 MISS" << std::endl;
+			std::cout << "V1 MISS" << std::endl;
 
-			// Return the last inserted function.
-			// BAD CASE
-			return Function::unpack(VECTOR_ELT(functionVector, _last));
+			//
+			// If all of these are disabled, then we dispatch to the genesis function.
+			// In the beginning, genesis is just a dummy disabled function, but can later
+			// be replaced by a JIT compiled version.
+			//
+			return Function::unpack(getGenesisFunctionContainer());
 		}
 
 		ObservedValues * getBCSlots() {
@@ -77,6 +93,12 @@ struct L2Dispatch
 		uint32_t getFeedbackAsUint(const rir::ObservedValues & v) {
 			return *((uint32_t *) &v);
 		}
+
+		//
+		// V = 2 dispatch, Here we dispatch to the latest linked and avaialble (non-disabled) binary for a given type feedback context.
+		// We fallback to genesis in case nothing is found because randomly dispatching to binary may make that type version to be
+		// unnecessarity disabled, so for brevity we only dispatch when things are as expected.
+		//
 
 		Function * V2Dispatch() {
 			ObservedValues* observedTF = getBCSlots();
@@ -93,27 +115,35 @@ struct L2Dispatch
 
 				bool match = true;
 
-				// std::cout << "Checking Function " << i << "(" << currFun->disabled() << ")" << std::endl;
+				std::cout << "Checking Function " << i << "(" << currFun->disabled() << ")" << std::endl;
 
 				for (unsigned int j = 0; j < _numSlots; j++) {
-					// std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
+					std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
 					if (getFeedbackAsUint(observedTF[j]) != getFeedbackAsUint(currTF[j])) match = false;
 				}
 
 				if (match && !currFun->disabled()) {
-					// std::cout << "V2 HIT" << std::endl;
+					std::cout << "V2 HIT" << std::endl;
 					return currFun;
 				}
 			}
-			// std::cout << "V2 MISS" << std::endl;
+			std::cout << "V2 MISS" << std::endl;
 			//
-			// TODO
+			// If this fails we return to the genesisFunction, this might be a dummy function or a JIT compiled function
+			//	The reason we dont fallback to V1 dispatch is that a Type Version may get unnecessarily disabled if we randomly
+			// 	dispatch to it without checking type feedback, which will make is unusable in the future. To prevent this we
+			// 	rely on the genesis function.
 			//
-			// Dispatch to latest available TV function, if this fails fallback to V1Dispatch
-			return V1Dispatch();
+			// return V1Dispatch();
+
+			return Function::unpack(getGenesisFunctionContainer());
 		}
 
 		Function * dispatch() {
+			// If nothing exists return genesis
+			if (_last == -1) {
+				return Function::unpack(getGenesisFunctionContainer());
+			}
 			if (_versioning == 1) {
 				return V1Dispatch();
 			} else {
@@ -164,7 +194,13 @@ struct L2Dispatch
 			SET_VECTOR_ELT(FunctionVector, _last, f->container());
 		}
 
-		unsigned int capacity() {
+		// Genesis
+		// Update the genesis to point to JIT compiled function.
+		void insertGenesis(Function* f) {
+			setEntry(GENESIS, f->container());
+		}
+
+		int capacity() {
 			return Rf_length(getEntry(FVEC));
 		}
 
@@ -179,21 +215,20 @@ struct L2Dispatch
 				SEXP FunctionVector;
 				protecc(FunctionVector = Rf_allocVector(VECSXP, GROWTH_RATE));
 
-				_last = 0;
+				_last = -1;
 
-				SET_VECTOR_ELT(FunctionVector, _last, genesis->container());
+				insertGenesis(genesis);
 
 				// Store the vector in the GC area
 				setEntry(FVEC, FunctionVector);
 			}
 
 		// BCTFSlots are the required bytecode type feedback slot pointers
-		explicit L2Dispatch(Function* genesis, const std::vector<ObservedValues> & TVals, const std::vector<ObservedValues*> & BCTFSlots):
+		explicit L2Dispatch(Function* genesis, const std::vector<ObservedValues*> & BCTFSlots):
 			RirRuntimeObject(sizeof(L2Dispatch),ENTRIES_SIZE),
 			_versioning(2) {
-				assert(TVals.size() == BCTFSlots.size());
 
-				_numSlots = TVals.size();
+				_numSlots = BCTFSlots.size();
 				Protect protecc;
 				//
 				// 1. Populate BCVEC entries to point to ByteCode Locations
@@ -225,27 +260,12 @@ struct L2Dispatch
 				protecc(FunctionVector = Rf_allocVector(VECSXP, GROWTH_RATE));
 				protecc(TFVector = Rf_allocVector(VECSXP, GROWTH_RATE));
 
-				_last = 0;
+				_last = -1;
 
-				SET_VECTOR_ELT(FunctionVector, _last, genesis->container());
-
-				// Create a store of ObservedValues for the TFValues
-				SEXP store;
-				// Note: instead of pointers, we store the values here instead
-				protecc(store = Rf_allocVector(RAWSXP, _numSlots * sizeof(ObservedValues)));
-
-				ObservedValues * tmp1 = (ObservedValues *) DATAPTR(store);
-
-				for (unsigned int i = 0; i < _numSlots; i++) {
-					tmp1[i] = TVals[i];
-				}
-
-				SET_VECTOR_ELT(TFVector, _last, store);
-
+				insertGenesis(genesis);
 
 				// Store the vector in the GC area
 				setEntry(FVEC, FunctionVector);
-
 				setEntry(TVEC, TFVector);
 
 
@@ -275,7 +295,7 @@ struct L2Dispatch
 		}
 
     const unsigned _versioning;
-    unsigned int _last;
+    int _last = -1;
 	unsigned int _numSlots;
 };
 #pragma pack(pop)
