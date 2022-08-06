@@ -7,6 +7,7 @@ namespace rir {
 
 typedef SEXP L2DispatchEntry;
 
+#define DEBUG_HIT_MISS 0
 #define ENTRIES_SIZE 4
 #define GROWTH_RATE 5
 
@@ -69,11 +70,16 @@ struct L2Dispatch
 				SEXP currFunHolder = VECTOR_ELT(functionVector, i);
 				Function * currFun = Function::unpack(currFunHolder);
 				if (!currFun->disabled()) {
+					#if DEBUG_HIT_MISS == 1
+					std::cout << "V1 HIT" << std::endl;
+					#endif
 					return currFun;
 				}
 			}
 
-			// std::cout << "V1 MISS" << std::endl;
+			#if DEBUG_HIT_MISS == 1
+			std::cout << "V1 MISS" << std::endl;
+			#endif
 
 			//
 			// If all of these are disabled, then we dispatch to the genesis function.
@@ -122,11 +128,15 @@ struct L2Dispatch
 				}
 
 				if (match && !currFun->disabled()) {
-					// std::cout << "V2 HIT" << std::endl;
+					#if DEBUG_HIT_MISS == 1
+					std::cout << "V2 HIT" << std::endl;
+					#endif
 					return currFun;
 				}
 			}
-			// std::cout << "V2 MISS" << std::endl;
+			#if DEBUG_HIT_MISS == 1
+			std::cout << "V2 MISS" << std::endl;
+			#endif
 			//
 			// If this fails we return to the genesisFunction, this might be a dummy function or a JIT compiled function
 			//	The reason we dont fallback to V1 dispatch is that a Type Version may get unnecessarily disabled if we randomly

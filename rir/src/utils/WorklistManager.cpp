@@ -47,7 +47,7 @@ void GeneralWorklist::print(const unsigned int & space) {
 BC::PoolIdx UnlockingElement::createWorklistElement(const char *  pathPrefix, SEXP vtabContainer, const int & versioningInfo, const int & counter, unsigned long context) {
     SEXP store;
     Protect protecc;
-    protecc(store = Rf_allocVector(VECSXP, 8));
+    protecc(store = Rf_allocVector(VECSXP, 7));
 
 
     SEXP pathPrefixCont;
@@ -65,12 +65,12 @@ BC::PoolIdx UnlockingElement::createWorklistElement(const char *  pathPrefix, SE
     *tmp = counter;
     generalUtil::addSEXP(store, counterStore, 3);
 
-    generalUtil::addSEXP(store, R_NilValue, 4);
+    // generalUtil::addSEXP(store, R_NilValue, 4);
 
-    generalUtil::addUnsignedLong(store, context, 5);
+    generalUtil::addUnsignedLong(store, context, 4);
 
+    generalUtil::addSEXP(store, R_NilValue, 5);
     generalUtil::addSEXP(store, R_NilValue, 6);
-    generalUtil::addSEXP(store, R_NilValue, 7);
 
     BC::PoolIdx ueIdx = Pool::makeSpace();
     Pool::patch(ueIdx, store);
@@ -92,45 +92,45 @@ int * UnlockingElement::getCounter(SEXP container) {
     return (int *) DATAPTR(counterStore);
 }
 
-void UnlockingElement::addNumArgs(SEXP container, unsigned numArgs) {
-    Protect protecc;
+// void UnlockingElement::addNumArgs(SEXP container, unsigned numArgs) {
+//     Protect protecc;
 
-    SEXP store;
-    protecc(store = Rf_allocVector(RAWSXP, sizeof(unsigned)));
-    unsigned * tmp = (unsigned *) DATAPTR(store);
-    *tmp = numArgs;
+//     SEXP store;
+//     protecc(store = Rf_allocVector(RAWSXP, sizeof(unsigned)));
+//     unsigned * tmp = (unsigned *) DATAPTR(store);
+//     *tmp = numArgs;
 
-    generalUtil::addSEXP(container, store, 4);
-}
+//     generalUtil::addSEXP(container, store, 4);
+// }
 
-unsigned * UnlockingElement::getNumArgs(SEXP container) {
-    auto store = generalUtil::getSEXP(container, 4);
-    return (store == R_NilValue) ? nullptr : (unsigned *) DATAPTR(store);
-}
+// unsigned * UnlockingElement::getNumArgs(SEXP container) {
+//     auto store = generalUtil::getSEXP(container, 4);
+//     return (store == R_NilValue) ? nullptr : (unsigned *) DATAPTR(store);
+// }
 
-static bool containsNArgs(SEXP container) {
-    return generalUtil::getSEXP(container, 4) == R_NilValue ? false : true;
-}
+// static bool containsNArgs(SEXP container) {
+//     return generalUtil::getSEXP(container, 4) == R_NilValue ? false : true;
+// }
 
 unsigned long UnlockingElement::getContext(SEXP container) {
-    return generalUtil::getUnsignedLong(container, 5);
+    return generalUtil::getUnsignedLong(container, 4);
 }
 
 void UnlockingElement::addTFSlotInfo(SEXP container, SEXP TFSlot) {
-    generalUtil::addSEXP(container, TFSlot, 6);
+    generalUtil::addSEXP(container, TFSlot, 5);
 }
 
 SEXP UnlockingElement::getTFSlotInfo(SEXP container) {
-    return generalUtil::getSEXP(container, 6);
+    return generalUtil::getSEXP(container, 5);
 }
 
 
 void UnlockingElement::addFunTFInfo(SEXP container, SEXP FunTF) {
-    generalUtil::addSEXP(container, FunTF, 7);
+    generalUtil::addSEXP(container, FunTF, 6);
 }
 
 SEXP UnlockingElement::getFunTFInfo(SEXP container) {
-    return generalUtil::getSEXP(container, 7);
+    return generalUtil::getSEXP(container, 6);
 }
 
 void UnlockingElement::remove(BC::PoolIdx ueIdx) {
@@ -157,15 +157,15 @@ void UnlockingElement::print(SEXP container, const int & space) {
     generalUtil::printSpace(space + 2);
     std::cout << "├─(ENTRY 3, Counter       ): " << *getCounter(container) << std::endl;
 
-    generalUtil::printSpace(space + 2);
-    if (containsNArgs(container)) {
-        std::cout << "├─(ENTRY 4, numArgs       ): " << *getNumArgs(container) << std::endl;
-    } else {
-        std::cout << "├─(ENTRY 4, numArgs       ): NA" << std::endl;
-    }
+    // generalUtil::printSpace(space + 2);
+    // if (containsNArgs(container)) {
+    //     std::cout << "├─(ENTRY 4, numArgs       ): " << *getNumArgs(container) << std::endl;
+    // } else {
+    //     std::cout << "├─(ENTRY 4, numArgs       ): NA" << std::endl;
+    // }
 
     generalUtil::printSpace(space + 2);
-    std::cout << "├─(ENTRY 5, context       ): (" << getContext(container) << ") " << Context(getContext(container)) << std::endl;
+    std::cout << "├─(ENTRY 4, context       ): (" << getContext(container) << ") " << Context(getContext(container)) << std::endl;
 
     if (getTFSlotInfo(container) == R_NilValue) {
         generalUtil::printSpace(space + 2);
@@ -174,7 +174,7 @@ void UnlockingElement::print(SEXP container, const int & space) {
         SEXP slotsInfo = getTFSlotInfo(container);
 
         generalUtil::printSpace(space + 2);
-        std::cout << "├─(ENTRY 6, TF Slot Idx  ): [ ";
+        std::cout << "├─(ENTRY 5, TF Slot Idx  ): [ ";
         for (int i = 0; i < Rf_length(slotsInfo); i++) {
             std::cout << Rf_asInteger(VECTOR_ELT(slotsInfo, i)) << " ";
         }
@@ -182,7 +182,7 @@ void UnlockingElement::print(SEXP container, const int & space) {
 
         SEXP funTF = getFunTFInfo(container);
         generalUtil::printSpace(space + 2);
-        std::cout << "└─(ENTRY 7, Fun TF Data  ): [ ";
+        std::cout << "└─(ENTRY 6, Fun TF Data  ): [ ";
         for (int i = 0; i < Rf_length(funTF); i++) {
             auto ele = generalUtil::getUint32t(funTF, i);
             std::cout << ele << " ";
@@ -190,8 +190,57 @@ void UnlockingElement::print(SEXP container, const int & space) {
         std::cout << "]" << std::endl;
 
     }
+}
+
+//
+// OptUnlockingElement
+//
+BC::PoolIdx OptUnlockingElement::createOptWorklistElement(unsigned numArgs, SEXP unlockingElement) {
+    SEXP store;
+    Protect protecc;
+    protecc(store = Rf_allocVector(VECSXP, 2));
 
 
+    SEXP numArgsStore;
+    protecc(numArgsStore = Rf_allocVector(RAWSXP, sizeof(unsigned)));
+    unsigned * tmp = (unsigned *) DATAPTR(numArgsStore);
+    *tmp = numArgs;
+
+    generalUtil::addSEXP(store, numArgsStore, 0);
+
+    generalUtil::addSEXP(store, unlockingElement, 1);
+
+    BC::PoolIdx ueIdx = Pool::makeSpace();
+    Pool::patch(ueIdx, store);
+
+    return ueIdx;
+
+
+}
+
+unsigned * OptUnlockingElement::getNumArgs(SEXP container) {
+    auto store = generalUtil::getSEXP(container, 0);
+    return (store == R_NilValue) ? nullptr : (unsigned *) DATAPTR(store);
+}
+
+SEXP OptUnlockingElement::getUE(SEXP container) {
+    return generalUtil::getSEXP(container, 1);
+}
+
+void OptUnlockingElement::print(BC::PoolIdx idx, const int & space) {
+    print(Pool::get(idx), space);
+}
+
+void OptUnlockingElement::print(SEXP container, const int & space) {
+    generalUtil::printSpace(space);
+    std::cout << "[Unlocking Element]" << std::endl;
+
+    generalUtil::printSpace(space + 2);
+    std::cout << "├─(ENTRY 0, numArgs       ): " << *getNumArgs(container) << std::endl;
+
+    SEXP uEleContainer = getUE(container);
+
+    UnlockingElement::print(uEleContainer, space + 4);
 }
 
 //

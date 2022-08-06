@@ -28,7 +28,7 @@
 
 #define NOT_IMPLEMENTED assert(false)
 #define DEBUG_BC_INSN 0
-#define DEBUG_CHECKPOINTS 1
+#define DEBUG_CHECKPOINTS 0
 #define DEBUG_BUILTINS 0
 #undef eval
 

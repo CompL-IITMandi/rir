@@ -55,11 +55,11 @@ class UnlockingElement {
     //
     static int * getCounter(SEXP);
 
-    //
-    // 4: Nargs?
-    //
-    static void addNumArgs(SEXP, unsigned);
-    static unsigned * getNumArgs(SEXP);
+    // //
+    // // 4: Nargs?
+    // //
+    // static void addNumArgs(SEXP, unsigned);
+    // static unsigned * getNumArgs(SEXP);
 
     //
     // 5: Context
@@ -80,6 +80,21 @@ class UnlockingElement {
 
 
     static void remove(BC::PoolIdx);
+
+    static void print(BC::PoolIdx idx, const int & space);
+    static void print(SEXP, const int & space);
+};
+
+//
+// OptUnlockingElement
+//
+class OptUnlockingElement {
+  public:
+    static BC::PoolIdx createOptWorklistElement(unsigned nargs, SEXP unlockingElement);
+
+    static unsigned * getNumArgs(SEXP);
+
+    static SEXP getUE(SEXP);
 
     static void print(BC::PoolIdx idx, const int & space);
     static void print(SEXP, const int & space);

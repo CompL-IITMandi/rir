@@ -564,48 +564,71 @@ static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime) {
 
 static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, size_t & linkTime, bool nargsPassed = false, const unsigned & nargs = 0) {
     std::vector<unsigned int> toRemove;
-    for (unsigned int i = 0; i < wlElementVec.size(); i++) {
 
+    if (nargsPassed) {
+        for (unsigned int i = 0; i < wlElementVec.size(); i++) {
+            BC::PoolIdx ueIdx = wlElementVec[i];
+            SEXP optuEleContainer = Pool::get(ueIdx);
 
-
-        BC::PoolIdx ueIdx = wlElementVec[i];
-        SEXP uEleContainer = Pool::get(ueIdx);
-
-        // generalUtil::printSpace(2);
-        // std::cout << "processWorklistElements" << std::endl;
-        // UnlockingElement::print(uEleContainer, 4);
-        //
-        // If this was an optimistic unlock, then make sure that the
-        // (numargs of available >= numargs of expected)
-        // If not, we cannot remove the worklist element
-        //
-        if (nargsPassed) {
-            if (unsigned * numArgs = UnlockingElement::getNumArgs(uEleContainer)) {
-                if (nargs < *numArgs) {
+            // generalUtil::printSpace(2);
+            // std::cout << "processWorklistElements" << std::endl;
+            // UnlockingElement::print(uEleContainer, 4);
+            //
+            // If this was an optimistic unlock, then make sure that the
+            // (numargs of available >= numargs of expected)
+            // If not, we cannot remove the worklist element
+            //
+            if (unsigned * numArgs = OptUnlockingElement::getNumArgs(optuEleContainer)) {
+                if (!(nargs >= (*numArgs))) {
+                    // std::cout << "OptUnlockingElement: " << optuEleContainer << std::endl;
+                    // OptUnlockingElement::print(optuEleContainer, 0);
                     //
                     // Optimistic unlock worst case fail
                     // ?TODO: If this case happens, find out why it does
                     //
-                    std::cerr << "[TO DEBUG] Optimistic unlock worst case fail" << std::endl;
+                    std::cerr << "[TO DEBUG] Optimistic unlock worst case fail, nargs: " << nargs << ", expectedNargs: " << *numArgs << std::endl;
+                    // std::cerr << "[WARNING] Ignoring check, lets see when this breaks!" << std::endl;
+
                     continue;
                 }
             }
+            // Processed indices can be removed
+            toRemove.push_back(i);
+
+            SEXP uEleContainer = OptUnlockingElement::getUE(optuEleContainer);
+
+            int * counter = UnlockingElement::getCounter(uEleContainer);
+            *counter = *counter - 1;
+
+            if (*counter == 0) {
+                //
+                // Do unlocking if counter becomes 0
+                //
+                doUnlockingElement(uEleContainer, linkTime);
+                UnlockingElement::remove(ueIdx);
+            }
         }
+    } else {
+        for (unsigned int i = 0; i < wlElementVec.size(); i++) {
+            BC::PoolIdx ueIdx = wlElementVec[i];
+            SEXP uEleContainer = Pool::get(ueIdx);
 
-        // Processed indices can be removed
-        toRemove.push_back(i);
+            // Processed indices can be removed
+            toRemove.push_back(i);
 
-        int * counter = UnlockingElement::getCounter(uEleContainer);
-        *counter = *counter - 1;
+            int * counter = UnlockingElement::getCounter(uEleContainer);
+            *counter = *counter - 1;
 
-        if (*counter == 0) {
-            //
-            // Do unlocking if counter becomes 0
-            //
-            doUnlockingElement(uEleContainer, linkTime);
-            UnlockingElement::remove(ueIdx);
+            if (*counter == 0) {
+                //
+                // Do unlocking if counter becomes 0
+                //
+                doUnlockingElement(uEleContainer, linkTime);
+                UnlockingElement::remove(ueIdx);
+            }
         }
     }
+
 
     // https://stackoverflow.com/questions/35055227/how-to-erase-multiple-elements-from-stdvector-by-index-using-erase-function
     // Sorting toRemove is ascending order is needed but
@@ -787,6 +810,10 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
     // Add hast to the dispatch table as we know this is the 0th offset by default.
     //
 
+    // std::cout << "DESERIALIZER STARTED: " << CHAR(PRINTNAME(hSym)) << std::endl;
+    // deserializerData::print(ddCont, 2);
+
+
     SEXP hastSym  = deserializerData::getHast(ddCont);
     vtab->hast = hastSym;
 
@@ -865,6 +892,8 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
                     //
                     SEXP hastKey;
 
+                    BC::PoolIdx optIdx;
+
                     {
                         //
                         // In optimistic case the DEP_HAST is
@@ -879,14 +908,18 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
 
                         hastKey = Rf_install(n.substr(0, secondDel).c_str());
 
-                        UnlockingElement::addNumArgs(Pool::get(ueIdx), std::stoi(nargs));
+                        // std::cout << "adding nargs to: " << Pool::get(ueIdx) << ", nargs: " << n << std::endl;
+
+                        // UnlockingElement::addNumArgs(Pool::get(ueIdx), std::stoi(nargs));
+
+                        optIdx = OptUnlockingElement::createOptWorklistElement(std::stoi(nargs), Pool::get(ueIdx));
                     }
 
                     //
                     // Add to worklist2
                     //
 
-                    Worklist2::worklist[hastKey].push_back(ueIdx);
+                    Worklist2::worklist[hastKey].push_back(optIdx);
                 } else {
                     //
                     // Add to worklist1
