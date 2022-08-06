@@ -69,7 +69,6 @@ struct L2Dispatch
 				SEXP currFunHolder = VECTOR_ELT(functionVector, i);
 				Function * currFun = Function::unpack(currFunHolder);
 				if (!currFun->disabled()) {
-					std::cout << "V1 HIT" << std::endl;
 					return currFun;
 				}
 			}

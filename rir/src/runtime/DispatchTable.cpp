@@ -125,7 +125,6 @@ namespace rir {
 
         if (idxContainer == R_NilValue) {
             setEntry(idx, fun->container());
-            return;
         } else {
             if (Function::check(idxContainer)) {
                 // Already existing container, do what is meant to be done

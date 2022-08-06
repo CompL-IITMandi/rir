@@ -627,6 +627,11 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
 // Check if Worklist1 has work for the current hast
 //
 void BitcodeLinkUtil::tryUnlocking(SEXP currHastSym) {
+    // std::cout << "Worklist1[" << CHAR(PRINTNAME(currHastSym)) << "] query" << std::endl;
+    // std::cout << "Worklist1 Bindings" << std::endl;
+    // for (auto & ele : Worklist1::worklist) {
+    //     std::cout << " " << CHAR(PRINTNAME(ele.first)) << std::endl;
+    // }
     if (Worklist1::worklist.count(currHastSym) > 0) {
         std::vector<BC::PoolIdx> & wl = Worklist1::worklist[currHastSym];
         processWorklistElements(wl, linkTime);
@@ -644,6 +649,12 @@ void BitcodeLinkUtil::tryUnlockingOpt(SEXP currHastSym, const unsigned long & co
     std::stringstream ss;
     ss << CHAR(PRINTNAME(currHastSym)) << "_" << con;
     SEXP worklistKey = Rf_install(ss.str().c_str());
+
+    // std::cout << "Worklist2[" << CHAR(PRINTNAME(worklistKey)) << "] query" << std::endl;
+    // std::cout << "Worklist2 Bindings" << std::endl;
+    // for (auto & ele : Worklist2::worklist) {
+    //     std::cout << " " << CHAR(PRINTNAME(ele.first)) << std::endl;
+    // }
 
     if (Worklist2::worklist.count(worklistKey) > 0) {
         std::vector<BC::PoolIdx> & wl = Worklist2::worklist[worklistKey];
@@ -779,6 +790,9 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
     SEXP hastSym  = deserializerData::getHast(ddCont);
     vtab->hast = hastSym;
 
+    // Early linking breaks the implicit binary ordering, should complete worklist1 before linking these binaries
+    std::vector<BC::PoolIdx> earlyLinkingIdx;
+
     deserializerData::iterateOverUnits(ddCont, [&](SEXP ddContainer, SEXP offsetUnitContainer, SEXP contextUnitContainer, SEXP binaryUnitContainer) {
         //
         // Creating the UnlockElement
@@ -826,12 +840,12 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
         // Early linking case, no worklist used
         if (reduceRes.first == 0) {
             //
-            // Do linking here using the unlock element
+            // Do linking here using the unlock element, this is now delayed
+            // to preserve linking order of binaries
             //
 
-            doUnlockingElement(Pool::get(ueIdx), linkTime);
+            earlyLinkingIdx.push_back(ueIdx);
 
-            Pool::patch(ueIdx, R_NilValue);
             return;
         }
 
@@ -883,6 +897,16 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
             }
         }
     });
+
+
+    // Do worklist 1
+    tryUnlocking(hSym);
+
+    // Early linking is now semi early linking, to preserve implicit binary ordering for V = 1 and V = 2 dispatch
+    for (auto & ueIdx : earlyLinkingIdx) {
+        doUnlockingElement(Pool::get(ueIdx), linkTime);
+        Pool::patch(ueIdx, R_NilValue);
+    }
 
     // Remove the generalWorklistElement
     GeneralWorklist::remove(hSym);

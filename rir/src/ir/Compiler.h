@@ -183,11 +183,11 @@ class Compiler {
 
                     // Remove entry from general worklist after work is complete
                     GeneralWorklist::remove(hast);
+                } else {
+                    // Non serialized code can also have work to do
+                    // Do work on worklist1 (if work exists).
+                    BitcodeLinkUtil::tryUnlocking(hast);
                 }
-
-                // Non serialized code can also have work to do
-                // Do work on worklist1 (if work exists).
-                BitcodeLinkUtil::tryUnlocking(hast);
 
             }
         } else {
