@@ -73,7 +73,7 @@ struct L2Dispatch
 				}
 			}
 
-			std::cout << "V1 MISS" << std::endl;
+			// std::cout << "V1 MISS" << std::endl;
 
 			//
 			// If all of these are disabled, then we dispatch to the genesis function.
@@ -114,19 +114,19 @@ struct L2Dispatch
 
 				bool match = true;
 
-				std::cout << "Checking Function " << i << "(" << currFun->disabled() << ")" << std::endl;
+				// std::cout << "Checking Function " << i << "(" << currFun->disabled() << ")" << std::endl;
 
 				for (unsigned int j = 0; j < _numSlots; j++) {
-					std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
+					// std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
 					if (getFeedbackAsUint(observedTF[j]) != getFeedbackAsUint(currTF[j])) match = false;
 				}
 
 				if (match && !currFun->disabled()) {
-					std::cout << "V2 HIT" << std::endl;
+					// std::cout << "V2 HIT" << std::endl;
 					return currFun;
 				}
 			}
-			std::cout << "V2 MISS" << std::endl;
+			// std::cout << "V2 MISS" << std::endl;
 			//
 			// If this fails we return to the genesisFunction, this might be a dummy function or a JIT compiled function
 			//	The reason we dont fallback to V1 dispatch is that a Type Version may get unnecessarily disabled if we randomly
