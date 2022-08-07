@@ -105,4 +105,3 @@ printUsage <- function() {
 }
 
 run(commandArgs(trailingOnly=TRUE))
-f.compileStats()
