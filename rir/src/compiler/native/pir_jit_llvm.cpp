@@ -388,8 +388,8 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     std::unordered_map<int64_t, int64_t> poolPatch;
     for (int i = 0; i < Rf_length(cPool); i++) {
         auto ele = VECTOR_ELT(cPool, i);
-        poolPatch[i] = Pool::makeSpace();
-        Pool::patch(poolPatch[i], ele);
+        poolPatch[i] = Pool::insert(ele);
+        // Pool::patch(poolPatch[i], ele);
     }
     // Source Pool patches
     std::unordered_map<int64_t, int64_t> sPoolPatch;
@@ -597,9 +597,9 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         vtab->insertL2V2(function.function(), uEleContainer);
     }
 
-    // if (getenv("EAGER_BITCODES")) {
-    //     res->nativeCode();
-    // }
+    if (getenv("EAGER_BITCODES")) {
+        res->nativeCode();
+    }
 
 }
 

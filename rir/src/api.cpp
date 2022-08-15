@@ -1118,10 +1118,6 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                     auto fun = backend.getOrCompile(c);
                     protecc(fun->container());
 
-                    // Mark hast as stale in the runtime, loading the new bitcode will lead to duplicate LLVM symbols
-                    if (hast != R_NilValue) {
-                        BitcodeLinkUtil::markStale(hast, c->context().toI());
-                    }
                     DispatchTable::unpack(body)->insert(fun);
                     if (body == BODY(what)) {
                         done = fun;
@@ -1161,6 +1157,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                     done = fun;
             }
         };
+        // bool delayMain = false;
         m->eachPirClosureVersion([&](pir::ClosureVersion* c) {
             if (c->owner()->hasOriginClosure()) {
                 auto cls = c->owner()->rirClosure();
@@ -1177,11 +1174,27 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 // they have incomplete type-feedback.
                 if (dt->size() == 1 && dt->baseline()->invocationCount() < 2)
                     return;
+                // // Delay applying main
+                // if (BODY(what) == body) {
+                //     PROTECT(body);
+                //     delayMain = true;
+                //     return;
+                // }
                 PROTECT(body);
                 apply(body, c);
                 UNPROTECT(1);
             }
         });
+        // if (delayMain) {
+        //     // Fixes a big where lowering main function before recursively compiled ones leads to sub optimal
+        //     // LLVM code for the main function. This is because the recursively compiled closures are yet to
+        //     // be added to the dispatch table. [StaticCall lowering in the lower_function_llvm.cpp]
+        //     // Also,
+        //     // Cases where this is false would be interesting to look at.
+        //     auto body = BODY(what);
+        //     apply(body, c);
+        //     UNPROTECT(1);
+        // }
         if (!done)
             apply(BODY(what), c);
         // Eagerly compile the main function

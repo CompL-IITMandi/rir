@@ -134,12 +134,16 @@ class Compiler {
         if (origBC)
             vtable->baseline()->body()->addExtraPoolEntry(origBC);
 
+        static bool normalRshRun = getenv("NORMAL_RSH_RUN") ? getenv("NORMAL_RSH_RUN")[0] == '1' : false;
+        if (normalRshRun) {
+            // Set the closure fields.
+            SET_BODY(inClosure, vtable->container());
+            return;
+        }
+
         SEXP hast = BitcodeLinkUtil::getHast(body, CLOENV(inClosure));
         // Set the closure fields.
         SET_BODY(inClosure, vtable->container());
-
-        static bool normalRshRun = getenv("NORMAL_RSH_RUN") ? getenv("NORMAL_RSH_RUN")[0] == '1' : false;
-        if (normalRshRun) return;
 
         // Only Serializer run
         static bool onlySerializerRun = getenv("ONLY_SERIALIZER_RUN") ? getenv("ONLY_SERIALIZER_RUN")[0] == '1' : false;
