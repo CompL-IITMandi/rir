@@ -1062,12 +1062,7 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
 
         inferCurrentContext(call, table->baseline()->signature().formalNargs(),
                             ctx);
-        if (table->mask.toI() != 0) {
-            // std::cout << "mask exists for vtable" << std::endl;
-            // std::cout << "before: " << call.givenContext << std::endl;
-            call.givenContext.curbContextWithMask(table->mask);
-            // std::cout << "after: " << call.givenContext << std::endl;
-        }
+
         Function* fun = dispatch(call, table);
         fun->registerInvocation();
 
@@ -1083,6 +1078,9 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
             // this as an explicit assumption.
 
             fun->clearDisabledAssumptions(given);
+            if (table->mask.toI() != 0) {
+                given.curbContextWithMask(table->mask);
+            }
             if (RecompileCondition(table, fun, given)) {
                 if (given.includes(pir::Compiler::minimalContext)) {
                     if (call.caller &&

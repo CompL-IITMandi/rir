@@ -38,6 +38,52 @@ using namespace std::chrono;
 
 namespace rir {
 
+//
+// AST Hashing function
+//
+
+static size_t charToInt(const char* p, size_t & hast) {
+    for (size_t i = 0; i < strlen(p); ++i) {
+        hast = ((hast << 5) + hast) + p[i];
+    }
+    return hast;
+}
+
+static void hash_ast(SEXP ast, size_t & hast) {
+    int len = Rf_length(ast);
+    int type = TYPEOF(ast);
+
+    if (type == SYMSXP) {
+        const char * pname = CHAR(PRINTNAME(ast));
+        hast = hast * 31;
+        charToInt(pname, hast);
+    } else if (type == STRSXP) {
+        const char * pname = CHAR(STRING_ELT(ast, 0));
+        hast = hast * 31;
+        charToInt(pname, hast);
+    } else if (type == LGLSXP) {
+        for (int i = 0; i < len; i++) {
+            int ival = LOGICAL(ast)[i];
+            hast += ival;
+        }
+    } else if (type == INTSXP) {
+        for (int i = 0; i < len; i++) {
+            int ival = INTEGER(ast)[i];
+            hast += ival;
+        }
+    } else if (type == REALSXP) {
+        for (int i = 0; i < len; i++) {
+            double dval = REAL(ast)[i];
+            hast += dval;
+        }
+    } else if (type == LISTSXP || type == LANGSXP) {
+        hast *= 31;
+        hash_ast(CAR(ast), ++hast);
+        hast *= 31;
+        hash_ast(CDR(ast), ++hast);
+    }
+}
+
 SEXP BitcodeLinkUtil::getHast(SEXP body, SEXP env) {
     std::stringstream qHast;
     static bool skipGlobalBc = getenv("SKIP_GLOBAL_BC") ? true : false;

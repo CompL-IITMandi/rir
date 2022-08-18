@@ -27,14 +27,13 @@ REXPORT SEXP rirDeserialize(SEXP file);
 
 REXPORT SEXP rirSetUserContext(SEXP f, SEXP udc);
 REXPORT SEXP rirCreateSimpleIntContext();
-REXPORT SEXP serializerCleanup();
+void serializerCleanup();
 
 // serializer
 struct hastAndIndex {
     SEXP hast;
     int index;
 };
-void hash_ast(SEXP ast, size_t & hast);
 void printAST(int space, SEXP ast);
 void printAST(int space, int val);
 hastAndIndex getHastAndIndex(unsigned src, bool constantPool = false);
@@ -49,5 +48,4 @@ REXPORT SEXP startDebugMessages();
 REXPORT SEXP stopDebugMessages();
 REXPORT SEXP startCapturingStats();
 REXPORT SEXP stopCapturingStats();
-REXPORT SEXP applyMask(SEXP path);
 #endif // API_H_

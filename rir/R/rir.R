@@ -192,10 +192,6 @@ rir.body <- function(f) {
     .Call("rirBody", f);
 }
 
-f.serializerCleanup <- function() {
-    invisible(.Call("serializerCleanup"))
-}
-
 f.startSerializer <- function() {
     invisible(.Call("startSerializer"))
 }

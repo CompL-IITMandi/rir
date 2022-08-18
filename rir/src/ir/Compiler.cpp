@@ -2060,7 +2060,6 @@ SEXP Compiler::finalize() {
     return function.function()->container();
 }
 
-size_t Compiler::linkTime = 0;
 
 bool Compiler::unsoundOpts =
     !(getenv("UNSOUND_OPTS") &&

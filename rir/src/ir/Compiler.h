@@ -58,7 +58,6 @@ class Compiler {
     static bool profile;
     static bool unsoundOpts;
     static bool loopPeelingEnabled;
-    static size_t linkTime;
 
     SEXP finalize();
 

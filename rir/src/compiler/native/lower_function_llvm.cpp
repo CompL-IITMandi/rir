@@ -101,7 +101,7 @@ bool LowerFunctionLLVM::isHastInvalid(SEXP hast) {
     return hast == R_NilValue;
 }
 
-bool LowerFunctionLLVM::isHastBlacklisted(SEXP hastSym) {
+static bool isHastBlacklisted(SEXP hastSym) {
     SEXP blMap = Pool::get(BL_MAP);
     if (blMap != R_NilValue && Rf_findVarInFrame(blMap, hastSym) != R_UnboundValue) {
         return true;

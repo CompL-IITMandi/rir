@@ -131,7 +131,6 @@ class LowerFunctionLLVM {
     std::set<SEXP>* reqMap = nullptr;
     bool* serializerError = nullptr;
     bool isHastInvalid(SEXP hast);
-    bool isHastBlacklisted(SEXP hast);
     SEXP getVtableContainer(SEXP hast, int offset);
     rir::Code * getCodeContainer(SEXP hast, int offset);
     SEXP getClosContainer(SEXP hast);
