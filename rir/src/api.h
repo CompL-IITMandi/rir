@@ -43,7 +43,7 @@ REXPORT SEXP loadBitcodes(SEXP path);
 
 REXPORT SEXP printGeneralWorklist();
 
-REXPORT SEXP compileStats();
+REXPORT SEXP compileStats(SEXP, SEXP);
 REXPORT SEXP startDebugMessages();
 REXPORT SEXP stopDebugMessages();
 REXPORT SEXP startCapturingStats();

@@ -462,16 +462,20 @@ REXPORT SEXP stopCapturingStats() {
     return R_NilValue;
 }
 
-REXPORT SEXP compileStats() {
-    std::cout << "==== RUN STATS ====" << std::endl;
-    std::cout << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
-    std::cout << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
-    std::cout << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
-    std::cout << "Compiled Closures:       : " << compilerSuccesses << std::endl;
-    std::cout << "Serialized Closures      : " << serializerSuccess << std::endl;
-    std::cout << "Unlinked BC (Worklist1)  : " << Worklist1::worklist.size() << std::endl;
-    std::cout << "Unlinked BC (Worklist2)  : " << Worklist2::worklist.size() << std::endl;
-    return Rf_ScalarInteger(compilerSuccesses);
+REXPORT SEXP compileStats(SEXP name, SEXP path) {
+    assert(TYPEOF(path) == STRSXP);
+    assert(TYPEOF(name) == STRSXP);
+    std::ofstream ostrm(CHAR(STRING_ELT(path, 0)));
+    ostrm << "============== RUN STATS ==============" << std::endl;
+    ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
+    ostrm << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
+    ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
+    ostrm << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
+    ostrm << "Compiled Closures:       : " << compilerSuccesses << std::endl;
+    ostrm << "Serialized Closures      : " << serializerSuccess << std::endl;
+    ostrm << "Unlinked BC (Worklist1)  : " << Worklist1::worklist.size() << std::endl;
+    ostrm << "Unlinked BC (Worklist2)  : " << Worklist2::worklist.size() << std::endl;
+    return R_NilValue;
 }
 
 REXPORT SEXP rirMarkFunction(SEXP what, SEXP which, SEXP reopt_,

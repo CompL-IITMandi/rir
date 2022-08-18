@@ -204,6 +204,10 @@ f.applyMask <- function(path) {
     invisible(.Call("applyMask", path))
 }
 
+f.compileStats <- function(name, path) {
+    invisible(.Call("compileStats", name, path))
+}
+
 f.startCapturingStats <- function() {
     invisible(.Call("startCapturingStats"))
 }
