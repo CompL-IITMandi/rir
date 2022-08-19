@@ -22,9 +22,20 @@
 #include <memory>
 #include <string>
 
+
+#include "serializerDeserializerGeneral/DebugMessages.h"
+#include "serializer/SerializerFlags.h"
+#include "serializerDeserializerGeneral/Hast.h"
+#include "serializer/serializerData.h"
+#include "serializer/RshSerializer.h"
+
+
+
 using namespace rir;
 
 extern "C" Rboolean R_Visible;
+int DebugMessages::serializerDebug = getenv("SER_DBG") ? std::stoi(getenv("SER_DBG")) : 0;
+int DebugMessages::deserializerDebug = getenv("DES_DBG") ? std::stoi(getenv("DES_DBG")) : 0;
 
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
 
@@ -323,6 +334,56 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 if (body == BODY(what))
                     done = fun;
             };
+            auto applyAndSerialize = [&](SEXP body, pir::ClosureVersion* c) {
+                backend.cData = nullptr;
+                backend.serializerError = nullptr;
+
+                auto data = getHastAndIndex(c->rirSrc()->src);
+                SEXP hast = data.hast;
+
+                if (hast != R_NilValue) {
+                    Protect protecc;
+                    DebugMessages::printSerializerMessage("> Serializer Started", 0);
+
+                    // Context data container
+                    SEXP cDataContainer;
+                    protecc(cDataContainer = Rf_allocVector(VECSXP, contextData::getStorageSize()));
+
+                    contextData::addContext(cDataContainer, c->context().toI());
+
+                    // Add the metadata collectors to the backend
+                    bool serializerError = false;
+                    backend.cData = cDataContainer;
+                    backend.serializerError = &serializerError;
+
+                    // Compile
+                    auto fun = backend.getOrCompile(c);
+                    protecc(fun->container());
+
+                    DispatchTable::unpack(body)->insert(fun);
+                    if (body == BODY(what)) {
+                        done = fun;
+                    }
+
+                    if (!serializerError) {
+                        RshSerializer::serializeFunction(hast, data.index, c->name(), cDataContainer, serializerError);
+                        if (!serializerError) {
+                            // if (SerializerFlags::captureCompileStats) serializerSuccess++;
+                            DebugMessages::printSerializerMessage("/> Serializer Success", 0);
+                        } else {
+                            DebugMessages::printSerializerMessage("/> Serializer Error, I/O related failure", 0);
+                        }
+                    } else {
+                        DebugMessages::printSerializerMessage("/> Serializer Error", 0);
+                    }
+                    backend.cData = nullptr;
+                    backend.serializerError = nullptr;
+                } else {
+                    // hast in null, cannot serialize
+                    DebugMessages::printSerializerMessage("*> Serializer Skipped, parent hast is null.", 0);
+                    apply(body, c);
+                }
+            };
             m->eachPirClosureVersion([&](pir::ClosureVersion* c) {
                 if (c->owner()->hasOriginClosure()) {
                     auto cls = c->owner()->rirClosure();
@@ -342,7 +403,19 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                     if (dt->size() == 1 &&
                         dt->baseline()->invocationCount() < 2)
                         return;
-                    apply(body, c);
+                    if (SerializerFlags::serializerEnabled) {
+                        // Disable further compilations due to the recomipile heuristic, weird eval problems can happen
+                        // when serializing/deserializing
+                        bool oldVal = GeneralFlags::contextualCompilationSkip;
+                        GeneralFlags::contextualCompilationSkip = true;
+
+                        applyAndSerialize(body, c);
+
+                        // Restore compilations to existing state
+                        GeneralFlags::contextualCompilationSkip = oldVal;
+                    } else {
+                        apply(body, c);
+                    }
                 }
             });
             if (!done)
@@ -608,3 +681,14 @@ bool startup() {
 }
 
 bool startup_ok = startup();
+
+// Serializer
+REXPORT SEXP startSerializer() {
+    SerializerFlags::serializerEnabled = true;
+    return R_NilValue;
+}
+
+REXPORT SEXP stopSerializer() {
+    SerializerFlags::serializerEnabled = false;
+    return R_NilValue;
+}

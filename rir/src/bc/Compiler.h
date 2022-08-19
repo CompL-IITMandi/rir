@@ -13,6 +13,8 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "serializerDeserializerGeneral/General.h"
+#include "serializerDeserializerGeneral/Hast.h"
 namespace rir {
 
 class Compiler {
@@ -90,8 +92,17 @@ class Compiler {
         if (origBC)
             dt->baseline()->body()->addExtraPoolEntry(origBC);
 
+        // Calculate hast using the original AST
+        SEXP hast = getHast(body, CLOENV(inClosure));
+
         // Set the closure fields.
         SET_BODY(inClosure, dt->container());
+
+        if (hast != R_NilValue && readyForSerialization(hast)) {
+            populateHastSrcData(dt, hast);
+            insertVTable(dt, hast);
+            insertClosObj(inClosure, hast);
+        }
     }
 };
 

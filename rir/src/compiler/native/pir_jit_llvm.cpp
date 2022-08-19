@@ -20,6 +20,13 @@
 #include "llvm/Support/raw_os_ostream.h"
 #include <memory>
 
+#include "llvm/Transforms/Utils/Cloning.h"
+#include "llvm/Bitcode/BitcodeWriter.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Bitcode/BitcodeReader.h"
+#include "serializer/serializerData.h"
+#include "serializerDeserializerGeneral/DebugMessages.h"
+
 namespace rir {
 namespace pir {
 
@@ -321,11 +328,317 @@ void PirJitLLVM::finalize() {
         auto TSM = llvm::orc::ThreadSafeModule(std::move(M), TSC);
         ExitOnErr(JIT->addIRModule(std::move(TSM)));
         for (auto& fix : jitFixup)
-            fix.second.first->lazyCodeHandle(fix.second.second.str());
+            // fix.second.first->lazyCodeHandle(fix.second.second.str());
+            fix.second.first->lazyCodeHandle(fix.second.second);
         nModules++;
     }
     finalized = true;
 }
+
+
+void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName) {
+    auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : "bitcodes";
+
+    std::vector<int64_t> cpEntries;
+    std::vector<int64_t> spEntries;
+
+    std::unordered_map<int64_t, int64_t> cpAlreadySeen;
+    std::unordered_map<int64_t, int64_t> spAlreadySeen;
+
+    // We clone the module because we dont want to update constant pool references in the original module
+    std::unique_ptr<llvm::Module> module = llvm::CloneModule(*M.get());
+
+    for (auto & global : (*M.get()).getGlobalList()) {
+        auto globalName = global.getName().str();
+        auto pre = globalName.substr(0,6) == "copool";
+        auto srp = globalName.substr(0,6) == "srpool";
+        auto namc = globalName.substr(0,6) == "named_";
+
+        if (namc || pre || srp) {
+            global.setExternallyInitialized(false);
+            // global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
+        }
+    }
+
+
+    std::vector<llvm::Function *> junkFunctionList;
+
+    // Remove junk functions, codn and clsn patches should not be needed on the deserializer ideally
+    for (auto & fun: module->getFunctionList()) {
+        if (fun.getName().str().substr(0,3) == "rsh") {
+            junkFunctionList.push_back(&fun);
+        }
+        if (fun.getName().str().substr(0,2) == "f_") {
+            if (std::find(relevantNames.begin(), relevantNames.end(), fun.getName().str()) == relevantNames.end()) {
+                junkFunctionList.push_back(&fun);
+            }
+        }
+    }
+
+    for (auto & fun : junkFunctionList) {
+        fun->eraseFromParent();
+    }
+
+    llvm::PassBuilder passBuilder;
+    llvm::LoopAnalysisManager loopAnalysisManager(false); // true is just to output debug info
+    llvm::FunctionAnalysisManager functionAnalysisManager(false);
+    llvm::CGSCCAnalysisManager cGSCCAnalysisManager(false);
+    llvm::ModuleAnalysisManager moduleAnalysisManager(false);
+
+    passBuilder.registerModuleAnalyses(moduleAnalysisManager);
+    passBuilder.registerCGSCCAnalyses(cGSCCAnalysisManager);
+    passBuilder.registerFunctionAnalyses(functionAnalysisManager);
+    passBuilder.registerLoopAnalyses(loopAnalysisManager);
+    // This is the important line:
+    passBuilder.crossRegisterProxies(
+        loopAnalysisManager, functionAnalysisManager, cGSCCAnalysisManager, moduleAnalysisManager);
+
+    llvm::ModulePassManager modulePassManager =
+        passBuilder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O3);
+    modulePassManager.run(*module, moduleAnalysisManager);
+
+    size_t srcPoolOffset = 0;
+
+    // Patch all CP and SRC pool entries
+    int patchValue = 0;
+    // Iterating over all globals
+    for (auto & global : module->getGlobalList()) {
+        auto pre = global.getName().str().substr(0,6) == "copool";
+        auto srp = global.getName().str().substr(0,6) == "srpool";
+        auto namc = global.getName().str().substr(0,6) == "named_";
+
+        if (namc || pre || srp) {
+            global.setExternallyInitialized(false);
+            // global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
+        }
+
+        if (srp) {
+            auto con = global.getInitializer();
+            if (auto * v = llvm::dyn_cast<llvm::ConstantInt>(con)) {
+                // Simple constant ints
+                auto val = v->getSExtValue();
+                // contains replacement value, relative to serialized pool
+                llvm::Constant* replacementValue;
+
+                if (spAlreadySeen.find(val) == spAlreadySeen.end()) {
+                    // If not seen, we add it to the serialization pool
+                    spEntries.push_back(val);
+                    // update seen map
+                    spAlreadySeen[val] = srcPoolOffset;
+                    replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, srcPoolOffset++));
+                } else {
+                    // If already seen, just use the previously patched value
+                    replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, spAlreadySeen[val]));
+                }
+
+                global.setInitializer(replacementValue);
+            }
+        }
+        // llvm::outs() << global.getName().str()  << " used at \n";
+        // for (llvm::User *user : global.users()) {
+        //     // if (llvm::CallBase * cbInst = llvm::dyn_cast<llvm::CallInst>(user)) {
+        //     //     auto calledFun = cbInst->getCalledFunction()->getName().str();
+        //     //     std::cout << global.getName().str() << " constant used at " << calledFun << std::endl;
+        //     // }
+        //     llvm::outs() << "   " << *user << "\n";
+        // }
+
+        // All constant pool references have a copool prefix
+        if (pre) {
+            llvm::raw_os_ostream ost(std::cout);
+            auto con = global.getInitializer();
+            if (auto * v = llvm::dyn_cast<llvm::ConstantDataArray>(con)) {
+                // Constant data array
+                std::vector<llvm::Constant*> patchedIndices;
+
+                auto arrSize = v->getNumElements();
+
+                for (unsigned int i = 0; i < arrSize; i++) {
+
+                    // cp Index that we are referring to
+                    auto val = v->getElementAsAPInt(i).getSExtValue();
+
+                    // contains replacement value, relative to serialized pool
+                    llvm::Constant* replacementValue;
+
+                    if (cpAlreadySeen.find(val) == cpAlreadySeen.end()) {
+                        // If not seen, we add it to the serialization pool
+                        cpEntries.push_back(val);
+                        // update seen map
+                        cpAlreadySeen[val] = patchValue;
+                        replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
+                    } else {
+                        // If already seen, just use the previously patched value
+                        replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, cpAlreadySeen[val]));
+                    }
+                    // std::cout << "[low] cPool, from: " << val << ", to: " << cpAlreadySeen[val] << std::endl;
+                    patchedIndices.push_back(replacementValue);
+
+                }
+
+                auto ty = llvm::ArrayType::get(rir::pir::t::Int, patchedIndices.size());
+                auto newInit = llvm::ConstantArray::get(ty, patchedIndices);
+
+                global.setInitializer(newInit);
+            } else if (auto * v = llvm::dyn_cast<llvm::ConstantInt>(con)) {
+                // Simple constant ints
+                auto val = v->getSExtValue();
+
+                // contains replacement value, relative to serialized pool
+                llvm::Constant* replacementValue;
+
+                if (cpAlreadySeen.find(val) == cpAlreadySeen.end()) {
+                    // If not seen, we add it to the serialization pool
+                    cpEntries.push_back(val);
+                    // update seen map
+                    cpAlreadySeen[val] = patchValue;
+                    replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
+                } else {
+                    // If already seen, just use the previously patched value
+                    replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, cpAlreadySeen[val]));
+                }
+                // std::cout << "[low] cPool, from: " << val << ", to: " << cpAlreadySeen[val] << std::endl;
+                global.setInitializer(replacementValue);
+            } else if (auto * v = llvm::dyn_cast<llvm::ConstantAggregateZero>(con)) {
+                // Constant data array
+                std::vector<llvm::Constant*> patchedIndices;
+
+                auto arrSize = v->getNumElements();
+
+                for (unsigned int i = 0; i < arrSize; i++) {
+
+                    // cp Index that we are referring to
+                    auto val = 0;
+
+                    // contains replacement value, relative to serialized pool
+                    llvm::Constant* replacementValue;
+
+                    if (cpAlreadySeen.find(val) == cpAlreadySeen.end()) {
+                        // If not seen, we add it to the serialization pool
+                        cpEntries.push_back(val);
+                        // update seen map
+                        cpAlreadySeen[val] = patchValue;
+                        replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, patchValue++));
+                    } else {
+                        // If already seen, just use the previously patched value
+                        replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, cpAlreadySeen[val]));
+                    }
+                    // std::cout << "[low] cPool, from: " << val << ", to: " << cpAlreadySeen[val] << std::endl;
+                    patchedIndices.push_back(replacementValue);
+
+                }
+
+                auto ty = llvm::ArrayType::get(rir::pir::t::Int, patchedIndices.size());
+                auto newInit = llvm::ConstantArray::get(ty, patchedIndices);
+
+                global.setInitializer(newInit);
+            }
+        }
+    }
+
+    // SERIALIZE THE LLVM MODULE
+    std::stringstream bcPathSS;
+    bcPathSS << prefix << "/" << contextData::getContext(cData) << ".bc";
+
+    std::string ss = bcPathSS.str();
+    llvm::StringRef bcPathRef(ss);
+
+    unsigned MAX_RETRY = 3;
+    bool success = false;
+    unsigned tryCount = 0;
+    while(tryCount <= MAX_RETRY) {
+
+        std::error_code errC;
+        llvm::raw_fd_ostream opStr(bcPathRef, errC);
+
+        if (opStr.has_error()) {
+            tryCount++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            continue;
+        }
+
+        WriteBitcodeToFile(*module,opStr);
+
+        if (opStr.has_error()) {
+            tryCount++;
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            continue;
+        }
+
+        opStr.close();
+        success = true;
+        break;
+
+    }
+    module.reset();
+    if (!success) {
+        DebugMessages::printSerializerMessage("(E) Writing bitcode failed, I/O related error", 1);
+        *serializerError = true;
+        return;
+    }
+
+    if (tryCount > 0) {
+        std::cout << "Retry for LLVM writing succeeded!" << std::endl;
+    }
+
+    SEXP cPool, sPool;
+    Protect protecc;
+    protecc(cPool = Rf_allocVector(VECSXP, cpEntries.size()));
+    protecc(sPool = Rf_allocVector(VECSXP, spEntries.size()));
+    // std::cout << "  -- SERIALIZED POOL FOR " << mainFunName << std::endl;
+    for (int i = 0; i < Rf_length(cPool); i++) {
+        SEXP obj = Pool::get(cpEntries[i]);
+        // std::cout << "    cpool[" << i << "]" << TYPEOF(obj) << " -- Loaded from CPOOL: " << cpEntries[i] << std::endl;
+        // Dont serialize external code, we serialize the original AST
+        if (TYPEOF(obj) == CLOSXP && TYPEOF(BODY(obj)) != BCODESXP) {
+            *serializerError = true;
+            DebugMessages::printSerializerErrors("(*) constant pool contains CLOSXP, not supported.", 2);
+        }
+        if (TYPEOF(obj) == 26) {
+            *serializerError = true;
+            DebugMessages::printSerializerErrors("(*) constant pool contains EXTERNALSXP, not supported.", 2);
+        }
+        SET_VECTOR_ELT(cPool, i, obj);
+    }
+
+    for (int i = 0; i < Rf_length(sPool); i++) {
+        SEXP obj = src_pool_at(spEntries[i]);
+        // std::cout << "    spool[" << i << "]" << TYPEOF(obj) << std::endl;
+        SET_VECTOR_ELT(sPool, i, obj);
+    }
+
+    SerializedPool::addCpool(serializedPoolData, cPool);
+    SerializedPool::addSpool(serializedPoolData, sPool);
+
+    // Serialize the poolData
+    std::stringstream poolPathSS;
+    poolPathSS << prefix << "/" << contextData::getContext(cData) << ".pool";
+
+    // Write pools to file
+    R_outpstream_st outputStream;
+    FILE *fptr;
+    fptr = fopen(poolPathSS.str().c_str(),"w");
+    if (!fptr) {
+        return;
+    }
+    R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
+    R_Serialize(serializedPoolData, &outputStream);
+    fclose(fptr);
+}
+
+void PirJitLLVM::updateFunctionNameInModule(std::string oldName, std::string newName) {
+    if (M) {
+        llvm::Function * f = M->getFunction(llvm::StringRef(oldName));
+        f->setName(newName);
+    } else {
+        Rf_error("unable to update names in the module");
+    }
+}
+
+void PirJitLLVM::patchFixupHandle(const std::string & newName, Code * code) {
+    jitFixup[code].second = newName;
+}
+
 
 void PirJitLLVM::compile(
     rir::Code* target, ClosureVersion* closure, Code* code,
@@ -370,6 +683,8 @@ void PirJitLLVM::compile(
     }
 
     std::string mangledName = JIT->mangle(makeName(code));
+    // Serializer
+    target->mName = mangledName;
 
     LowerFunctionLLVM funCompiler(
         target, mangledName, closure, code, promMap, refcount,
@@ -421,6 +736,10 @@ void PirJitLLVM::compile(
         DI->LexicalBlocks.push_back(SP);
     }
 
+    // Serializer
+    funCompiler.serializerError = serializerError;
+    funCompiler.reqMap = reqMapForCompilation;
+
     funCompiler.compile();
 
     assert(jitFixup.count(code) == 0);
@@ -439,9 +758,17 @@ void PirJitLLVM::compile(
 
     if (funCompiler.pirTypeFeedback)
         target->pirTypeFeedback(funCompiler.pirTypeFeedback);
-    if (funCompiler.hasArgReordering())
+    if (funCompiler.hasArgReordering()) {
         target->arglistOrder(ArglistOrder::New(funCompiler.getArgReordering()));
-    jitFixup.emplace(code, std::make_pair(target, funCompiler.fun->getName()));
+        // Serializer
+        SEXP aVec;
+        R_PreserveObject(aVec = ArglistOrder::NewInRAWSXP(funCompiler.getArgReordering()));
+        target->arglistOrderRAWSXP = aVec;
+    }
+
+    // Serializer
+    // jitFixup.emplace(code, std::make_pair(target, funCompiler.fun->getName()));
+    jitFixup.emplace(code, std::make_pair(target, funCompiler.fun->getName().str()));
 
     log.LLVMBitcode([&](std::ostream& out, bool tty) {
         bool debug = true;

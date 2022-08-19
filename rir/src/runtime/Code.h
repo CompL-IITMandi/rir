@@ -147,6 +147,10 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
 
     unsigned extraPoolSize; /// Number of elements in the per code constant pool
 
+    std::string mName = ""; /// name of the function in JIT
+
+    SEXP arglistOrderRAWSXP = nullptr; /// We need this in RAWSXP as serializing EXTERNALSXP leads to fininite loops sometimes
+
     uint8_t data[]; /// the instructions
 
     /*

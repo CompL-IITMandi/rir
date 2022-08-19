@@ -27,6 +27,13 @@
 #include <sstream>
 #include <unordered_set>
 
+#include "serializer/SerializerFlags.h"
+#include "serializerDeserializerGeneral/Hast.h"
+#include "serializerDeserializerGeneral/DebugMessages.h"
+#include "serializer/RshSerializer.h"
+#include "serializer/serializerData.h"
+
+#include <random>
 namespace rir {
 namespace pir {
 
@@ -310,6 +317,93 @@ static void toCSSA(Module* m, Code* code) {
     });
 }
 
+static Code* findFunCodeObj(std::unordered_map<Code*,std::unordered_map<Code*, std::pair<unsigned, MkArg*>>> & promMap) {
+    // Identify root node
+    // The code object that does not exist in any promise set is the root node
+    Code * mainFunCodeObj = NULL;
+
+    for (auto & element : promMap) {
+        rir::pir::Code *curr_codeObj = element.first;
+        bool trigger = false;
+
+        // check if the current code object is a part of some other code's promises array
+        for (auto & e : promMap) {
+            if (e.second.count(curr_codeObj) > 0) {
+                trigger = true;
+                break;
+            }
+
+        }
+
+        if (trigger == false) {
+            if (mainFunCodeObj != NULL) {
+                std::cout << "More than one root node is not possible, previous node: " << mainFunCodeObj  << std::endl;
+                Rf_error("More than one root node is not possible");
+            }
+            mainFunCodeObj = curr_codeObj;
+        }
+
+    }
+
+    if (!mainFunCodeObj) {
+        for (auto & element : promMap) {
+            std::cout << element.first << " : [ ";
+            for (auto & prom : element.second) {
+                std::cout << prom.first << " ";
+            }
+            std::cout << "]" << std::endl;
+        }
+        Rf_error("No root node found!");
+    }
+
+    return mainFunCodeObj;
+}
+
+static void updateFunctionMetas(std::vector<std::string> & relevantNames,
+    std::unordered_map<std::string, unsigned> & srcDataMap,
+    std::unordered_map<std::string, SEXP> & srcArgMap,
+    std::unordered_map<std::string, std::vector<std::string>> & childrenData,
+    std::unordered_map<std::string, int> & codeOffset,
+    SEXP fNamesVec, SEXP fSrcDataVec, SEXP fArgDataVec, SEXP fChildrenData) {
+    for (size_t i = 0; i < relevantNames.size(); i++) {
+        Protect protecc;
+        SEXP store;
+        protecc(store = Rf_mkString(relevantNames[i].c_str()));
+        SET_VECTOR_ELT(fNamesVec, i, store);
+
+        auto data = getHastAndIndex(srcDataMap[relevantNames[i]]);
+        unsigned calc = getSrcPoolIndexAtOffset(data.hast, data.index);
+        if (calc != srcDataMap[relevantNames[i]]) {
+            std::cerr << "[src mismatch]: " << calc << ", " << srcDataMap[relevantNames[i]] << std::endl;
+            SET_VECTOR_ELT(fSrcDataVec, i, R_NilValue);
+        } else {
+            Protect protecc_1;
+            SEXP dd;
+            protecc_1(dd = Rf_allocVector(VECSXP, 2));
+
+            SET_VECTOR_ELT(dd, 0, data.hast);
+            SET_VECTOR_ELT(dd, 1, Rf_ScalarInteger(data.index));
+
+            SET_VECTOR_ELT(fSrcDataVec, i, dd);
+
+        }
+
+        SET_VECTOR_ELT(fArgDataVec, i, srcArgMap[relevantNames[i]]);
+
+        auto children = childrenData[relevantNames[i]];
+
+        SEXP childrenContainer;
+        protecc(childrenContainer = Rf_allocVector(VECSXP, children.size()));
+
+        for (size_t j = 0; j < children.size(); j++) {
+            SET_VECTOR_ELT(childrenContainer, j, Rf_ScalarInteger(codeOffset[children[j]]));
+        }
+
+        SET_VECTOR_ELT(fChildrenData, i, childrenContainer);
+
+    }
+}
+
 bool MEASURE_COMPILER_BACKEND_PERF =
     getenv("PIR_MEASURE_COMPILER_BACKEND") ? true : false;
 
@@ -366,6 +460,35 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
     };
     lowerAndScanForPromises(cls);
 
+    // Serializer related
+    Code * mainFunCodeObj = nullptr;
+    SEXP hast = R_NilValue;
+    std::set<SEXP> rMap;
+
+    if (SerializerFlags::serializerEnabled && cData) {
+        // Find the head code object
+        mainFunCodeObj = findFunCodeObj(promMap);
+        hast = getHastAndIndex(mainFunCodeObj->rirSrc()->src).hast;
+
+        if (hast == R_NilValue) {
+            *serializerError = true;
+            DebugMessages::printSerializerMessage("(E) Backend, main src hast is blacklisted.", 1);
+        } else {
+            SEXP vtabContainer = getVtableContainer(hast);
+            if (!DispatchTable::check(vtabContainer)) {
+                *serializerError = true;
+                DebugMessages::printSerializerMessage("(E) Backend, Unexpected dispatch table unpacking failure!", 1);
+            }
+            else {
+                DispatchTable* dt = DispatchTable::unpack(vtabContainer);
+                RshSerializer::populateTypeFeedbackData(cData, dt);
+            }
+        }
+
+        jit.reqMapForCompilation = &rMap;
+        jit.serializerError = serializerError;
+    }
+
     if (MEASURE_COMPILER_BACKEND_PERF) {
         Measuring::countTimer("backend.cpp: lowering");
         Measuring::startTimer("backend.cpp: pir2llvm");
@@ -398,6 +521,211 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
         return res;
     };
     auto body = compile(cls);
+
+    if (SerializerFlags::serializerEnabled && cData && *serializerError == false) {
+        // 1: Generate a unique prefix [also makes it easy to keep track]
+        // (to prevent collisions in the JIT when serializing and deserializing together)
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(0, 999999);
+        std::string startingUID;
+        while (true) {
+            std::stringstream ss;
+            ss << "f_";
+            ss << dis(gen);
+            ss << std::hex << std::uppercase << CHAR(PRINTNAME(hast));
+            ss << "_";
+            ss << std::hex << std::uppercase << cls->context().toI();
+            auto e = jit.JIT->lookup(ss.str() + "_0");
+            if (e.takeError()) {
+                startingUID = ss.str();
+                break;
+            }
+        }
+
+        // Code Object -> Handle
+        std::unordered_map<Code *, std::string> processedName;
+
+        // Handle -> source pool idx
+        std::unordered_map<std::string, unsigned> srcDataMap;
+        // Handle -> ArgOrdering data
+        std::unordered_map<std::string, SEXP> srcArgMap;
+        // Handle -> [] vector of child Handles
+        std::unordered_map<std::string, std::vector<std::string>> childrenData;
+
+        auto getProcessedName = [&](Code * c) {
+            static int uid = 0;
+            if (processedName.find(c) == processedName.end()) {
+                std::stringstream nn;
+                nn << startingUID << "_" << uid++;
+                std::string name = nn.str();
+                // Update the name in module to the new one
+                jit.updateFunctionNameInModule(done[c]->mName, name);
+                // Update the name for the handle
+                jit.patchFixupHandle(name, c);
+                processedName[c] = name;
+
+                auto data = getHastAndIndex(c->rirSrc()->src);
+                if (data.hast == R_NilValue) {
+                    *serializerError = true;
+                    DebugMessages::printSerializerErrors("backend, src hast is R_NilValue for src: " + std::to_string(c->rirSrc()->src) + ", index: " + std::to_string(data.index), 3);
+                }
+
+                // Add source pool idx
+                srcDataMap[name] = c->rirSrc()->src;
+
+                // Add arg ordering data
+                if (done[c]->arglistOrder() != nullptr) {
+                    srcArgMap[name] = done[c]->arglistOrderRAWSXP;
+                } else {
+                    srcArgMap[name] = R_NilValue;
+                }
+
+                return name;
+            } else {
+                return processedName[c];
+            }
+        };
+
+        std::function<void(Code* c)>
+            updateModuleNames = [&](Code* c) {
+            std::string name = getProcessedName(c);
+            // Traverse over all the promises for the current code object
+            auto & promisesForThisObj = promMap[c];
+            std::vector<std::string> children;
+            // If there are promises, then work on this
+            if (promisesForThisObj.size() > 0) {
+                for (size_t i = 0; i < promisesForThisObj.size(); i++) {
+                    // get i'th promise
+                    auto curr = done[c]->getExtraPoolEntry(i);
+                    for (auto & promise : promisesForThisObj) {
+                        if (curr == done[promise.first]->container()) {
+                            auto nn = getProcessedName(promise.first);
+                            children.push_back(nn);
+                            break;
+                        }
+                    }
+                }
+            }
+            childrenData[name] = children;
+        };
+
+        // 2: Populates srcDataMap, srcArgMap, childrenData
+        // If any child src is not valid, then we skip serializing
+        for (auto & ele : promMap) {
+            updateModuleNames(ele.first);
+        }
+
+        if (*serializerError == true) {
+            DebugMessages::printSerializerMessage("(E) Failed processing promise map.", 1);
+        } else {
+            // Vector of native handles
+            std::vector<std::string> relevantNames;
+            for (auto & ele : processedName) {
+                relevantNames.push_back(ele.second);
+            }
+
+            // 3: Move the main code handle to the 0th index
+            std::string mainName = getProcessedName(mainFunCodeObj);
+            if (relevantNames.at(0).compare(mainName) != 0) {
+                int mainNameIndex = 0;
+                for (size_t i = 0; i < relevantNames.size(); i++) {
+                    if (relevantNames.at(i).compare(mainName) == 0) {
+                        mainNameIndex = i;
+                        break;
+                    }
+                }
+                std::swap(relevantNames[0],relevantNames[mainNameIndex]);
+            }
+
+            // 4: Keep track of which index contains which handle
+            std::unordered_map<std::string, int> codeOffset;
+            for (size_t i = 0; i < relevantNames.size(); i++) {
+                codeOffset[relevantNames[i]] = i;
+            }
+
+            Protect protecc;
+
+            // Serialized Pool Data
+            SEXP serializedPoolData;
+            protecc(serializedPoolData = Rf_allocVector(VECSXP, SerializedPool::getStorageSize()));
+
+            // 0 (rir::FunctionSignature) Function Signature
+            // 1 (SEXP) Function Names
+            // 2 (SEXP) Function Src
+            // 3 (SEXP) Function Arglist Order
+            // 4 (SEXP) Children Data,
+            // 5 (SEXP) cPool
+            // 6 (SEXP) sPool
+            SEXP fNamesVec, fSrcDataVec, fArgDataVec, fChildrenData;
+            protecc(fNamesVec = Rf_allocVector(VECSXP, relevantNames.size()));
+            protecc(fSrcDataVec = Rf_allocVector(VECSXP, relevantNames.size()));
+            protecc(fArgDataVec = Rf_allocVector(VECSXP, relevantNames.size()));
+            protecc(fChildrenData = Rf_allocVector(VECSXP, relevantNames.size()));
+
+            updateFunctionMetas(relevantNames, srcDataMap, srcArgMap, childrenData, codeOffset, fNamesVec, fSrcDataVec, fArgDataVec, fChildrenData);
+
+            SerializedPool::addFS(serializedPoolData, signature);
+            SerializedPool::addFNames(serializedPoolData, fNamesVec);
+            SerializedPool::addFSrc(serializedPoolData, fSrcDataVec);
+            SerializedPool::addFArg(serializedPoolData, fArgDataVec);
+            SerializedPool::addFChildren(serializedPoolData, fChildrenData);
+
+
+            jit.serializeModule(cData, done[mainFunCodeObj], serializedPoolData, relevantNames, mainName);
+
+            if (DebugMessages::serializerDebugLevel() > 1) {
+                SerializedPool::print(serializedPoolData, 2);
+            }
+
+            if (*serializerError == true) {
+                DebugMessages::printSerializerMessage("(E) Serializing module failed, serializing module or pool failed.", 1);
+            }
+
+            // Entry [8]: requirement map
+            std::vector<SEXP> reqMap;
+            for (auto & ele : rMap) {
+                if (ele != hast) {
+                    reqMap.push_back(ele);
+                }
+            }
+
+            SEXP rData;
+            protecc(rData = Rf_allocVector(VECSXP, reqMap.size()));
+
+            int i = 0;
+            for (auto & ele : reqMap) {
+                SET_VECTOR_ELT(rData, i++, ele);
+            }
+
+            contextData::addReqMapForCompilation(cData, rData);
+
+            //
+            // Collect type feedback before lowering as lowering may update some slots
+            //
+            // SEXP vtabContainer = getVtableContainer(hast);
+            // if (!DispatchTable::check(vtabContainer)) {
+            //     *serializerError = true;
+            //     DebugMessages::printSerializerMessage("(E) Backend, Unexpected dispatch table unpacking failure!", 1);
+            // }
+
+            // DispatchTable* dt = DispatchTable::unpack(vtabContainer);
+            // BitcodeLinkUtil::populateTypeFeedbackData(cData, dt);
+
+            if (DebugMessages::serializerDebugLevel() > 2) {
+                contextData::print(cData, 2);
+            }
+            // }
+        }
+    }
+
+    // Release preserved Arglist Orders if they exist (This memory leak might have been causing the random crashes)
+    for (auto & ele : done) {
+        if (ele.second->arglistOrderRAWSXP) {
+            R_ReleaseObject(ele.second->arglistOrderRAWSXP);
+        }
+    }
+
 
     if (MEASURE_COMPILER_BACKEND_PERF) {
         Measuring::countTimer("backend.cpp: pir2llvm");
