@@ -5,8 +5,8 @@
 
 #include "serializerDeserializerGeneral/General.h"
 
-#define PRINT_HAST_SRC_ENTRIES 1
-#define DEBUG_BLACKLIST_ENTRIES 1
+#define PRINT_HAST_SRC_ENTRIES 0
+#define DEBUG_BLACKLIST_ENTRIES 0
 
 namespace rir {
 
@@ -253,6 +253,8 @@ SEXP getVtableContainer(SEXP hastSym) {
     return R_NilValue;
 }
 
+
+
 struct TraversalResult {
     Code * code;
     DispatchTable * vtable;
@@ -392,6 +394,35 @@ unsigned getSrcPoolIndexAtOffset(SEXP hastSym, int requiredOffset) {
     auto r = getResultAtOffset(vtab, requiredOffset);
 
     return r.srcIdx;
+}
+
+static SEXP getVtableContainerAtOffset(SEXP hastSym, int requiredOffset) {
+    SEXP vtabContainer = getVtableContainer(hastSym);
+    if (!vtabContainer) {
+        Rf_error("getVtableContainerAtOffset failed!");
+    }
+    if (!DispatchTable::check(vtabContainer)) {
+        Rf_error("getVtableContainerAtOffset vtable corrupted");
+    }
+    auto vtab = DispatchTable::unpack(vtabContainer);
+    auto r = getResultAtOffset(vtab, requiredOffset);
+    return r.vtable->container();
+}
+
+bool isHastBlacklisted(SEXP hastSym) {
+    return GeneralMaps::BL_MAP.find(hastSym) != GeneralMaps::BL_MAP.end();
+}
+
+SEXP getVtableContainer(SEXP hastSym, int requiredOffset) {
+    return getVtableContainerAtOffset(hastSym, requiredOffset);
+}
+
+SEXP getClosContainer(SEXP hastSym) {
+    if (GeneralMaps::HAST_CLOS_MAP.find(hastSym) != GeneralMaps::HAST_CLOS_MAP.end()) {
+        return GeneralMaps::HAST_CLOS_MAP[hastSym];
+    }
+
+    return R_NilValue;
 }
 
 }

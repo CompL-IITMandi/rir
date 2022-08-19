@@ -35,8 +35,19 @@
 #include <unordered_set>
 #include <vector>
 
+#include "serializer/loweringPatches.h"
+#include "serializerDeserializerGeneral/General.h"
+#include "serializerDeserializerGeneral/Hast.h"
+#include "serializerDeserializerGeneral/DebugMessages.h"
+
 namespace rir {
 namespace pir {
+
+static bool isHastInvalid(SEXP hast) {
+    return hast == R_NilValue;
+}
+
+
 
 using namespace llvm;
 
@@ -92,6 +103,64 @@ llvm::Value* LowerFunctionLLVM::convertToPointer(const void* what,
     });
 }
 
+// serializer
+llvm::Value* LowerFunctionLLVM::convertToExternalSymbol(std::string name, llvm::Type* ty, bool constant) {
+    return getModule().getOrInsertGlobal(name, ty, [&]() {
+        return new llvm::GlobalVariable(
+            getModule(), ty, constant,
+            llvm::GlobalValue::LinkageTypes::AvailableExternallyLinkage,
+            nullptr, name, nullptr,
+            llvm::GlobalValue::ThreadLocalMode::NotThreadLocal, 0, true);
+    });
+}
+
+llvm::Value* LowerFunctionLLVM::namedGlobalConst(std::string name, llvm::Constant* init,
+                                            llvm::Type* ty) {
+    if (!ty)
+        ty = init->getType();
+
+    auto res = new llvm::GlobalVariable(getModule(), ty, true,
+                                    llvm::GlobalValue::PrivateLinkage, init, name);
+    res->setExternallyInitialized(true);
+    return res;
+}
+
+llvm::Value* LowerFunctionLLVM::globalSrcConst(llvm::Constant* init,
+                                            llvm::Type* ty) {
+    if (!ty)
+        ty = init->getType();
+    if (reqMap && serializerError && *serializerError == false) {
+        #if PATCH_GLOBAL_CONSTANT_NAMES == 1
+
+        static int num = 0;
+        std::stringstream name;
+        name << "srpool_" << num++;
+        auto res = new llvm::GlobalVariable(getModule(), ty, true,
+                                        llvm::GlobalValue::PrivateLinkage, init, name.str());
+        res->setExternallyInitialized(true);
+        return res;
+
+        #else
+        return new llvm::GlobalVariable(getModule(), ty, true,
+                                        llvm::GlobalValue::PrivateLinkage, init);
+        #endif
+    } else {
+        return new llvm::GlobalVariable(getModule(), ty, true,
+                                        llvm::GlobalValue::PrivateLinkage, init);
+    }
+}
+
+llvm::FunctionCallee
+LowerFunctionLLVM::convertToFunctionSymbol(SEXP what, llvm::FunctionType* ty) {
+    assert(what);
+    std::stringstream ss;
+    ss << "cod_";
+    ss << getBuiltinNr(what);
+
+    return getModule().getOrInsertFunction(ss.str(), ty);
+}
+
+
 llvm::FunctionCallee
 LowerFunctionLLVM::convertToFunction(const void* what, llvm::FunctionType* ty) {
     assert(what);
@@ -101,7 +170,15 @@ LowerFunctionLLVM::convertToFunction(const void* what, llvm::FunctionType* ty) {
 }
 
 void LowerFunctionLLVM::setVisible(int i) {
+    #if PATCH_SET_VISIBLE == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        builder.CreateStore(c(i), convertToExternalSymbol("spe_Visible", t::Int));
+    } else {
+        builder.CreateStore(c(i), convertToPointer(&R_Visible, t::Int));
+    }
+    #else
     builder.CreateStore(c(i), convertToPointer(&R_Visible, t::Int));
+    #endif
 }
 
 llvm::Value* LowerFunctionLLVM::force(Instruction* i, llvm::Value* arg) {
@@ -161,8 +238,21 @@ void LowerFunctionLLVM::insn_assert(llvm::Value* v, const char* msg,
     builder.SetInsertPoint(nok);
     if (p)
         call(NativeBuiltins::get(NativeBuiltins::Id::printValue), {p});
+
+    #if PATCH_MSG == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        auto msgGlobalVar =
+            builder.CreateGlobalString(msg);
+        call(NativeBuiltins::get(NativeBuiltins::Id::assertFail),
+            {builder.CreateInBoundsGEP(msgGlobalVar, {c(0), c(0)})});
+    } else {
+        call(NativeBuiltins::get(NativeBuiltins::Id::assertFail),
+            {convertToPointer((void*)msg, t::i8, true)});
+    }
+    #else
     call(NativeBuiltins::get(NativeBuiltins::Id::assertFail),
-         {convertToPointer((void*)msg, t::i8, true)});
+        {convertToPointer((void*)msg, t::i8, true)});
+    #endif
 
     builder.CreateUnreachable();
     builder.SetInsertPoint(ok);
@@ -224,24 +314,296 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
         }
     }
 
+    #if PATCH_100_102 == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        if (co == R_GlobalEnv) {
+            return convertToExternalSymbol("dcs_100");
+        }
+        if (co == R_BaseEnv) {
+            return convertToExternalSymbol("dcs_101");
+        }
+        if (co == R_BaseNamespace) {
+            return convertToExternalSymbol("dcs_102");
+        }
+    } else {
+        static std::unordered_set<SEXP> eternal = {R_GlobalEnv, R_BaseEnv,
+                                               R_BaseNamespace};
+        if (eternal.count(co))
+            return convertToPointer(co);
+        }
+
+    #else
     static std::unordered_set<SEXP> eternal = {R_GlobalEnv, R_BaseEnv,
                                                R_BaseNamespace};
-    if (TYPEOF(co) == SYMSXP || eternal.count(co))
+    if (eternal.count(co))
         return convertToPointer(co);
+    #endif
 
+    #if PATCH_103_109 == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        if (co == R_TrueValue) {
+            return convertToExternalSymbol("dcs_103", true);
+        }
+        if (co == R_NilValue) {
+            return convertToExternalSymbol("dcs_104", true);
+        }
+        if (co == R_FalseValue) {
+            return convertToExternalSymbol("dcs_105", true);
+        }
+        if (co == R_UnboundValue) {
+            return convertToExternalSymbol("dcs_106", true);
+        }
+        if (co == R_MissingArg) {
+            return convertToExternalSymbol("dcs_107", true);
+        }
+        if (co == R_LogicalNAValue) {
+            return convertToExternalSymbol("dcs_108", true);
+        }
+        if (co == R_EmptyEnv) {
+            return convertToExternalSymbol("dcs_109", true);
+        }
+    } else {
+        static std::unordered_set<SEXP> eternalConst = {
+            R_TrueValue,  R_NilValue,       R_FalseValue, R_UnboundValue,
+            R_MissingArg, R_LogicalNAValue, R_EmptyEnv};
+        if (eternalConst.count(co))
+            return convertToPointer(co, true);
+    }
+    #else
     static std::unordered_set<SEXP> eternalConst = {
         R_TrueValue,  R_NilValue,       R_FalseValue, R_UnboundValue,
         R_MissingArg, R_LogicalNAValue, R_EmptyEnv};
-    if (TYPEOF(co) == BUILTINSXP || TYPEOF(co) == SPECIALSXP ||
-        eternalConst.count(co))
+    if (eternalConst.count(co))
         return convertToPointer(co, true);
+    #endif
 
+    #if PATCH_110_111 == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        if (co == R_RestartToken) {
+            return convertToExternalSymbol("dcs_110");
+        }
+
+        if (co == R_DimSymbol) {
+            return convertToExternalSymbol("dcs_111");
+        }
+
+        if (co == R_DotsSymbol) {
+            return convertToExternalSymbol("dcs_112");
+        }
+    }
+    #endif
+
+    #if PATCH_SYMSXP == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        if (TYPEOF(co) == SYMSXP) {
+
+            if (strlen(CHAR(PRINTNAME(co))) == 0) {
+                std::cerr << "serializer: unnamed symbols not handled (" << CHAR(PRINTNAME(co)) << ")" << std::endl;
+                if (serializerError) {
+                    *serializerError = true;
+                }
+                return convertToPointer(co);
+            } else {
+                std::stringstream ss;
+                ss << "sym_";
+                ss << CHAR(PRINTNAME(co));
+                return convertToExternalSymbol(ss.str());
+            }
+        }
+    } else {
+        if (TYPEOF(co) == SYMSXP)
+            return convertToPointer(co);
+    }
+    #else
+    if (TYPEOF(co) == SYMSXP)
+        return convertToPointer(co);
+    #endif
+
+    #if PATCH_BUILTINSXP == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        if (TYPEOF(co) == BUILTINSXP) {
+            std::stringstream ss;
+            ss << "gcb_";
+            ss << getBuiltinNr(co);
+            return convertToExternalSymbol(ss.str(), true);
+        }
+    } else {
+        if (TYPEOF(co) == BUILTINSXP) {
+            return convertToPointer(co, true);
+        }
+    }
+    #else
+    if (TYPEOF(co) == BUILTINSXP) {
+        return convertToPointer(co, true);
+    }
+    #endif
+
+    #if PATCH_SPECIALSXP == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        if (TYPEOF(co) == SPECIALSXP) {
+            auto sym = Rf_install(R_FunTab[co->u.primsxp.offset].name);
+            auto spe1 = Rf_findFun(sym,R_GlobalEnv);
+
+            if (spe1 == co) {
+                std::stringstream ss;
+                ss << "spe1_";
+                ss << co->u.primsxp.offset;
+                return convertToExternalSymbol(ss.str(), true);
+            } else {
+                if (serializerError != nullptr) {
+                    *serializerError = true;
+
+                    DebugMessages::printSerializerErrors("(*) PATCH_SPECIALSXP failed, non-function type, offset: " + std::to_string(co->u.primsxp.offset) + ", kind: " + std::to_string(R_FunTab[co->u.primsxp.offset].gram.kind), 2);
+
+                }
+                return convertToPointer(co, true);
+            }
+        }
+    } else {
+        if (TYPEOF(co) == SPECIALSXP) {
+            return convertToPointer(co, true);
+        }
+    }
+    #else
+    if (TYPEOF(co) == SPECIALSXP) {
+        return convertToPointer(co, true);
+    }
+    #endif
+
+    #if PATCH_CP_ENTRIES == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        // handle common cases for comparisons
+        if (TYPEOF(co) == EXTERNALSXP) {
+            SEXP curr = co;
+            if (DispatchTable::check(curr)) {
+                DispatchTable * vtable = DispatchTable::unpack(curr);
+                auto data = getHastAndIndex(vtable->baseline()->body()->src);
+                SEXP hast = data.hast;
+                int index = data.index;
+
+                SEXP vtabContainer = R_NilValue;
+                if (!isHastInvalid(hast)) {
+                    vtabContainer = getVtableContainer(hast, index);
+                }
+
+                // If the hast is blacklisted, patch will not work
+                if (!reqMap || (vtabContainer != curr) || isHastInvalid(hast) || isHastBlacklisted(hast)) {
+                    if (serializerError != nullptr) {
+                        *serializerError = true;
+                        if (vtabContainer != curr) {
+
+                            DebugMessages::printSerializerErrors("(*) CPPP patch failed, VTAB container not equal", 2);
+                            if (vtabContainer == R_NilValue) {
+                                DebugMessages::printSerializerErrors("R_NilValue for container", 3);
+                            } else {
+                                DebugMessages::printSerializerErrors("hast: " + std::string(CHAR(PRINTNAME(hast))) + ", index: " + std::to_string(index), 3);
+                                DebugMessages::printSerializerErrors("Expected: " + std::to_string((uintptr_t)curr), 3);
+                                DebugMessages::printSerializerErrors("Got: " + std::to_string((uintptr_t)vtabContainer), 3);
+                            }
+                        }
+                        if (isHastInvalid(hast)) {
+                            DebugMessages::printSerializerErrors("(*) Hast is invalid", 2);
+                        } else if (isHastBlacklisted(hast)) {
+                            DebugMessages::printSerializerErrors("(*) Hast is blacklisted", 2);
+                        }
+                    }
+                } else {
+                    reqMap->insert(hast);
+                    Pool::insert(vtable->container());
+                    // patch case
+                    std::stringstream ss;
+                    ss << "vtab_" << CHAR(PRINTNAME(hast)) << "_" << index;
+                    return convertToExternalSymbol(ss.str());
+                }
+
+            } else {
+                if (serializerError != nullptr) {
+                    *serializerError = true;
+                    DebugMessages::printSerializerErrors("(*) EXTERNALSXP not in RIR BC", 2);
+                }
+            }
+        } else if (TYPEOF(co) == CLOSXP) {
+            if (TYPEOF(BODY(co)) == EXTERNALSXP) {
+                SEXP curr = BODY(co);
+                DispatchTable * vtable = DispatchTable::unpack(curr);
+                auto data = getHastAndIndex(vtable->baseline()->body()->src);
+                SEXP hast = data.hast;
+
+                SEXP resolvedContainer = R_NilValue;
+                if (!isHastInvalid(hast)) {
+                    resolvedContainer = getClosContainer(hast);
+                }
+                // If the hast is blacklisted, patch will not work
+                if (!reqMap || (resolvedContainer != co) || isHastInvalid(hast) || isHastBlacklisted(hast)) {
+                    if (serializerError != nullptr) {
+                        *serializerError = true;
+                        if ((resolvedContainer != co)) {
+                            DebugMessages::printSerializerErrors("(*) CPPP invalid container for CLOSXP", 2);
+                            if (data.index != 0) {
+                                DebugMessages::printSerializerErrors("CPPP: index is non zero, inner closures closed at runtime are not yet supported.", 3);
+                            }
+                            if (resolvedContainer == R_NilValue) {
+                                DebugMessages::printSerializerErrors("CPPP: resolved container is R_NilValue", 3);
+                            } else {
+                                DebugMessages::printSerializerErrors("Lookup: " + std::string(CHAR(PRINTNAME(hast))) + " at " + std::to_string(data.index) + " -- src: " + std::to_string(vtable->baseline()->body()->src) , 3);
+                                DebugMessages::printSerializerErrors("Expected: " + std::to_string((uintptr_t)co), 3);
+                                DebugMessages::printSerializerErrors("Got: " + std::to_string((uintptr_t)resolvedContainer), 3);
+                            }
+                        }
+                        if (isHastInvalid(hast)) {
+                            DebugMessages::printSerializerErrors("(*) Hast is invalid", 2);
+                        } else if (isHastBlacklisted(hast)) {
+                            DebugMessages::printSerializerErrors("(*) Hast is blacklisted", 2);
+                        }
+                    }
+                } else {
+                    reqMap->insert(hast);
+                    Pool::insert(co);
+                    // patch case
+                    std::stringstream ss;
+                    ss << "clos_" << CHAR(PRINTNAME(hast));
+                    return convertToExternalSymbol(ss.str());
+                }
+
+            }
+            // else if (TYPEOF(BODY(co)) == BCODESXP) {
+            //     DebugMessages::printSerializerErrors("(W) Allowing BCODESXP to be added to serialized pool", 2);
+            // }
+            else {
+                if (serializerError != nullptr) {
+                    *serializerError = true;
+                    DebugMessages::printSerializerErrors("(*) CLOSXP's BODY is not EXTERNALSXP: " + std::to_string(TYPEOF(BODY(co))), 2);
+                    // if (DebugMessages::serializerDebugLevel() == 2) {
+                    //     printAST(0, co);
+                    // }
+                }
+            }
+        }
+        auto cpIndex = Pool::insert(co);
+        auto iVal = globalConst(c(cpIndex), t::i32);
+        auto iLoad = builder.CreateLoad(iVal);
+
+        llvm::Value* pos = builder.CreateLoad(constantpool);
+        pos = builder.CreateBitCast(dataPtr(pos, false),
+                                    PointerType::get(t::SEXP, 0));
+        pos = builder.CreateGEP(pos, iLoad);
+        return builder.CreateLoad(pos);
+    } else {
+        auto i = Pool::insert(co);
+        llvm::Value* pos = builder.CreateLoad(constantpool);
+        pos = builder.CreateBitCast(dataPtr(pos, false),
+                                    PointerType::get(t::SEXP, 0));
+        pos = builder.CreateGEP(pos, c(i));
+        return builder.CreateLoad(pos);
+    }
+    #else
     auto i = Pool::insert(co);
     llvm::Value* pos = builder.CreateLoad(constantpool);
     pos = builder.CreateBitCast(dataPtr(pos, false),
                                 PointerType::get(t::SEXP, 0));
     pos = builder.CreateGEP(pos, c(i));
     return builder.CreateLoad(pos);
+    #endif
 }
 
 llvm::Value* LowerFunctionLLVM::nodestackPtr() {
@@ -313,7 +675,11 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
         });
     }
 
+    #if PATCH_BUILTINCALL == 1
+    auto f = convertToFunctionSymbol(builtin, t::builtinFunction);
+    #else
     auto f = convertToFunction((void*)builtinFun, t::builtinFunction);
+    #endif
 
     std::stack<llvm::Value*> loadedArgs;
     auto n = numTemps;
@@ -408,9 +774,20 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
     } else if (val->asRValue()) {
         res = constant(val->asRValue(), needed);
     } else if (val == OpaqueTrue::instance()) {
+        // Something that is always true, but llvm does not know about
+        #if PATCH_OPAQUE_TRUE == 1
+        if (reqMap && serializerError && *serializerError == false) {
+            res = builder.CreateLoad(convertToExternalSymbol("spe_opaqueTrue", t::Int, true));
+        } else {
+            static int one = 1;
+            // Something that is always true, but llvm does not know about
+            res = builder.CreateLoad(convertToPointer(&one, t::Int, true));
+        }
+        #else
         static int one = 1;
         // Something that is always true, but llvm does not know about
         res = builder.CreateLoad(convertToPointer(&one, t::Int, true));
+        #endif
     } else if (auto ld = Const::Cast(val)) {
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
@@ -668,8 +1045,19 @@ void LowerFunctionLLVM::compilePushContext(Instruction* i) {
     // Handle incoming longjumps
     {
         builder.SetInsertPoint(didLongjmp);
-        llvm::Value* returned = builder.CreateLoad(
-            builder.CreateIntToPtr(c((void*)&R_ReturnedValue), t::SEXP_ptr));
+        llvm::Value* returned;
+
+        #if PATCH_RETURNED_VALUE == 1
+        if (reqMap && serializerError && *serializerError == false) {
+            auto speSym = convertToExternalSymbol("spe_returnedValue", t::i64);
+            returned = builder.CreateLoad(builder.CreateIntToPtr(speSym, t::SEXP_ptr));
+        } else {
+            returned = builder.CreateLoad(builder.CreateIntToPtr(c((void*)&R_ReturnedValue), t::SEXP_ptr));
+        }
+        #else
+        returned = builder.CreateLoad(builder.CreateIntToPtr(c((void*)&R_ReturnedValue), t::SEXP_ptr));
+        #endif
+
         auto restart =
             builder.CreateICmpEQ(returned, constant(R_RestartToken, t::SEXP));
 
@@ -2101,7 +2489,16 @@ void LowerFunctionLLVM::compile() {
         }
     }
 
+    #if PATCH_NODE_STACK_TOP == 1
+    if (reqMap && serializerError && *serializerError == false) {
+        nodestackPtrAddr = convertToExternalSymbol("spe_BCNodeStackTop", t::stackCellPtr);
+    } else {
+        nodestackPtrAddr = convertToPointer(&R_BCNodeStackTop, t::stackCellPtr);
+    }
+    #else
     nodestackPtrAddr = convertToPointer(&R_BCNodeStackTop, t::stackCellPtr);
+    #endif
+
     basepointer = nodestackPtr();
 
     size_t additionalStackSlots = 0;
@@ -2168,7 +2565,18 @@ void LowerFunctionLLVM::compile() {
             }
         };
 
+        #if PATCH_CONSTANT_POOL_PTR == 1
+        if (reqMap && serializerError && *serializerError == false) {
+            auto speSym = namedGlobalConst("named_constantPool", c(globalContext()), t::i64);
+            auto iLoad = builder.CreateLoad(speSym);
+            constantpool = builder.CreateIntToPtr(iLoad, t::SEXP_ptr);
+        } else {
+            constantpool = builder.CreateIntToPtr(c(globalContext()), t::SEXP_ptr);
+        }
+        #else
         constantpool = builder.CreateIntToPtr(c(globalContext()), t::SEXP_ptr);
+        #endif
+
         constantpool = builder.CreateGEP(constantpool, c(1));
 
         Visitor::run(code->entry, [&](BB* bb) {
@@ -6157,9 +6565,23 @@ void LowerFunctionLLVM::compile() {
                         } else {
                             msg = defaultMsg;
                         }
+                        #if PATCH_MSG == 1
+                        if (reqMap && serializerError && *serializerError == false) {
+                            auto msgGlobalVar =
+                                builder.CreateGlobalString(msg);
+                            call(NativeBuiltins::get(NativeBuiltins::Id::checkType),
+                                {loadSxp(i), c((unsigned long)i->type.serialize()),
+                                builder.CreateInBoundsGEP(msgGlobalVar, {c(0), c(0)})});
+                        } else {
+                            call(NativeBuiltins::get(NativeBuiltins::Id::checkType),
+                                {loadSxp(i), c((unsigned long)i->type.serialize()),
+                                convertToPointer(msg, t::i8, true)});
+                        }
+                        #else
                         call(NativeBuiltins::get(NativeBuiltins::Id::checkType),
-                             {loadSxp(i), c((unsigned long)i->type.serialize()),
-                              convertToPointer(msg, t::i8, true)});
+                            {loadSxp(i), c((unsigned long)i->type.serialize()),
+                            convertToPointer(msg, t::i8, true)});
+                        #endif
                     }
                 }
 #ifdef ENABLE_SLOWASSERT

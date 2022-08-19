@@ -123,6 +123,14 @@ class LowerFunctionLLVM {
     std::set<SEXP>* reqMap = nullptr;
     bool* serializerError = nullptr;
 
+    llvm::Value* convertToExternalSymbol(std::string name, llvm::Type* ty, bool constant = false);
+    llvm::Value* convertToExternalSymbol(std::string name, bool constant = false) {
+        return convertToExternalSymbol(name, t::SEXPREC, constant);
+    }
+    llvm::Value* namedGlobalConst(std::string name, llvm::Constant* init, llvm::Type* ty);
+    llvm::Value* globalSrcConst(llvm::Constant* init, llvm::Type* ty = nullptr);
+    llvm::FunctionCallee convertToFunctionSymbol(SEXP what, llvm::FunctionType* ty);
+
     struct Variable {
         bool deadMove(const Variable& other) const;
 

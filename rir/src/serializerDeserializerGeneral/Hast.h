@@ -19,9 +19,13 @@ void insertVTable(DispatchTable* vtable, SEXP hastSym);
 void insertClosObj(SEXP clos, SEXP hastSym);
 
 SEXP getVtableContainer(SEXP hastSym);
+SEXP getVtableContainer(SEXP hastSym, int requiredOffset);
+SEXP getClosContainer(SEXP hastSym);
 
 bool readyForSerialization(SEXP hastSym);
 
 unsigned getSrcPoolIndexAtOffset(SEXP hastSym, int requiredOffset);
+
+bool isHastBlacklisted(SEXP hastSym);
 
 } // namespace rir
