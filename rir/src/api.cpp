@@ -402,7 +402,7 @@ REXPORT SEXP loadBitcodes(SEXP pathToBc) {
 
         while ((ent = readdir (dir)) != NULL) {
             std::string fName = ent->d_name;
-            if (fName.find(".meta") != std::string::npos) {
+            if (fName.find(".metad") != std::string::npos) {
                 metasFound++;
                 loadMetadata(std::string(DeserializerConsts::bitcodesPath) + "/" + fName);
             }
