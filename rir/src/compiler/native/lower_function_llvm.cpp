@@ -4881,9 +4881,10 @@ void LowerFunctionLLVM::compile() {
                             }
 
                             size_t nframes = frames.size();
-                            SEXP store =
+                            SEXP store;
+                            PROTECT(store =
                                 Rf_allocVector(RAWSXP, sizeof(DeoptMetadata) +
-                                                        nframes * sizeof(FrameInfo));
+                                                        nframes * sizeof(FrameInfo)));
                             m = new (DATAPTR(store)) DeoptMetadata;
                             m->numFrames = nframes;
 
@@ -4897,7 +4898,6 @@ void LowerFunctionLLVM::compile() {
 
                                 uintptr_t offset = (uintptr_t)fs->pc - (uintptr_t)fs->code;
 
-
                                 auto srcData = getHastAndIndex(fs->code->src);
                                 SEXP hast = srcData.hast;
                                 int index = srcData.index;
@@ -4909,6 +4909,8 @@ void LowerFunctionLLVM::compile() {
 
                             }
                             Pool::insert(store);
+
+                            UNPROTECT(1);
                             withCallFrame(args, [&]() {
                                 return call(NativeBuiltins::get(NativeBuiltins::Id::deoptPool),
                                             {paramCode(), paramClosure(),
@@ -4936,9 +4938,10 @@ void LowerFunctionLLVM::compile() {
                             }
 
                             size_t nframes = frames.size();
-                            SEXP store =
+                            SEXP store;
+                            PROTECT(store =
                                 Rf_allocVector(RAWSXP, sizeof(DeoptMetadata) +
-                                                        nframes * sizeof(FrameInfo));
+                                                        nframes * sizeof(FrameInfo)));
                             m = new (DATAPTR(store)) DeoptMetadata;
                             m->numFrames = nframes;
 
@@ -4953,6 +4956,8 @@ void LowerFunctionLLVM::compile() {
                             }
 
                             target->addExtraPoolEntry(store);
+
+                            UNPROTECT(1);
                         }
 
                         withCallFrame(args, [&]() {
@@ -4979,9 +4984,10 @@ void LowerFunctionLLVM::compile() {
                         }
 
                         size_t nframes = frames.size();
-                        SEXP store =
+                        SEXP store;
+                        PROTECT(store =
                             Rf_allocVector(RAWSXP, sizeof(DeoptMetadata) +
-                                                    nframes * sizeof(FrameInfo));
+                                                    nframes * sizeof(FrameInfo)));
                         m = new (DATAPTR(store)) DeoptMetadata;
                         m->numFrames = nframes;
 
@@ -4996,6 +5002,7 @@ void LowerFunctionLLVM::compile() {
                         }
 
                         target->addExtraPoolEntry(store);
+                        UNPROTECT(1);
                     }
 
                     withCallFrame(args, [&]() {
@@ -5021,9 +5028,10 @@ void LowerFunctionLLVM::compile() {
                         }
 
                         size_t nframes = frames.size();
-                        SEXP store =
+                        SEXP store;
+                        PROTECT(store =
                             Rf_allocVector(RAWSXP, sizeof(DeoptMetadata) +
-                                                    nframes * sizeof(FrameInfo));
+                                                    nframes * sizeof(FrameInfo)));
                         m = new (DATAPTR(store)) DeoptMetadata;
                         m->numFrames = nframes;
 
@@ -5038,6 +5046,7 @@ void LowerFunctionLLVM::compile() {
                         }
 
                         target->addExtraPoolEntry(store);
+                        UNPROTECT(1);
                     }
 
                     withCallFrame(args, [&]() {

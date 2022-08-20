@@ -851,6 +851,23 @@ static std::pair<int, std::vector<int>> reduceReqMap(SEXP rMap) {
 }
 
 void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
+    //
+    // Level 0 - Only call context dispatch
+    // Level 1 - Context + multi binary dispatch
+    // Level 2 - Context + multi binary dispatch + Type Versioning
+    //
+    static int L2LEVEL = getenv("L2_LEVEL") ? std::stoi(getenv("L2_LEVEL")) : 10;
+
+    //
+    // Only applies the mask to the dispatch table
+    //
+    static bool ONLYMASK = getenv("ONLY_APPLY_MASK") ? std::stoi(getenv("ONLY_APPLY_MASK")) == 1 : false;
+
+    //
+    // Deserialization of binaries + applying the mask
+    //
+    static bool MASK = getenv("APPLY_MASK") ? std::stoi(getenv("APPLY_MASK")) == 1 : false;
+
     SEXP ddCont = GeneralWorklist::get(hSym);
     //
     // Add hast to the dispatch table as we know this is the 0th offset by default.
@@ -881,8 +898,28 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
         // 1. Dispatch Table
         DispatchTable * requiredVtab = getVtableAtOffset(vtab, offsetIdx);
 
+        //
+        // MASK RELATED
+        //
+
+        if (MASK) {
+            requiredVtab->mask = rir::Context(offsetUnit::getMaskAsUnsignedLong(offsetUnitContainer));
+        }
+
+        if (ONLYMASK) {
+            requiredVtab->mask = rir::Context(offsetUnit::getMaskAsUnsignedLong(offsetUnitContainer));
+            return;
+        }
+
         // 2. Versioning
         int versioning = contextUnit::getVersioningAsInt(contextUnitContainer);
+
+        //
+        // Skip doing anything if we do not want to allow that versioning level.
+        //
+        if (versioning > L2LEVEL) {
+            return;
+        }
 
         // 3. Counter Value
         SEXP rMap = binaryUnit::getReqMap(binaryUnitContainer);
