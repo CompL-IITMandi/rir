@@ -343,7 +343,7 @@ hastAndIndex getHastAndIndex(unsigned src, bool constantPool) {
 
 static void loadMetadata(std::string metaDataPath) {
     Protect protecc;
-    // Disable contextual compilation during deserialization as R_Unserialize
+    // Disable contextual compilation during deserialization as R_LoadFromFile
     // will lead to a lot of unnecessary compilation otherwise
     bool oldVal = BitcodeLinkUtil::contextualCompilationSkip;
     BitcodeLinkUtil::contextualCompilationSkip = true;
@@ -356,12 +356,8 @@ static void loadMetadata(std::string metaDataPath) {
         return;
     }
 
-    // Initialize the deserializing stream
-    R_inpstream_st inputStream;
-    R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
-
     SEXP ddContainer;
-    protecc(ddContainer = R_Unserialize(&inputStream));
+    protecc(ddContainer= R_LoadFromFile(reader, 0));
 
     fclose(reader);
 
@@ -727,11 +723,8 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
             return;
         }
 
-        R_inpstream_st inputStream;
-        R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
-
         SEXP result;
-        protecc(result= R_Unserialize(&inputStream));
+        protecc(result= R_LoadFromFile(reader, 0));
 
         sDataContainer = result;
 
@@ -768,7 +761,6 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
     SEXP epoch = serializerData::addBitcodeData(sDataContainer, offsetSym, contextSym, cData);
 
     // 2. Write updated metadata
-    R_outpstream_st outputStream;
     FILE *fptr;
     fptr = fopen(fName.c_str(),"w");
     if (!fptr) {
@@ -776,8 +768,8 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
         DebugMessages::printSerializerMessage("(*) serializeClosure failed, unable to write metadata", 1);
         return;
     }
-    R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
-    R_Serialize(sDataContainer, &outputStream);
+
+    R_SaveToFile(sDataContainer, fptr, 0);
     fclose(fptr);
 
     if (DebugMessages::serializerDebugLevel() > 1) {
@@ -1014,12 +1006,8 @@ void serializerCleanup() {
                     continue;
                 }
 
-                // Initialize the deserializing stream
-                R_inpstream_st inputStream;
-                R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
-
                 SEXP result;
-                protecc(result= R_Unserialize(&inputStream));
+                protecc(result= R_LoadFromFile(reader, 0));
                 fclose(reader);
 
                 // check if the currentHast is blacklisted

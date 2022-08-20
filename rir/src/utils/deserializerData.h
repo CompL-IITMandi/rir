@@ -2,6 +2,7 @@
 
 #include "Rinternals.h"
 #include "runtime/Context.h"
+#include "R/Protect.h"
 
 namespace rir {
     struct generalUtil {
@@ -14,12 +15,12 @@ namespace rir {
         }
 
         static void addUnsignedLong(SEXP container, const unsigned long & data, const int & index) {
+            rir::Protect protecc;
             SEXP store;
-            PROTECT(store = Rf_allocVector(RAWSXP, sizeof(unsigned long)));
+            protecc(store = Rf_allocVector(RAWSXP, sizeof(unsigned long)));
             unsigned long * tmp = (unsigned long *) DATAPTR(store);
             *tmp = data;
             SET_VECTOR_ELT(container, index, store);
-            UNPROTECT(1);
         }
 
         static unsigned long getUnsignedLong(SEXP container, const int & index) {
@@ -30,10 +31,10 @@ namespace rir {
         }
 
         static void addInt(SEXP container, const int & data, const int & index) {
+            rir::Protect protecc;
             SEXP store;
-            PROTECT(store = Rf_ScalarInteger(data));
+            protecc(store = Rf_ScalarInteger(data));
             SET_VECTOR_ELT(container, index, store);
-            UNPROTECT(1);
         }
 
         static int getInt(SEXP container, const int & index) {
@@ -43,12 +44,12 @@ namespace rir {
         }
 
         static void addUint32t(SEXP container, const uint32_t & data, const int & index) {
+            rir::Protect protecc;
             SEXP store;
-            PROTECT(store = Rf_allocVector(RAWSXP, sizeof(uint32_t)));
+            protecc(store = Rf_allocVector(RAWSXP, sizeof(uint32_t)));
             uint32_t * tmp = (uint32_t *) DATAPTR(store);
             *tmp = data;
             SET_VECTOR_ELT(container, index, store);
-            UNPROTECT(1);
         }
 
         static uint32_t getUint32t(SEXP container, const int & index) {
@@ -92,15 +93,15 @@ namespace rir {
         static SEXP getTVData(SEXP container) { return getSEXP(container, 2); }
 
         static void addTVData(SEXP container, std::vector<uint32_t> slotData) {
+            rir::Protect protecc;
             SEXP store;
-            PROTECT(store = Rf_allocVector(VECSXP, slotData.size()));
+            protecc(store = Rf_allocVector(VECSXP, slotData.size()));
             int i = 0;
             for (auto & ele : slotData) {
                 addUint32t(store, ele, i);
                 i++;
             }
             addTVData(container, store);
-            UNPROTECT(1);
         }
 
 
@@ -171,14 +172,14 @@ namespace rir {
 
         static void addTFSlots(SEXP container, const std::vector<int> & data) {
             SEXP store;
-            PROTECT(store = Rf_allocVector(VECSXP, data.size()));
+            rir::Protect protecc;
+            protecc(store = Rf_allocVector(VECSXP, data.size()));
             int i = 0;
             for (auto & ele : data) {
                 addInt(store, ele, i);
                 i++;
             }
             addTFSlots(container, store);
-            UNPROTECT(1);
         }
 
         //

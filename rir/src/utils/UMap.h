@@ -1,5 +1,4 @@
-#ifndef RIR_UMAP_
-#define RIR_UMAP_
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -19,9 +18,9 @@ class REnvHandler {
     REnvHandler(uint32_t cPoolIndex) {
       SEXP c = rir::Pool::get(cPoolIndex);
       if (c == R_NilValue) {
-        PROTECT(c = R_NewEnv(R_EmptyEnv,0,0));
+        rir::Protect protecc;
+        protecc(c = R_NewEnv(R_EmptyEnv,0,0));
         rir::Pool::patch(cPoolIndex, c);
-        UNPROTECT(1);
       }
       assert(TYPEOF(c) == ENVSXP);
       _container = c;
@@ -107,21 +106,20 @@ class REnvHandler {
 
     // iterator
     void iterate(const std::function< void(SEXP, SEXP) >& callback) {
-      SEXP offsetBindings;
-      PROTECT(offsetBindings = R_lsInternal(_container, (Rboolean) false));
+      rir::Protect protecc;
+      SEXP offsetBindings = R_lsInternal(_container, (Rboolean) false);
+      protecc(offsetBindings);
       for (int i = 0; i < Rf_length(offsetBindings); i++) {
-          SEXP key = Rf_install(CHAR(STRING_ELT(offsetBindings, i)));
-          SEXP binding = Rf_findVarInFrame(_container, key);
-          // skip inactive bindings
-          if (binding == R_UnboundValue) continue;
-          callback(key, binding);
+        // offsetBindings = R_lsInternal(_container, (Rboolean) false);
+        SEXP key = Rf_install(CHAR(STRING_ELT(offsetBindings, i)));
+        SEXP binding = Rf_findVarInFrame(_container, key);
+        // skip inactive bindings
+        if (binding == R_UnboundValue) continue;
+        callback(key, binding);
       }
-      UNPROTECT(1);
     }
 
 
   private:
     SEXP _container;
 };
-
-#endif

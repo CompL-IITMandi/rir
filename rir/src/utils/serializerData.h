@@ -44,29 +44,53 @@ namespace rir {
         }
 
         // ENTRY 0: Function Signature
-        static void addFS(SEXP container, const rir::FunctionSignature & fs) {
+        template <typename T>
+        static void addTToContainer(SEXP container, const int & index, T val) {
+            rir::Protect protecc;
             SEXP store;
-            PROTECT(store = Rf_allocVector(RAWSXP, sizeof(fs)));
-            rir::FunctionSignature * tmp = (rir::FunctionSignature *) DATAPTR(store);
-            #if defined(__GNUC__) || defined(__GNUG__)
-                #pragma GCC diagnostic push
-                #pragma GCC diagnostic ignored "-Wclass-memaccess"
-            #endif
+            protecc(store = Rf_allocVector(RAWSXP, sizeof(T)));
+            T * tmp = (T *) DATAPTR(store);
+            *tmp = val;
 
-            memcpy(tmp, &fs, sizeof(fs));
+            SET_VECTOR_ELT(container, index, store);
+        }
 
-            #if defined(__clang__)
-                #pragma GCC diagnostic pop
-            #endif
+        template <typename T>
+        static T getTFromContainer(SEXP container, const int & index) {
+            SEXP dataContainer = VECTOR_ELT(container, index);
+            T* res = (T *) DATAPTR(dataContainer);
+            return *res;
+        }
 
-            SET_VECTOR_ELT(container, 0, store);
-            UNPROTECT(1);
+        static void addFS(SEXP container, const rir::FunctionSignature & fs) {
+            rir::Protect protecc;
+            SEXP fsContainer;
+            protecc(fsContainer = Rf_allocVector(VECSXP, 6));
+
+            addTToContainer<rir::FunctionSignature::Environment>(fsContainer, 0, fs.envCreation);
+            addTToContainer<rir::FunctionSignature::OptimizationLevel>(fsContainer, 1, fs.optimization);
+            addTToContainer<unsigned>(fsContainer, 2, fs.numArguments);
+            addTToContainer<bool>(fsContainer, 3, fs.hasDotsFormals);
+            addTToContainer<bool>(fsContainer, 4, fs.hasDefaultArgs);
+            addTToContainer<size_t>(fsContainer, 5, fs.dotsPosition);
+
+            SET_VECTOR_ELT(container, 0, fsContainer);
         }
 
         static rir::FunctionSignature getFS(SEXP container) {
             SEXP dataContainer = VECTOR_ELT(container, 0);
-            rir::FunctionSignature* res = (rir::FunctionSignature *) DATAPTR(dataContainer);
-            return *res;
+
+            rir::FunctionSignature res(
+                getTFromContainer<rir::FunctionSignature::Environment>(dataContainer, 0),
+                getTFromContainer<rir::FunctionSignature::OptimizationLevel>(dataContainer, 1)
+                );
+
+            res.numArguments = getTFromContainer<unsigned>(dataContainer, 2);
+            res.hasDotsFormals = getTFromContainer<bool>(dataContainer, 3);
+            res.hasDefaultArgs = getTFromContainer<bool>(dataContainer, 4);
+            res.dotsPosition = getTFromContainer<size_t>(dataContainer, 5);
+
+            return res;
         }
 
         // ENTRY 1: Function Names
@@ -251,12 +275,12 @@ namespace rir {
             static void addObservedValueToVector(SEXP container, ObservedValues * observedVal);
             // ENTRY 0: Con
             static void addContext(SEXP container, const unsigned long & data) {
+                rir::Protect protecc;
                 SEXP store;
-                PROTECT(store = Rf_allocVector(RAWSXP, sizeof(unsigned long)));
+                protecc(store = Rf_allocVector(RAWSXP, sizeof(unsigned long)));
                 unsigned long * tmp = (unsigned long *) DATAPTR(store);
                 *tmp = data;
                 SET_VECTOR_ELT(container, 0, store);
-                UNPROTECT(1);
             }
 
             static unsigned long getContext(SEXP container) {
@@ -288,8 +312,9 @@ namespace rir {
                 }
 
                 if (containsElement != -1) {
+                    rir::Protect protecc;
                     SEXP newVec;
-                    PROTECT(newVec = Rf_allocVector(VECSXP, Rf_length(rData) - 1));
+                    protecc(newVec = Rf_allocVector(VECSXP, Rf_length(rData) - 1));
 
                     int newVecIdx = 0;
                     for (int i = 0; i < Rf_length(rData); i++) {
@@ -300,7 +325,6 @@ namespace rir {
                     }
 
                     addReqMapForCompilation(container, newVec);
-                    UNPROTECT(1);
 
                 }
             }
@@ -316,14 +340,14 @@ namespace rir {
 
             // ENTRY 3: creationIndex
             static void addCI(SEXP container) {
+                rir::Protect protecc;
                 static unsigned int CI = 0;
                 SEXP store;
-                PROTECT(store = Rf_allocVector(RAWSXP, sizeof(unsigned int)));
+                protecc(store = Rf_allocVector(RAWSXP, sizeof(unsigned int)));
                 unsigned int * tmp = (unsigned int *) DATAPTR(store);
                 *tmp = CI;
                 CI++;
                 SET_VECTOR_ELT(container, 3, store);
-                UNPROTECT(1);
             }
 
             static unsigned int getCI(SEXP container) {
@@ -414,10 +438,10 @@ namespace rir {
             static SEXP ensureAndGetOffsetMap(SEXP container) {
                 SEXP currOffsetMap = getBitcodeMap(container);
                 if (TYPEOF(currOffsetMap) != ENVSXP) {
+                    rir::Protect protecc;
                     SEXP tmp;
-                    PROTECT(tmp = R_NewEnv(R_EmptyEnv,0,0));
+                    protecc(tmp = R_NewEnv(R_EmptyEnv,0,0));
                     addSEXP(container, tmp, 2);
-                    UNPROTECT(1);
                 }
 
                 SEXP res = getBitcodeMap(container);
@@ -431,10 +455,10 @@ namespace rir {
                 if (oMap.get(offsetSym) != nullptr && TYPEOF(oMap.get(offsetSym)) == ENVSXP) {
                     return oMap.get(offsetSym);
                 } else {
+                    rir::Protect protecc;
                     SEXP tmp;
-                    PROTECT(tmp = R_NewEnv(R_EmptyEnv,0,0));
+                    protecc(tmp = R_NewEnv(R_EmptyEnv,0,0));
                     oMap.set(offsetSym, tmp);
-                    UNPROTECT(1);
                 }
                 SEXP res = oMap.get(offsetSym);
                 assert(TYPEOF(res) == ENVSXP);

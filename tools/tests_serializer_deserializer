@@ -1,0 +1,204 @@
+#!/bin/bash -e
+
+SCRIPTPATH=`cd $(dirname "$0") && pwd`
+if [ ! -d $SCRIPTPATH ]; then
+    echo "Could not determine absolute dir of $0"
+    echo "Maybe accessed with symlink"
+fi
+export SCRIPTPATH
+
+if [ -z "$RIR_BUILD" ]; then
+    RIR_BUILD=`pwd`
+fi
+export RIR_BUILD
+if [ ! -f $RIR_BUILD/librir.* ]; then
+    echo "could not find librjit. are you in the correct directory?"
+    exit 1
+fi
+
+if [ "$#" -eq 1 ]; then
+    export R_HOME=$2
+    if [ ! -f $R_HOME/bin/R ]; then
+        echo "invalid R_HOME given"
+        exit 1
+    fi
+else
+    R_HOME=`cat ${RIR_BUILD}/.R_HOME`
+    export R_HOME
+fi
+
+. "${SCRIPTPATH}/script_include.sh"
+
+export ROOT_DIR="${SCRIPTPATH}/.."
+
+STATUS=$(mktemp /tmp/r-test-status.XXXXXX)
+touch $STATUS
+export STATUS
+
+PARENT=$$
+export PARENT
+
+
+if [ -z "$1" ]
+  then
+    echo "Serialized bitcode folder not provided!"
+    echp "USAGE: ./tests_serializer_deserializer [PATH_TO_STORE_SERIALIZER_FOLDER] [PATH_TO_STORE_DESERIALIZER_FOLDER]"
+fi
+
+if [ -z "$2" ]
+  then
+    echo "Deserializer bitcode folder not provided!"
+    echp "USAGE: ./tests_serializer_deserializer [PATH_TO_STORE_SERIALIZER_FOLDER] [PATH_TO_STORE_DESERIALIZER_FOLDER]"
+fi
+
+
+serializerFolder=$1
+export serializerFolder
+deserializerFolderPrefix=$2
+export deserializerFolderPrefix
+
+obapBin="/home/meetesh/BUILDS/OBAP/run.sh"
+export obapBin
+
+if [ -d "$serializerFolder" ]; then
+    rm -rf $serializerFolder 2>/dev/null
+fi
+
+if [ -d "$deserializerFolderPrefix" ]; then
+    rm -rf $deserializerFolderPrefix 2>/dev/null
+fi
+
+mkdir $serializerFolder
+mkdir $deserializerFolderPrefix
+
+function run_test {
+  test=$0
+
+  R="${R_HOME}/bin/R"
+  VALGRIND=""
+
+  if [[ "$ENABLE_VALGRIND" == "1" ]]; then
+      VALGRIND="-d valgrind --debugger-args=--error-exitcode=13 --debugger-args=--suppressions=$ROOT_DIR/.valgrind_suppressions"
+  fi
+
+  if test "$(uname)" = "Darwin"; then
+      LIB="dyn.load('${RIR_BUILD}/librir.dylib')"
+  else
+      LIB="dyn.load('${RIR_BUILD}/librir.so')"
+  fi
+
+  name=`basename $test`
+
+  #
+  # This test is disabled as it turns out that in the deserialzer run some optimization condition does not happen;
+  # SKIP_GLOBAL_BC=1 should ideally be enabled by dafault, but we keep it on currently for testing purposes,
+  #
+  if [ "$name" == "pir_check.R" ]; then
+    echo "Skipping pir_check.R";
+    return
+  fi;
+
+  function status {
+    done=`wc -l < $STATUS`
+    echo -ne "\e[0K\r[${done}/${NUM_TESTS}] ${name} "
+  }
+  status
+
+  TEST=$(mktemp /tmp/r-test.XXXXXX)
+  echo ${LIB} > $TEST
+  echo "source('${ROOT_DIR}/rir/R/rir.R')" >> $TEST
+  grep -v 'require("rir")' ${test} | grep -v 'require(rir)'  >> $TEST
+
+  LOGOBAP=$(mktemp /tmp/r-obap.XXXXXX)
+  LOG=$(mktemp /tmp/r-test.XXXXXX)
+  if [[ "$R_LD_PRELOAD" != "" ]]; then
+    export LD_PRELOAD=$R_LD_PRELOAD
+  fi
+
+  bcFolderName=${name%.*}
+
+  mkdir "$serializerFolder/$bcFolderName"
+
+  PIR_SERIALIZE_ALL=1 PIR_SERIALIZE_PREFIX="$serializerFolder/$bcFolderName" $R $VALGRIND --no-init-file -f $TEST &> $LOG
+  res=$?
+
+  if [ $res -ne 0 ]; then
+      echo -e "\n*************************************************************************************"
+      echo "*************************************************************************************"
+      echo "***  [SERIALIZER]failed test $name:"
+      echo "***  PIR_SERIALIZE_ALL=1 PIR_SERIALIZE_PREFIX=$serializerFolder/$bcFolderName $R $VALGRIND -f $TEST"
+      echo "***  log:"
+      echo "*************************************************************************************"
+      cat $LOG
+      echo "*************************************************************************************"
+      echo "***  end log $name"
+      echo "*************************************************************************************"
+      echo "*************************************************************************************"
+      rm $LOG
+      exit 255
+  fi
+
+  mkdir "$deserializerFolderPrefix/$bcFolderName"
+  $obapBin "$serializerFolder/$bcFolderName" "$deserializerFolderPrefix/$bcFolderName" &> $LOGOBAP
+  res=$?
+
+  if [ $res -ne 0 ]; then
+    echo -e "\n*************************************************************************************"
+    echo "*************************************************************************************"
+    echo "***  [OBAP]failed test $name:"
+    echo "***  $obapBin $serializerFolder/$bcFolderName $deserializerFolderPrefix/$bcFolderName"
+    echo "***  log:"
+    echo "*************************************************************************************"
+    cat $LOGOBAP
+    echo "*************************************************************************************"
+    echo "***  end log $name"
+    echo "*************************************************************************************"
+    echo "*************************************************************************************"
+    rm $LOGOBAP
+    exit 255
+  fi
+
+  EARLY_BITCODES=1 PIR_DESERIALIZE_PREFIX="$deserializerFolderPrefix/$bcFolderName" $R $VALGRIND --no-init-file -f $TEST &> $LOG
+  res=$?
+
+  if [ $res -ne 0 ]; then
+      echo -e "\n*************************************************************************************"
+      echo "*************************************************************************************"
+      echo "***  [DESERIALIZER]failed test $name:"
+      echo "***  EARLY_BITCODES=1 PIR_DESERIALIZE_PREFIX=$deserializerFolderPrefix/$bcFolderName $R $VALGRIND -f $TEST"
+      echo "***  log:"
+      echo "*************************************************************************************"
+      cat $LOG
+      echo "*************************************************************************************"
+      echo "***  end log $name"
+      echo "*************************************************************************************"
+      echo "*************************************************************************************"
+      rm $LOG
+      exit 255
+  fi
+
+  export LD_PRELOAD=""
+
+  ps -p $PARENT &> /dev/null
+  if [ $? -ne 0 ]; then
+      rm $TEST
+      exit
+  fi
+
+  rm $TEST
+  rm $LOG
+  echo $name >> $STATUS
+
+  status
+}
+export -f run_test
+
+TESTS_PATH="${ROOT_DIR}/rir/tests"
+
+NUM_TESTS=`find ${TESTS_PATH} -name '*.[Rr]' | wc -l`
+export NUM_TESTS
+
+find ${TESTS_PATH} -name '*.[Rr]' | xargs -n 1 -P `ncores` bash -c 'run_test $@'
+
+rm -rf $STATUS
+echo ""

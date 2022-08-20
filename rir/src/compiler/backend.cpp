@@ -716,6 +716,13 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
         }
     }
 
+    // Release preserved Arglist Orders if they exist (This memory leak might have been causing the random crashes)
+    for (auto & ele : done) {
+        if (ele.second->argOrderingVec) {
+            R_ReleaseObject(ele.second->argOrderingVec);
+        }
+    }
+
     if (MEASURE_COMPILER_BACKEND_PERF) {
         Measuring::countTimer("backend.cpp: pir2llvm");
     }

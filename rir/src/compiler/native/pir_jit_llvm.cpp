@@ -369,13 +369,10 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         std::cerr << "deserializer quietly failing, unable to open pool file: " << poolPath.str() << std::endl;
         return;
     }
-
-    R_inpstream_st inputStream;
-    R_InitFileInPStream(&inputStream, reader, R_pstream_binary_format, NULL, R_NilValue);
     Protect protecc;
 
     SEXP result;
-    protecc(result= R_Unserialize(&inputStream));
+    protecc(result= R_LoadFromFile(reader, 0));
 
     SEXP cPool = SerializedPool::getCpool(result);
     SEXP sPool = SerializedPool::getSpool(result);
@@ -881,15 +878,13 @@ void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPo
     std::stringstream poolPathSS;
     poolPathSS << prefix << "/" << contextData::getContext(cData) << ".pool";
 
-    // Write pools to file
-    R_outpstream_st outputStream;
     FILE *fptr;
     fptr = fopen(poolPathSS.str().c_str(),"w");
     if (!fptr) {
         return;
     }
-    R_InitFileOutPStream(&outputStream,fptr,R_pstream_binary_format, 0, NULL, R_NilValue);
-    R_Serialize(serializedPoolData, &outputStream);
+
+    R_SaveToFile(serializedPoolData, fptr, 0);
     fclose(fptr);
 }
 
@@ -1029,7 +1024,9 @@ void PirJitLLVM::compile(
         target->pirTypeFeedback(funCompiler.pirTypeFeedback);
     if (funCompiler.hasArgReordering()) {
         target->arglistOrder(ArglistOrder::New(funCompiler.getArgReordering()));
-        target->argOrderingVec = ArglistOrder::Newt(funCompiler.getArgReordering());
+        SEXP aVec;
+        R_PreserveObject(aVec = ArglistOrder::Newt(funCompiler.getArgReordering()));
+        target->argOrderingVec = aVec;
     }
     // jitFixup.emplace(code, std::make_pair(target, funCompiler.fun->getName()));
     jitFixup.emplace(code, std::make_pair(target, funCompiler.fun->getName().str()));
