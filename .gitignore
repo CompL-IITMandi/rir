@@ -40,3 +40,8 @@ external/*
 
 rsync-recommended
 recommended
+bcPro
+bcRaw
+bcRawCopy
+bcRawCopyCopy
+bcRawLBL

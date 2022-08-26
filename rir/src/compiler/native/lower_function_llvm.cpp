@@ -4355,6 +4355,7 @@ void LowerFunctionLLVM::compile() {
                 auto calli = StaticCall::Cast(i);
                 calli->eachArg([](Value* v) { assert(!ExpandDots::Cast(v)); });
                 auto target = calli->tryDispatch();
+                static bool skipGlobalBc = getenv("SKIP_GLOBAL_BC") ? true : false;
                 #if DISABLE_OPTIMISTIC_DISPATCH == 0
                 auto bestTarget = calli->tryOptimisticDispatch();
                 #endif
@@ -4448,7 +4449,7 @@ void LowerFunctionLLVM::compile() {
                 }
 
                 #if DISABLE_OPTIMISTIC_DISPATCH == 0
-                if (target == bestTarget) {
+                if (skipGlobalBc == false && target == bestTarget) {
                     //
                     // We see that this dispatch table can only be at offset 0
                     //  as BODY(callee) -> offset 0

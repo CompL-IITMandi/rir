@@ -343,8 +343,8 @@ hastAndIndex getHastAndIndex(unsigned src, bool constantPool) {
 
 static void loadMetadata(std::string metaDataPath) {
     Protect protecc;
-    // Disable contextual compilation during deserialization as R_LoadFromFile
-    // will lead to a lot of unnecessary compilation otherwise
+    // Disable contextual compilation during deserialization
+    // otherwise unnecessary evals can lead to a redundant compilations
     bool oldVal = BitcodeLinkUtil::contextualCompilationSkip;
     BitcodeLinkUtil::contextualCompilationSkip = true;
 
@@ -912,10 +912,10 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                     //
                     // With L2 this check may fail as dispatch may be purposefully delayed
                     //
-                    // auto other = dt->dispatch(c->context());
-                    // assert(other != dt->baseline());
-                    // assert(other->context() == c->context());
-                    // if (other->body()->isCompiled())
+                    auto other = dt->dispatch(c->context());
+                    assert(other != dt->baseline());
+                    assert(other->context() == c->context());
+                    if (other->body()->isCompiled())
                         return;
                 }
                 // Don't lower functions that have not been called often, as
@@ -1016,7 +1016,7 @@ void serializerCleanup() {
                 if (isHastBlacklisted(hast)) {
                     const int removeRes = remove(metaPath.str().c_str());
                     if( removeRes != 0 ){
-                        std::cerr << "[Warning] Failed to remove: " << metaPath.str() << std::endl;
+                        std::cerr << "[Warning] Failed to remove: " << metaPath.str() << ", res: " << removeRes << std::endl;
                     }
                     continue;
                 }
@@ -1037,8 +1037,8 @@ void serializerCleanup() {
 
                 if (err) {
                     const int removeRes = remove(metaPath.str().c_str());
-                    if( removeRes == 0 ){
-                        std::cerr << "Failed to remove: " << metaPath.str() << std::endl;
+                    if( removeRes != 0 ){
+                        std::cerr << "Failed to remove: " << metaPath.str() << ", res: " << removeRes << std::endl;
                     }
                 }
             }
