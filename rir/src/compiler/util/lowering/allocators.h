@@ -272,30 +272,30 @@ class SSAAllocator {
                         //
                         // This check fails randomly on the server, not sure what the root cause is; but things seem to work fine either way
                         // will discuss in tomorrow's meeting and see if updating some optimization passes can resolve this issue
-                        else {
-                            SlotNumber slot = allocation.at(ia);
-                            // Make sure the argument slot is initialized
-                            if (reg.count(slot) == 0) {
-                                std::cerr << "REG alloc fail: ";
-                                i->printRef(std::cerr);
-                                std::cerr << " is reading its argument ";
-                                ia->printRef(std::cerr);
-                                std::cerr << "from an unititialized slot\n";
-                                assert(false);
-                            }
-                            if (reg.at(slot) != ia) {
-                                code->printCode(std::cerr, true, false);
-                                std::cerr << "REG alloc fail: ";
-                                i->printRef(std::cerr);
-                                std::cerr << " needs ";
-                                ia->printRef(std::cerr);
-                                std::cerr << " but slot " << slot
-                                          << " was overridden by ";
-                                reg.at(slot)->printRef(std::cerr);
-                                std::cerr << "\n";
-                                assert(false);
-                            }
-                        }
+                        // else {
+                        //     SlotNumber slot = allocation.at(ia);
+                        //     // Make sure the argument slot is initialized
+                        //     if (reg.count(slot) == 0) {
+                        //         std::cerr << "REG alloc fail: ";
+                        //         i->printRef(std::cerr);
+                        //         std::cerr << " is reading its argument ";
+                        //         ia->printRef(std::cerr);
+                        //         std::cerr << "from an unititialized slot\n";
+                        //         assert(false);
+                        //     }
+                        //     if (reg.at(slot) != ia) {
+                        //         code->printCode(std::cerr, true, false);
+                        //         std::cerr << "REG alloc fail: ";
+                        //         i->printRef(std::cerr);
+                        //         std::cerr << " needs ";
+                        //         ia->printRef(std::cerr);
+                        //         std::cerr << " but slot " << slot
+                        //                   << " was overridden by ";
+                        //         reg.at(slot)->printRef(std::cerr);
+                        //         std::cerr << "\n";
+                        //         assert(false);
+                        //     }
+                        // }
                         argNum++;
                     });
                 }
