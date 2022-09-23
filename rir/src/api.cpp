@@ -94,9 +94,14 @@ REXPORT SEXP rirDisassemble(SEXP what, SEXP verbose) {
     std::cout << "== closure " << what << " (dispatch table " << t << ", env "
               << CLOENV(what) << ") ==\n";
     for (size_t entry = 0; entry < t->size(); ++entry) {
-        Function* f = t->get(entry);
-        std::cout << "= version " << entry << " (" << f << ") =\n";
-        f->disassemble(std::cout);
+
+        if (!t->isL2(entry)) {
+            Function* f = t->get(entry);
+            std::cout << "= version " << entry << " (" << f << ") =\n";
+            f->disassemble(std::cout);
+        } else {
+            t->disassembleL2(entry, std::cout);
+        }
     }
 
     return R_NilValue;

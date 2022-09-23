@@ -2,7 +2,25 @@
 #include "R/Serialize.h"
 #include "compiler/compiler.h"
 
+#include "runtime/DispatchTable.h"
+
 namespace rir {
+
+void Function::registerDeopt() {
+    // Deopt counts are kept on the optimized versions
+    assert(isOptimized());
+    // If the deopt happens in a L2 dispatched binary, then make sure to force an interp run so that
+    // missing slots might be accounted for
+    if (versioning) {
+        assert(DispatchTable::check(parentDispatcher));
+        DispatchTable * vtab = DispatchTable::unpack(parentDispatcher);
+        vtab->doFeedbackRun = true;
+    }
+
+    flags.set(Flag::Deopt);
+    if (deoptCount_ < UINT_MAX)
+        deoptCount_++;
+}
 
 Function* Function::deserialize(SEXP refTable, R_inpstream_t inp) {
     size_t functionSize = InInteger(inp);

@@ -399,6 +399,12 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     bitcodePath << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".bc";
 
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> mb = llvm::MemoryBuffer::getFile(bitcodePath.str());
+
+    if (!mb) {
+        std::cerr << "deserializer quietly failing, bitcode file does not exist: " << bitcodePath.str() << std::endl;
+        return;
+    }
+
     rir::pir::PirJitLLVM jit("f");
 
     // Load the memory buffer into a LLVM module
@@ -579,19 +585,25 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
     function.function()->inheritFlags(vtab->baseline());
 
+    // std::cout << "Adding Context: " << Context(con) << std::endl;
+    // std::cout << "Adding native function(deserialized): " << function.function() << std::endl;
+    // UnlockingElement::print(uEleContainer, 4);
+
+    auto currFun = function.function();
+
     // generalUtil::printSpace(2);
     // std::cout << "Versioning: " << versioning << std::endl;
     if (versioning == 0) {
-        vtab->insert(function.function());
+        vtab->insert(currFun);
     }
     else if (versioning == 1) {
-        vtab->insertL2V1(function.function());
+        vtab->insertL2V1(currFun);
     }
     else if (versioning == 2) {
         // generalUtil::printSpace(2);
         // std::cout << "Versioning 2 Unlock Element STUB" << std::endl;
         // UnlockingElement::print(uEleContainer, 4);
-        vtab->insertL2V2(function.function(), uEleContainer);
+        vtab->insertL2V2(currFun, uEleContainer);
     }
 
     static bool eagerBC = getenv("EAGER_BITCODES") ? getenv("EAGER_BITCODES")[0] == '1' : false;

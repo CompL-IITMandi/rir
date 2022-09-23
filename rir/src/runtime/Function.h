@@ -163,13 +163,7 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
 
     bool disabled() const { return flags.contains(Flag::Deopt); }
 
-    void registerDeopt() {
-        // Deopt counts are kept on the optimized versions
-        assert(isOptimized());
-        flags.set(Flag::Deopt);
-        if (deoptCount_ < UINT_MAX)
-            deoptCount_++;
-    }
+    void registerDeopt();
 
     void registerDeoptReason(DeoptReason::Reason r) {
         // Deopt reasons are counted in the baseline
@@ -185,7 +179,19 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
         return deadCallReached_;
     }
 
+    bool isVersioned() {
+        return versioning;
+    }
+
+    void setVersioned(SEXP parentVTab) {
+        versioning = true;
+        parentDispatcher = parentVTab;
+    }
+
   private:
+    bool versioning = false;
+    SEXP parentDispatcher = nullptr;
+
     unsigned numArgs_;
 
     unsigned invocationCount_ = 0;

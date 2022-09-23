@@ -8,6 +8,8 @@ namespace rir {
 
     void DispatchTable::insertL2V2(Function* fun, SEXP uEleContainer) {
 
+        fun->setVersioned(this->container());
+
         // doFeedbackRun = true;
 
         assert(fun->signature().optimization !=
@@ -154,6 +156,8 @@ namespace rir {
         assert(fun->signature().optimization !=
                FunctionSignature::OptimizationLevel::Baseline);
         int idx = negotiateSlot(fun->context());
+
+        fun->setVersioned(this->container());
 
         SEXP idxContainer = getEntry(idx);
 

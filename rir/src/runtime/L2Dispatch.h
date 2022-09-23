@@ -89,6 +89,29 @@ struct L2Dispatch
 			return Function::unpack(getGenesisFunctionContainer());
 		}
 
+		void disassemble(std::ostream& out) {
+			ObservedValues* observedTF = getBCSlots();
+			SEXP functionVector = getEntry(FVEC);
+			SEXP functionTFVector = getEntry(TVEC);
+			out << "= L2 dispatch Start =" << std::endl;
+
+			out << "= Genesis slot: " << Function::unpack(getGenesisFunctionContainer()) << std::endl;
+			Function::unpack(getGenesisFunctionContainer())->disassemble(out);
+
+			for (int i = _last; i >= 0; i--) {
+				SEXP currFunHolder = VECTOR_ELT(functionVector, i);
+				SEXP currTFHolder = VECTOR_ELT(functionTFVector, i);
+				Function * currFun = Function::unpack(currFunHolder);
+				ObservedValues* currTF = (ObservedValues *) DATAPTR(currTFHolder);
+
+				out << "= L2 slot: " << i << "(" << currFun << ")" << std::endl;
+				for (unsigned int j = 0; j < _numSlots; j++) {
+					std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
+				}
+				currFun->disassemble(out);
+			}
+		}
+
 		ObservedValues * getBCSlots() {
 			SEXP BCVecContainer = getEntry(BCVEC);
 			ObservedValues* * tmp = (ObservedValues* *) DATAPTR(BCVecContainer);
@@ -120,7 +143,7 @@ struct L2Dispatch
 
 				bool match = true;
 
-				// std::cout << "Checking Function " << i << "(" << currFun->disabled() << ")" << std::endl;
+				// std::cout << "Checking Function [" << currFun << "]: " << i << "(" << currFun->disabled() << ")" << std::endl;
 
 				for (unsigned int j = 0; j < _numSlots; j++) {
 					// std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;

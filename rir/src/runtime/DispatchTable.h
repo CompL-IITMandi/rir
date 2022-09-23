@@ -34,6 +34,32 @@ struct DispatchTable
 
     size_t size() const { return size_; }
 
+    bool isL2(size_t i) const {
+        assert(i < capacity());
+
+        // If there exists a L2 dispatch table at this index,
+        // then check if there is a possible dispatch available
+        SEXP funContainer = getEntry(i);
+
+        if (L2Dispatch::check(funContainer)) {
+            return true;
+        }
+        return false;
+    }
+
+    void disassembleL2(size_t i, std::ostream& out) {
+        assert(i < capacity());
+
+        // If there exists a L2 dispatch table at this index,
+        // then check if there is a possible dispatch available
+        SEXP funContainer = getEntry(i);
+
+        assert(L2Dispatch::check(funContainer));
+
+        L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+        l2vt->disassemble(out);
+    }
+
     Function* get(size_t i) const {
         assert(i < capacity());
 
@@ -65,6 +91,7 @@ struct DispatchTable
             doFeedbackRun = false;
             return baseline();
         }
+        if (baseline()->invocationCount() == 0) return baseline();
         if (!a.smaller(userDefinedContext_)) {
 #ifdef DEBUG_DISPATCH
             std::cout << "DISPATCH trying: " << a
