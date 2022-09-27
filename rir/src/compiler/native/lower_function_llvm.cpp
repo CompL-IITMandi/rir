@@ -171,12 +171,19 @@ llvm::Value* LowerFunctionLLVM::convertToPointer(const void* what,
 
 // serializer
 llvm::Value* LowerFunctionLLVM::convertToExternalSymbol(std::string name, llvm::Type* ty, bool constant) {
+
     return getModule().getOrInsertGlobal(name, ty, [&]() {
-        return new llvm::GlobalVariable(
-            getModule(), ty, constant,
-            llvm::GlobalValue::LinkageTypes::AvailableExternallyLinkage,
-            nullptr, name, nullptr,
-            llvm::GlobalValue::ThreadLocalMode::NotThreadLocal, 0, true);
+        if (globalSymbolPatchCache.find(name) != globalSymbolPatchCache.end()) {
+            return globalSymbolPatchCache[name];
+        } else {
+            auto res = new llvm::GlobalVariable(
+                getModule(), ty, constant,
+                llvm::GlobalValue::LinkageTypes::AvailableExternallyLinkage,
+                nullptr, name, nullptr,
+                llvm::GlobalValue::ThreadLocalMode::NotThreadLocal, 0, true);
+            globalSymbolPatchCache[name] = res;
+            return res;
+        }
     });
 }
 

@@ -428,10 +428,10 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         auto srp = globalName.substr(0,6) == "srpool";
         auto namc = globalName.substr(0,6) == "named_";
 
-        if (namc || pre || srp) {
-            global.setExternallyInitialized(false);
-            global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
-        }
+        // if (namc || pre || srp) {
+        //     global.setExternallyInitialized(false);
+        //     global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
+        // }
 
 
         if (namc) {
