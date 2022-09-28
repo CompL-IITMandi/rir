@@ -662,23 +662,23 @@ void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPo
         fun->eraseFromParent();
     }
 
-    llvm::PassBuilder passBuilder;
-    llvm::LoopAnalysisManager loopAnalysisManager(false); // true is just to output debug info
-    llvm::FunctionAnalysisManager functionAnalysisManager(false);
-    llvm::CGSCCAnalysisManager cGSCCAnalysisManager(false);
-    llvm::ModuleAnalysisManager moduleAnalysisManager(false);
+    // llvm::PassBuilder passBuilder;
+    // llvm::LoopAnalysisManager loopAnalysisManager(false); // true is just to output debug info
+    // llvm::FunctionAnalysisManager functionAnalysisManager(false);
+    // llvm::CGSCCAnalysisManager cGSCCAnalysisManager(false);
+    // llvm::ModuleAnalysisManager moduleAnalysisManager(false);
 
-    passBuilder.registerModuleAnalyses(moduleAnalysisManager);
-    passBuilder.registerCGSCCAnalyses(cGSCCAnalysisManager);
-    passBuilder.registerFunctionAnalyses(functionAnalysisManager);
-    passBuilder.registerLoopAnalyses(loopAnalysisManager);
-    // This is the important line:
-    passBuilder.crossRegisterProxies(
-        loopAnalysisManager, functionAnalysisManager, cGSCCAnalysisManager, moduleAnalysisManager);
+    // passBuilder.registerModuleAnalyses(moduleAnalysisManager);
+    // passBuilder.registerCGSCCAnalyses(cGSCCAnalysisManager);
+    // passBuilder.registerFunctionAnalyses(functionAnalysisManager);
+    // passBuilder.registerLoopAnalyses(loopAnalysisManager);
+    // // This is the important line:
+    // passBuilder.crossRegisterProxies(
+    //     loopAnalysisManager, functionAnalysisManager, cGSCCAnalysisManager, moduleAnalysisManager);
 
-    llvm::ModulePassManager modulePassManager =
-        passBuilder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O2);
-    modulePassManager.run(*module, moduleAnalysisManager);
+    // llvm::ModulePassManager modulePassManager =
+    //     passBuilder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O2);
+    // modulePassManager.run(*module, moduleAnalysisManager);
 
     size_t srcPoolOffset = 0;
 
