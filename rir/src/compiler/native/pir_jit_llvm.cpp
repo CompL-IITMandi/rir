@@ -677,7 +677,7 @@ void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPo
         loopAnalysisManager, functionAnalysisManager, cGSCCAnalysisManager, moduleAnalysisManager);
 
     llvm::ModulePassManager modulePassManager =
-        passBuilder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O3);
+        passBuilder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O2);
     modulePassManager.run(*module, moduleAnalysisManager);
 
     size_t srcPoolOffset = 0;
