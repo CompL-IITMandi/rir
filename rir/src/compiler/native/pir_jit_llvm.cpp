@@ -662,23 +662,36 @@ void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPo
         fun->eraseFromParent();
     }
 
-    // llvm::PassBuilder passBuilder;
-    // llvm::LoopAnalysisManager loopAnalysisManager(false); // true is just to output debug info
-    // llvm::FunctionAnalysisManager functionAnalysisManager(false);
-    // llvm::CGSCCAnalysisManager cGSCCAnalysisManager(false);
-    // llvm::ModuleAnalysisManager moduleAnalysisManager(false);
+    llvm::PassBuilder passBuilder;
+    llvm::LoopAnalysisManager loopAnalysisManager(false); // true is just to output debug info
+    llvm::FunctionAnalysisManager functionAnalysisManager(false);
+    llvm::CGSCCAnalysisManager cGSCCAnalysisManager(false);
+    llvm::ModuleAnalysisManager moduleAnalysisManager(false);
 
-    // passBuilder.registerModuleAnalyses(moduleAnalysisManager);
-    // passBuilder.registerCGSCCAnalyses(cGSCCAnalysisManager);
-    // passBuilder.registerFunctionAnalyses(functionAnalysisManager);
-    // passBuilder.registerLoopAnalyses(loopAnalysisManager);
-    // // This is the important line:
-    // passBuilder.crossRegisterProxies(
-    //     loopAnalysisManager, functionAnalysisManager, cGSCCAnalysisManager, moduleAnalysisManager);
+    passBuilder.registerModuleAnalyses(moduleAnalysisManager);
+    passBuilder.registerCGSCCAnalyses(cGSCCAnalysisManager);
+    passBuilder.registerFunctionAnalyses(functionAnalysisManager);
+    passBuilder.registerLoopAnalyses(loopAnalysisManager);
+    passBuilder.crossRegisterProxies(
+        loopAnalysisManager, functionAnalysisManager, cGSCCAnalysisManager, moduleAnalysisManager);
 
-    // llvm::ModulePassManager modulePassManager =
-    //     passBuilder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O2);
-    // modulePassManager.run(*module, moduleAnalysisManager);
+
+    llvm::PassBuilder::OptimizationLevel lvl = llvm::PassBuilder::OptimizationLevel::O2;
+
+    static auto optLevel = getenv("SERIALIZER_OPT");
+
+    if (optLevel) {
+        switch(optLevel[0]) {
+            case '0': lvl = llvm::PassBuilder::OptimizationLevel::O0; break;
+            case '1': lvl = llvm::PassBuilder::OptimizationLevel::O1; break;
+            case '2': lvl = llvm::PassBuilder::OptimizationLevel::O2; break;
+            case '3': lvl = llvm::PassBuilder::OptimizationLevel::O3; break;
+        }
+    }
+
+    llvm::ModulePassManager modulePassManager =
+        passBuilder.buildPerModuleDefaultPipeline(lvl);
+    modulePassManager.run(*module, moduleAnalysisManager);
 
     size_t srcPoolOffset = 0;
 
