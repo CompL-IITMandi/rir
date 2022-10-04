@@ -348,6 +348,17 @@ PirJitLLVM::~PirJitLLVM() {
 void PirJitLLVM::finalizeAndFixup() {
     // TODO: maybe later have TSM from the start and use locking
     //       to allow concurrent compilation?
+    for (auto & global : M->getGlobalList()) {
+        auto globalName = global.getName().str();
+        auto pre = globalName.substr(0,6) == "copool";
+        auto srp = globalName.substr(0,6) == "srpool";
+        auto namc = globalName.substr(0,6) == "named_";
+
+        if (namc || pre || srp) {
+            global.setExternallyInitialized(false);
+        }
+    }
+
     auto TSM = llvm::orc::ThreadSafeModule(std::move(M), TSC);
     ExitOnErr(JIT->addIRModule(std::move(TSM)));
     for (auto& fix : jitFixup)
@@ -630,19 +641,6 @@ void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPo
 
     // We clone the module because we dont want to update constant pool references in the original module
     std::unique_ptr<llvm::Module> module = llvm::CloneModule(*M.get());
-
-    for (auto & global : (*M.get()).getGlobalList()) {
-        auto globalName = global.getName().str();
-        auto pre = globalName.substr(0,6) == "copool";
-        auto srp = globalName.substr(0,6) == "srpool";
-        auto namc = globalName.substr(0,6) == "named_";
-
-        if (namc || pre || srp) {
-            global.setExternallyInitialized(false);
-            // global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
-        }
-    }
-
 
     std::vector<llvm::Function *> junkFunctionList;
 
