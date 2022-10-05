@@ -34,6 +34,7 @@ using namespace std::chrono;
 #define PRINT_WORKLIST_ENTRIES 0
 #define DEBUG_BLACKLIST 0
 #define PRINT_HAST_SRC_ENTRIES 0
+#define DEBUG_DESERIALIZER_CHECKPOINTS 0
 
 
 namespace rir {
@@ -612,9 +613,20 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
     std::vector<unsigned int> toRemove;
 
     if (nargsPassed) {
+        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+        std::cerr << "(c) Working on optimistic worklist!" << std::endl;
+        #endif
         for (unsigned int i = 0; i < wlElementVec.size(); i++) {
             BC::PoolIdx ueIdx = wlElementVec[i];
             SEXP optuEleContainer = Pool::get(ueIdx);
+
+            #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+            std::cerr << "(c) Reducing counter for OUE" << ueIdx << std::endl;
+            #endif
+
+            #if PRINT_WORKLIST_ENTRIES == 1
+            OptUnlockingElement::print(optuEleContainer, 2);
+            #endif
 
             // generalUtil::printSpace(2);
             // std::cout << "processWorklistElements" << std::endl;
@@ -647,6 +659,9 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
             *counter = *counter - 1;
 
             if (*counter == 0) {
+                #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+                std::cerr << "(c) Counter is zero, now performing linking!" << std::endl;
+                #endif
                 //
                 // Do unlocking if counter becomes 0
                 //
@@ -655,9 +670,21 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
             }
         }
     } else {
+        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+        std::cerr << "(c) Working on simple worklist!" << std::endl;
+        #endif
         for (unsigned int i = 0; i < wlElementVec.size(); i++) {
             BC::PoolIdx ueIdx = wlElementVec[i];
             SEXP uEleContainer = Pool::get(ueIdx);
+
+            #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+            std::cerr << "(c) Reducing counter for UE" << ueIdx << std::endl;
+            #endif
+
+            #if PRINT_WORKLIST_ENTRIES == 1
+            UnlockingElement::print(ueIdx, 2);
+            #endif
+
 
             // Processed indices can be removed
             toRemove.push_back(i);
@@ -666,6 +693,9 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
             *counter = *counter - 1;
 
             if (*counter == 0) {
+                #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+                std::cerr << "(c) Counter is zero, now performing linking!" << std::endl;
+                #endif
                 //
                 // Do unlocking if counter becomes 0
                 //
@@ -696,14 +726,34 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
 // Check if Worklist1 has work for the current hast
 //
 void BitcodeLinkUtil::tryUnlocking(SEXP currHastSym) {
+
+    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    std::cerr << "(c) Unlocking worklist-1 for [" << CHAR(PRINTNAME(currHastSym)) << "]" << std::endl;
+    #endif
+
     // std::cout << "Worklist1[" << CHAR(PRINTNAME(currHastSym)) << "] query" << std::endl;
     // std::cout << "Worklist1 Bindings" << std::endl;
     // for (auto & ele : Worklist1::worklist) {
     //     std::cout << " " << CHAR(PRINTNAME(ele.first)) << std::endl;
     // }
+
+    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    std::cerr << "(c) " << Worklist1::worklist.count(currHastSym) << " worklist-1 entries!" << std::endl;
+    #endif
+
     if (Worklist1::worklist.count(currHastSym) > 0) {
         std::vector<BC::PoolIdx> & wl = Worklist1::worklist[currHastSym];
+
+        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+        std::cerr << "(c) Started processing worklist, size: " << wl.size() << std::endl;
+        #endif
+
         processWorklistElements(wl, linkTime);
+
+        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+        std::cerr << "(c) Finished processing worklist, size: " << wl.size() << std::endl;
+        #endif
+
 
         if (wl.size() == 0) {
             Worklist1::remove(currHastSym);
@@ -873,8 +923,11 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
     // Add hast to the dispatch table as we know this is the 0th offset by default.
     //
 
-    // std::cout << "DESERIALIZER STARTED: " << CHAR(PRINTNAME(hSym)) << std::endl;
-    // deserializerData::print(ddCont, 2);
+    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    std::cerr << "(c) Deserializer Started [" << CHAR(PRINTNAME(hSym)) << "]" << std::endl;
+    deserializerData::print(ddCont, 2);
+    #endif
+
 
 
     SEXP hastSym  = deserializerData::getHast(ddCont);
@@ -1003,23 +1056,39 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
                     //
 
                     Worklist2::worklist[hastKey].push_back(optIdx);
+
+                    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+                    std::cerr << "(c) Adding worklist-2 entry for " << CHAR(PRINTNAME(hastKey)) << " at OUE" << optIdx << std::endl;
+                    OptUnlockingElement::print(optIdx, 2);
+                    #endif
                 } else {
                     //
                     // Add to worklist1
                     //
 
                     Worklist1::worklist[dep].push_back(ueIdx);
+
+                    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+                    std::cerr << "(c) Adding worklist-1 entry for " << CHAR(PRINTNAME(dep)) << " at UE" << ueIdx << std::endl;
+                    UnlockingElement::print(ueIdx, 2);
+                    #endif
                 }
             }
         }
     });
 
-
     // Do worklist 1
     tryUnlocking(hSym);
 
+    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    std::cerr << "(c) " << earlyLinkingIdx.size() << " semi-early linking targets!" << std::endl;
+    #endif
+
     // Early linking is now semi early linking, to preserve implicit binary ordering for V = 1 and V = 2 dispatch
     for (auto & ueIdx : earlyLinkingIdx) {
+        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+        std::cerr << "(c) SEMI EARLY LINKING FOR UE" << ueIdx << std::endl;
+        #endif
         doUnlockingElement(Pool::get(ueIdx), linkTime);
         Pool::patch(ueIdx, R_NilValue);
     }

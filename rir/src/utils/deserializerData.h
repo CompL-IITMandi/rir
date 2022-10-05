@@ -62,7 +62,7 @@ namespace rir {
         static void printSpace(const int & size) {
             assert(size >= 0);
             for (int i = 0; i < size; i++) {
-                std::cout << " ";
+                std::cerr << " ";
             }
         }
 
@@ -109,33 +109,33 @@ namespace rir {
 
         static void print(SEXP container, const unsigned int & space) {
             printSpace(space);
-            std::cout << "├─(ENTRY 0, Epoch   ): " << CHAR(PRINTNAME(getEpoch(container))) << std::endl;
+            std::cerr << "├─(ENTRY 0, Epoch   ): " << CHAR(PRINTNAME(getEpoch(container))) << std::endl;
 
             printSpace(space);
             SEXP rMap = getReqMap(container);
-            std::cout << "├─(ENTRY 1, ReqMap  ): (" << Rf_length(rMap) << "): [ ";
+            std::cerr << "├─(ENTRY 1, ReqMap  ): (" << Rf_length(rMap) << "): [ ";
             for (int i = 0; i < Rf_length(rMap); i++) {
-                std::cout << CHAR(PRINTNAME(VECTOR_ELT(rMap, i))) << " ";
+                std::cerr << CHAR(PRINTNAME(VECTOR_ELT(rMap, i))) << " ";
             }
-            std::cout << "]" << std::endl;
+            std::cerr << "]" << std::endl;
 
 
 
             if (getTVData(container) == R_NilValue) {
                 printSpace(space);
-                std::cout << "└─(ENTRY 2, TV Slots): NULL" << std::endl;
+                std::cerr << "└─(ENTRY 2, TV Slots): NULL" << std::endl;
             } else {
 
                 SEXP TVData = getTVData(container);
 
                 printSpace(space);
-                std::cout << "└─(ENTRY 2, TV Slots): [ ";
+                std::cerr << "└─(ENTRY 2, TV Slots): [ ";
 
                 for (int i = 0; i < Rf_length(TVData); i++) {
                     auto ele = getUint32t(TVData, i);
-                    std::cout << ele << " ";
+                    std::cerr << ele << " ";
                 }
-                std::cout << "]" << std::endl;
+                std::cerr << "]" << std::endl;
             }
         }
 
@@ -211,22 +211,22 @@ namespace rir {
 
         static void print(SEXP container, const unsigned int & space) {
             printSpace(space);
-            std::cout << "├─(ENTRY 0, Context   ): (" << getContextAsUnsignedLong(container) << ") " << rir::Context(getContextAsUnsignedLong(container)) << std::endl;
+            std::cerr << "├─(ENTRY 0, Context   ): (" << getContextAsUnsignedLong(container) << ") " << rir::Context(getContextAsUnsignedLong(container)) << std::endl;
 
             printSpace(space);
-            std::cout << "├─(ENTRY 1, Versioning): " << getVersioningAsInt(container) << std::endl;
+            std::cerr << "├─(ENTRY 1, Versioning): " << getVersioningAsInt(container) << std::endl;
 
             printSpace(space);
             SEXP tfData = getTFSlots(container);
 
             if (tfData == R_NilValue) {
-                std::cout << "└─(ENTRY 2, TV Slots  ): [ ]" << std::endl;
+                std::cerr << "└─(ENTRY 2, TV Slots  ): [ ]" << std::endl;
             } else {
-                std::cout << "└─(ENTRY 2, TV Slots  ): " << "[ ";
+                std::cerr << "└─(ENTRY 2, TV Slots  ): " << "[ ";
                 for (int i = 0; i < Rf_length(tfData); i++) {
-                    std::cout << Rf_asInteger(VECTOR_ELT(tfData, i)) << " ";
+                    std::cerr << Rf_asInteger(VECTOR_ELT(tfData, i)) << " ";
                 }
-                std::cout << "]" << std::endl;
+                std::cerr << "]" << std::endl;
             }
 
             auto numBin = getNumBins(container);
@@ -234,7 +234,7 @@ namespace rir {
 
             iterator(container, [&] (SEXP binaryUnitContainer) {
                 printSpace(space + 2);
-                std::cout << "└─[Binary Unit]: " << i++ << "/" << numBin << std::endl;
+                std::cerr << "└─[Binary Unit]: " << i++ << "/" << numBin << std::endl;
 
                 binaryUnit::print(binaryUnitContainer, space + 4);
             });
@@ -294,17 +294,17 @@ namespace rir {
         static void print(SEXP container, const unsigned int & space) {
 
             printSpace(space);
-            std::cout << "├─(ENTRY 0, OffsetIdx): " << getOffsetIdxAsInt(container) << std::endl;
+            std::cerr << "├─(ENTRY 0, OffsetIdx): " << getOffsetIdxAsInt(container) << std::endl;
 
             printSpace(space);
-            std::cout << "└─(ENTRY 1, mask     ): (" << getMaskAsUnsignedLong(container) << ")" << rir::Context(getMaskAsUnsignedLong(container)) << std::endl;
+            std::cerr << "└─(ENTRY 1, mask     ): (" << getMaskAsUnsignedLong(container) << ")" << rir::Context(getMaskAsUnsignedLong(container)) << std::endl;
 
             auto numCon = getNumContexts(container);
             int i = 1;
 
             iterator(container, [&] (SEXP contextUnitContainer) {
                 printSpace(space + 2);
-                std::cout << "└─[Context Unit]: " << i++ << "/" << numCon << std::endl;
+                std::cerr << "└─[Context Unit]: " << i++ << "/" << numCon << std::endl;
 
                 contextUnit::print(contextUnitContainer, space + 4);
             });
@@ -372,14 +372,14 @@ namespace rir {
 
         static void print(SEXP container, const int & space) {
             printSpace(space);
-            std::cout << "Deserializer Data: " << CHAR(PRINTNAME(getHast(container))) << std::endl;
+            std::cerr << "Deserializer Data: " << CHAR(PRINTNAME(getHast(container))) << std::endl;
 
             auto numOffsets = getNumOffsets(container);
 
             int i = 1;
             iterator(container, [&](SEXP offsetUnitData) {
                 printSpace(space + 2);
-                std::cout << "└─[Offset Unit]: " << i++ << "/" << numOffsets << std::endl;
+                std::cerr << "└─[Offset Unit]: " << i++ << "/" << numOffsets << std::endl;
                 offsetUnit::print(offsetUnitData, space + 4);
             });
         }

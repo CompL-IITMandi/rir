@@ -347,6 +347,7 @@ hastAndIndex getHastAndIndex(unsigned src, bool constantPool) {
 
 
 static void loadMetadata(std::string metaDataPath) {
+    REnvHandler vtabMap(HAST_VTAB_MAP);
     Protect protecc;
     // Disable contextual compilation during deserialization
     // otherwise unnecessary evals can lead to a redundant compilations
@@ -373,6 +374,13 @@ static void loadMetadata(std::string metaDataPath) {
     if (DebugMessages::deserializerDebugLevel() > 1) {
         deserializerData::print(ddContainer, 2);
     }
+    // If the function already exists, then try linking it right now
+    auto currHast = deserializerData::getHast(ddContainer);
+
+    if (SEXP vtab = vtabMap.get(currHast)) {
+        assert(DispatchTable::check(vtab) != nullptr);
+        BitcodeLinkUtil::tryLinking(DispatchTable::unpack(vtab), currHast);
+    }
 
     BitcodeLinkUtil::contextualCompilationSkip = oldVal;
 }
@@ -383,6 +391,8 @@ REXPORT SEXP printGeneralWorklist() {
 }
 
 REXPORT SEXP loadBitcodes(SEXP pathToBc) {
+    bool success = true;
+    auto start = high_resolution_clock::now();
 
     if (DeserializerConsts::bitcodesLoaded) {
         Rf_error("Bitcodes already loaded, only allowed to load from one location in a session!");
@@ -415,11 +425,22 @@ REXPORT SEXP loadBitcodes(SEXP pathToBc) {
             DeserializerConsts::bitcodesLoaded = true;
         }
 
-        return Rf_mkString("Load Bitcodes Success");
+
     } else {
         DebugMessages::printDeserializerErrors("unable to open bitcodes directory", 0);
+        success = false;
+
+    }
+
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    metadataLoadTime = duration.count();
+    if (success) {
+        return Rf_mkString("Load Bitcodes Success");
+    } else {
         return Rf_mkString("Load Bitcodes Failed");
     }
+
 }
 
 REXPORT SEXP rirCompile(SEXP what, SEXP env) {
@@ -428,11 +449,7 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
     //
     static bool initializeBitcodes = false;
     if (!initializeBitcodes && DeserializerConsts::earlyBitcodes) {
-        auto start = high_resolution_clock::now();
         loadBitcodes(R_NilValue);
-        auto stop = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(stop - start);
-        metadataLoadTime = duration.count();
         initializeBitcodes = true;
     }
     if (TYPEOF(what) == CLOSXP) {
@@ -476,6 +493,31 @@ REXPORT SEXP compileStats(SEXP name, SEXP path) {
     ostrm << "Serialized Closures      : " << serializerSuccess << std::endl;
     ostrm << "Unlinked BC (Worklist1)  : " << Worklist1::worklist.size() << std::endl;
     ostrm << "Unlinked BC (Worklist2)  : " << Worklist2::worklist.size() << std::endl;
+
+    if (Worklist1::worklist.size() > 0) {
+        ostrm << "=== Worklist 1 ===" << std::endl;
+        for (auto & ele : Worklist1::worklist) {
+            ostrm << CHAR(PRINTNAME(ele.first)) << " : [";
+            for(auto & uEleIdx : ele.second) {
+                ostrm << uEleIdx << ", ";
+                // UnlockingElement::print(Pool::get(uEleIdx), 2);
+            }
+            ostrm << "]" << std::endl;
+        }
+    }
+
+    if (Worklist2::worklist.size() > 0) {
+        ostrm << "=== Worklist 2 ===" << std::endl;
+        for (auto & ele : Worklist2::worklist) {
+            ostrm << CHAR(PRINTNAME(ele.first)) << " : [";
+            for(auto & uEleIdx : ele.second) {
+                ostrm << uEleIdx << ", ";
+                // OptUnlockingElement::print(Pool::get(uEleIdx), 2);
+            }
+            ostrm << "]" << std::endl;
+        }
+    }
+
     return R_NilValue;
 }
 

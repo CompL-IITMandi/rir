@@ -22,17 +22,17 @@ namespace rir {
         static int deserializerDebug;
 
         static void printSpace(int space) {
-            for (int i = 0; i < space; i++) std::cout << "\t";
+            for (int i = 0; i < space; i++) std::cerr << "\t";
         }
 
         static void printMsg(const std::string & msg, int s) {
             printSpace(s);
-            std::cout << msg << "\n";
+            std::cerr << msg << "\n";
         }
 
         static void printErr(const std::string & msg, int s) {
             printSpace(s);
-            std::cout << msg << "\n";
+            std::cerr << msg << "\n";
         }
     public:
 
@@ -108,7 +108,7 @@ namespace rir {
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(stop - lastCheckpointTime);
 
-            std::cout << "[" << checkpoint++ << "]: " << nativeCodeHandle << " { " << duration.count() << "us }" << std::endl;
+            std::cerr << "[" << checkpoint++ << "]: " << nativeCodeHandle << " { " << duration.count() << "us }" << std::endl;
             lastCheckpointTime = lastInstructionTime = high_resolution_clock::now();
         }
 
@@ -120,7 +120,7 @@ namespace rir {
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(stop - lastCheckpointTime);
 
-            std::cout << "[" << checkpoint++ << "]: " << "interpreted_code" << " { " << duration.count() << "us }" << std::endl;
+            std::cerr << "[" << checkpoint++ << "]: " << "interpreted_code" << " { " << duration.count() << "us }" << std::endl;
 
             lastCheckpointTime = lastInstructionTime = high_resolution_clock::now();
         }
@@ -131,7 +131,7 @@ namespace rir {
             auto stop = high_resolution_clock::now();
             auto duration = duration_cast<microseconds>(stop - lastInstructionTime);
 
-            std::cout << "  " << "[" << BCidx++ << "]" << id << " { " << duration.count() << "us }" << std::endl;
+            std::cerr << "  " << "[" << BCidx++ << "]" << id << " { " << duration.count() << "us }" << std::endl;
             callback();
 
             lastInstructionTime = high_resolution_clock::now();
