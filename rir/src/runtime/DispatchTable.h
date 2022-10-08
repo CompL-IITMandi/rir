@@ -91,7 +91,7 @@ struct DispatchTable
             doFeedbackRun = false;
             return baseline();
         }
-        // if (baseline()->invocationCount() == 0) return baseline();
+        if (baseline()->invocationCount() == 0) return baseline();
         if (!a.smaller(userDefinedContext_)) {
 #ifdef DEBUG_DISPATCH
             std::cout << "DISPATCH trying: " << a
