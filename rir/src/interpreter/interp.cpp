@@ -1083,14 +1083,14 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
             }
             if (RecompileCondition(table, fun, given)) {
                 if (given.includes(pir::Compiler::minimalContext)) {
-                    if (call.caller &&
-                        call.caller->function()->invocationCount() > 0 &&
-                        !call.caller->isCompiled() &&
-                        !call.caller->function()->disabled() &&
-                        call.caller->size() < pir::Parameter::MAX_INPUT_SIZE &&
-                        fun->body()->codeSize < 20) {
-                        call.triggerOsr = true;
-                    }
+                    // if (call.caller &&
+                    //     call.caller->function()->invocationCount() > 0 &&
+                    //     !call.caller->isCompiled() &&
+                    //     !call.caller->function()->disabled() &&
+                    //     call.caller->size() < pir::Parameter::MAX_INPUT_SIZE &&
+                    //     fun->body()->codeSize < 20) {
+                    //     call.triggerOsr = true;
+                    // }
                     DoRecompile(fun, call.ast, call.callee, given, ctx);
                     fun = dispatch(call, table);
                 }
@@ -1985,7 +1985,7 @@ static SEXP osr(const CallContext* callCtxt, R_bcstack_t* basePtr, SEXP env,
             pir::ContinuationContext ctx(pc, env, true, basePtr, size);
             if (auto fun = pir::OSR::compile(callCtxt->callee, c, ctx)) {
                 PROTECT(fun->container());
-                // dt->baseline()->flags.set(Function::Flag::MarkOpt);
+                dt->baseline()->flags.set(Function::Flag::MarkOpt);
                 auto code = fun->body();
                 auto nc = code->nativeCode();
                 auto res = nc(code, basePtr, env, callCtxt->callee);
