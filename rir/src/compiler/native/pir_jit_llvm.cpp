@@ -368,6 +368,23 @@ void PirJitLLVM::finalizeAndFixup() {
 
 void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
+    int versioning = UnlockingElement::getVersioningInfo(uEleContainer);
+    unsigned long con = UnlockingElement::getContext(uEleContainer);
+
+    DispatchTable * vtab;
+
+    if (!DispatchTable::check(UnlockingElement::getVtableContainer(uEleContainer))) {
+        std::cerr << "deserializer quietly failing, vtab is corrupted! " << std::endl;
+        return;
+    }
+
+    vtab = DispatchTable::unpack(UnlockingElement::getVtableContainer(uEleContainer));
+
+    // Skip deserialization if runtime has already compiled it
+    if (versioning == 0 && vtab->contains(Context(con))) {
+        return;
+    }
+
     // Path to the pool
     std::stringstream poolPath;
     poolPath << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".pool";
@@ -581,8 +598,8 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         }
     }
 
-    int versioning = UnlockingElement::getVersioningInfo(uEleContainer);
-    unsigned long con = UnlockingElement::getContext(uEleContainer);
+
+
 
     auto res = codeObjs[0];
     function.finalize(res, fs, Context(con));
@@ -591,14 +608,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         item->function(function.function());
     }
 
-    DispatchTable * vtab;
 
-    if (!DispatchTable::check(UnlockingElement::getVtableContainer(uEleContainer))) {
-        std::cerr << "deserializer quietly failing, unable to open pool file: " << poolPath.str() << std::endl;
-        return;
-    }
-
-    vtab = DispatchTable::unpack(UnlockingElement::getVtableContainer(uEleContainer));
 
     function.function()->inheritFlags(vtab->baseline());
 
@@ -611,7 +621,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     // generalUtil::printSpace(2);
     // std::cout << "Versioning: " << versioning << std::endl;
     if (versioning == 0) {
-        // vtab->insert(currFun);
+        vtab->insert(currFun);
         // vtab->insertL2V1(currFun);
     }
     else if (versioning == 1) {
