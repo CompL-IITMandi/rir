@@ -612,10 +612,10 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     // std::cout << "Versioning: " << versioning << std::endl;
     if (versioning == 0) {
         // vtab->insert(currFun);
-        vtab->insertL2V1(currFun);
+        // vtab->insertL2V1(currFun);
     }
     else if (versioning == 1) {
-        vtab->insertL2V1(currFun);
+        // vtab->insertL2V1(currFun);
     }
     else if (versioning == 2) {
         // generalUtil::printSpace(2);
