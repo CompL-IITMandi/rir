@@ -1081,7 +1081,14 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
             if (table->mask.toI() != 0) {
                 given.curbContextWithMask(table->mask);
             }
-            if (RecompileCondition(table, fun, given)) {
+
+            bool skipRecomp = false;
+
+            if (fun->flags.contains(Function::MarkOpt) && table->contains(given)) {
+                fun->flags.reset(Function::MarkOpt);
+                skipRecomp = true;
+            }
+            if (!skipRecomp && RecompileCondition(table, fun, given)) {
                 if (given.includes(pir::Compiler::minimalContext)) {
                     if (call.caller &&
                         call.caller->function()->invocationCount() > 0 &&
