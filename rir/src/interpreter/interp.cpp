@@ -1083,14 +1083,14 @@ SEXP doCall(CallContext& call, InterpreterInstance* ctx, bool popArgs) {
             }
             if (RecompileCondition(table, fun, given)) {
                 if (given.includes(pir::Compiler::minimalContext)) {
-                    // if (call.caller &&
-                    //     call.caller->function()->invocationCount() > 0 &&
-                    //     !call.caller->isCompiled() &&
-                    //     !call.caller->function()->disabled() &&
-                    //     call.caller->size() < pir::Parameter::MAX_INPUT_SIZE &&
-                    //     fun->body()->codeSize < 20) {
-                    //     call.triggerOsr = true;
-                    // }
+                    if (call.caller &&
+                        call.caller->function()->invocationCount() > 0 &&
+                        !call.caller->isCompiled() &&
+                        !call.caller->function()->disabled() &&
+                        call.caller->size() < pir::Parameter::MAX_INPUT_SIZE &&
+                        fun->body()->codeSize < 20) {
+                        call.triggerOsr = true;
+                    }
                     DoRecompile(fun, call.ast, call.callee, given, ctx);
                     fun = dispatch(call, table);
                 }
