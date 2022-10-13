@@ -1992,7 +1992,7 @@ static SEXP osr(const CallContext* callCtxt, R_bcstack_t* basePtr, SEXP env,
             pir::ContinuationContext ctx(pc, env, true, basePtr, size);
             if (auto fun = pir::OSR::compile(callCtxt->callee, c, ctx)) {
                 PROTECT(fun->container());
-                dt->baseline()->flags.set(Function::Flag::MarkOpt);
+                // dt->baseline()->flags.set(Function::Flag::MarkOpt); <- this is the problematic flag
                 auto code = fun->body();
                 auto nc = code->nativeCode();
                 auto res = nc(code, basePtr, env, callCtxt->callee);
