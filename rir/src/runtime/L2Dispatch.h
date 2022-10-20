@@ -7,18 +7,27 @@ namespace rir {
 
 typedef SEXP L2DispatchEntry;
 
+#define DEBUG_L2_CREATION 0
+
+
 #define DEBUG_HIT_MISS 0
-#define ENTRIES_SIZE 4
 #define GROWTH_RATE 5
 
+#define ENTRIES_SIZE 6
 #define BCVEC 0
 #define FVEC 1
 #define TVEC 2
-#define GENESIS 3
+#define GVEC 3
+#define GENESIS 4
+#define GFBVEC 5
+
+
 /*
  * A level 2 dispatcher for type versioning.
  *
- * SEXP count: 3
+ * // TODO, UPDATE THE DESCRIPTIONS
+ *
+ * SEXP count: 6
  *
  * [Idx 0]: (aka CVector) (RAWSXP holding 'n' ObservedValues*) These are pointers to TypeFeedbackSlots in the Bytecode
  * [Idx 1]: (aka FunctionVector) Vector of (RAWSXP holding Function*)
@@ -38,12 +47,12 @@ struct L2Dispatch
 		//
 		// Constructor For V = 2
 		//
-		static L2Dispatch* create(Function* genesis, const std::vector<ObservedValues*> & BCTFSlots, Protect & p) {
+		static L2Dispatch* create(Function* genesis, const std::vector<ObservedValues*> & BCTFSlots, const std::vector<GenFeedbackHolder> & GENSlots, Protect & p) {
 			size_t sz =
 					sizeof(L2Dispatch) + (ENTRIES_SIZE * sizeof(L2DispatchEntry));
 			SEXP s;
 			p(s = Rf_allocVector(EXTERNALSXP, sz));
-			return new (INTEGER(s)) L2Dispatch(genesis, BCTFSlots);
+			return new (INTEGER(s)) L2Dispatch(genesis, BCTFSlots, GENSlots);
     	}
 
 		//
@@ -118,6 +127,12 @@ struct L2Dispatch
 			return *tmp;
 		}
 
+		GenFeedbackHolder * getGFBSlots() {
+			SEXP GFBVecContainer = getEntry(GFBVEC);
+			GenFeedbackHolder * tmp = (GenFeedbackHolder *) DATAPTR(GFBVecContainer);
+			return tmp;
+		}
+
 		uint32_t getFeedbackAsUint(const rir::ObservedValues & v) {
 			return *((uint32_t *) &v);
 		}
@@ -128,48 +143,7 @@ struct L2Dispatch
 		// unnecessarity disabled, so for brevity we only dispatch when things are as expected.
 		//
 
-		Function * V2Dispatch() {
-			ObservedValues* observedTF = getBCSlots();
-			SEXP functionVector = getEntry(FVEC);
-			SEXP functionTFVector = getEntry(TVEC);
-			// In this dispatch, only one type version is assumed so latest linked and available method is dispatched
-			for (int i = _last; i >= 0; i--) {
-				SEXP currFunHolder = VECTOR_ELT(functionVector, i);
-				SEXP currTFHolder = VECTOR_ELT(functionTFVector, i);
-
-				Function * currFun = Function::unpack(currFunHolder);
-
-				ObservedValues* currTF = (ObservedValues *) DATAPTR(currTFHolder);
-
-				bool match = true;
-
-				// std::cout << "Checking Function [" << currFun << "]: " << i << "(" << currFun->disabled() << ")" << std::endl;
-
-				for (unsigned int j = 0; j < _numSlots; j++) {
-					// std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
-					if (getFeedbackAsUint(observedTF[j]) != getFeedbackAsUint(currTF[j])) match = false;
-				}
-
-				if (match && !currFun->disabled()) {
-					#if DEBUG_HIT_MISS == 1
-					std::cout << "V2 HIT" << std::endl;
-					#endif
-					return currFun;
-				}
-			}
-			#if DEBUG_HIT_MISS == 1
-			std::cout << "V2 MISS" << std::endl;
-			#endif
-			//
-			// If this fails we return to the genesisFunction, this might be a dummy function or a JIT compiled function
-			//	The reason we dont fallback to V1 dispatch is that a Type Version may get unnecessarily disabled if we randomly
-			// 	dispatch to it without checking type feedback, which will make is unusable in the future. To prevent this we
-			// 	rely on the genesis function.
-			//
-			// return V1Dispatch();
-
-			return Function::unpack(getGenesisFunctionContainer());
-		}
+		Function * V2Dispatch();
 
 		Function * dispatch() {
 			// If nothing exists return genesis
@@ -184,7 +158,7 @@ struct L2Dispatch
 		}
 
 		// V = 2
-		void insert(Function* f, const std::vector<ObservedValues> & TVals) {
+		void insert(Function* f, const std::vector<ObservedValues> & TVals, const std::vector<int> & GFBVals) {
 			// Expand the vector if capacity is full
 			if (_last + 1 == capacity()) {
 				expandStorage();
@@ -192,6 +166,7 @@ struct L2Dispatch
 			assert(_last + 1 < capacity());
 			SEXP FunctionVector = getEntry(FVEC);
 			SEXP TFVector       = getEntry(TVEC);
+			SEXP GFBVector      = getEntry(GVEC);
 
 			_last++;
 
@@ -210,6 +185,21 @@ struct L2Dispatch
 			}
 
 			SET_VECTOR_ELT(TFVector, _last, store);
+
+
+
+			// Create a store of int for the GFBVals
+			// Note: instead of pointers, we store the values here instead
+			protecc(store = Rf_allocVector(RAWSXP, _numGenSlots * sizeof(int)));
+
+			int * tmp1 = (int *) DATAPTR(store);
+
+			for (unsigned int i = 0; i < _numGenSlots; i++) {
+				tmp1[i] = GFBVals[i];
+			}
+
+			SET_VECTOR_ELT(GFBVector, _last, store);
+
 		}
 
 
@@ -256,7 +246,7 @@ struct L2Dispatch
 			}
 
 		// BCTFSlots are the required bytecode type feedback slot pointers
-		explicit L2Dispatch(Function* genesis, const std::vector<ObservedValues*> & BCTFSlots):
+		explicit L2Dispatch(Function* genesis, const std::vector<ObservedValues*> & BCTFSlots, const std::vector<GenFeedbackHolder> & GENSlots):
 			RirRuntimeObject(sizeof(L2Dispatch),ENTRIES_SIZE),
 			_versioning(2) {
 
@@ -288,9 +278,10 @@ struct L2Dispatch
 				// 2. Populate Function Vector and its corresponding TFVector
 				//
 
-				SEXP FunctionVector, TFVector;
+				SEXP FunctionVector, TFVector, GVector;
 				protecc(FunctionVector = Rf_allocVector(VECSXP, GROWTH_RATE));
 				protecc(TFVector = Rf_allocVector(VECSXP, GROWTH_RATE));
+				protecc(GVector = Rf_allocVector(VECSXP, GROWTH_RATE));
 
 				_last = -1;
 
@@ -299,6 +290,27 @@ struct L2Dispatch
 				// Store the vector in the GC area
 				setEntry(FVEC, FunctionVector);
 				setEntry(TVEC, TFVector);
+				setEntry(GVEC, GVector);
+
+
+				_numGenSlots = GENSlots.size();
+				//
+				// 3. Populate General feedback locations
+				//
+				SEXP GFBVector;
+				// We make it a contigious big object, so we can directly index without VECTOR_ELT for each slot
+				protecc(GFBVector = Rf_allocVector(RAWSXP, _numGenSlots * sizeof(GenFeedbackHolder)));
+				GenFeedbackHolder * tmp1 = (GenFeedbackHolder *) DATAPTR(GFBVector);
+
+				for (unsigned int i = 0; i < _numGenSlots; i++) {
+					//
+					// Note: Pointer-pointers are so weird
+					//
+					tmp1[i] = GENSlots[i];
+				}
+
+				// Store the General Feedback into GC
+				setEntry(GFBVEC, GFBVector);
 
 
 			}
@@ -322,6 +334,14 @@ struct L2Dispatch
 				memcpy(DATAPTR(newVec), DATAPTR(oldVec), oldSize * sizeof(SEXP));
 
 				setEntry(TVEC, newVec);
+
+
+				oldVec = getEntry(GVEC);
+				oldSize = Rf_length(oldVec);
+				p(newVec = Rf_allocVector(VECSXP, oldSize + GROWTH_RATE));
+				memcpy(DATAPTR(newVec), DATAPTR(oldVec), oldSize * sizeof(SEXP));
+
+				setEntry(GVEC, newVec);
 			}
 
 		}
@@ -329,6 +349,7 @@ struct L2Dispatch
     const unsigned _versioning;
     int _last = -1;
 	unsigned int _numSlots;
+	unsigned int _numGenSlots;
 };
 #pragma pack(pop)
 } // namespace rir

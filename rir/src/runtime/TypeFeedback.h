@@ -249,6 +249,12 @@ static_assert(sizeof(DeoptReason) == 4 * sizeof(uint32_t),
 
 #pragma pack(pop)
 
+struct GenFeedbackHolder {
+    rir::Code * code;
+    Opcode * pc;
+    Opcode * tests;
+};
+
 } // namespace rir
 
 namespace std {

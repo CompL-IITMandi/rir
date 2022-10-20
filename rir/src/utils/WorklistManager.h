@@ -79,6 +79,19 @@ class UnlockingElement {
     static SEXP getFunTFInfo(SEXP);
 
 
+    //
+    // 8: GTFSlotInfo
+    //
+    static void addGTFSlotInfo(SEXP, SEXP);
+    static SEXP getGTFSlotInfo(SEXP);
+
+    //
+    // 9: GFunTFInfo
+    //
+    static void addGFunTFInfo(SEXP, SEXP);
+    static SEXP getGFunTFInfo(SEXP);
+
+
     static void remove(BC::PoolIdx);
 
     static void print(BC::PoolIdx idx, const int & space);

@@ -18,6 +18,7 @@
   },
   "cmake.buildDirectory" : "${workspaceRoot}/build/${buildType}",
   "files.associations": {
+    "out": "plaintext",
     "*.ml": "ocaml",
     "*.mli": "ocaml",
     "iosfwd": "cpp",
@@ -116,7 +117,8 @@
     "__bits": "cpp",
     "typeindex": "cpp",
     "variant": "cpp",
-    "hash_map": "cpp"
+    "hash_map": "cpp",
+    "__availability": "cpp"
   },
   "cSpell.words": [
     "funn"

@@ -242,6 +242,15 @@ void Code::disassemble(std::ostream& out, const std::string& prefix) const {
 
         // Print call ast
         switch (bc.bc) {
+        case Opcode::record_call_: {
+            out << "Code Obj: " << this << std::endl;
+            std::cout << "BC: " << &bc << std::endl;
+            std::cout << "PC: " << pc << std::endl;
+            std::cout << "TARGETS: " << &bc.immediate.callFeedback.targets << std::endl;
+
+            out << "   ; record_call_ at " << &bc.immediate.callFeedback;
+            break;
+        }
         case Opcode::call_:
         case Opcode::named_call_:
             out << "   ; "

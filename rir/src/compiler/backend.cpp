@@ -469,6 +469,10 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
             } else {
                 DispatchTable* dt = DispatchTable::unpack(vtabContainer);
                 BitcodeLinkUtil::populateTypeFeedbackData(cData, dt);
+                static bool populateOtherFeedback = getenv("OTHER_FEEDBACK_INFO") ? getenv("OTHER_FEEDBACK_INFO")[0] == '1' : false;
+                if (populateOtherFeedback) {
+                    BitcodeLinkUtil::populateOtherFeedbackData(cData, dt);
+                }
             }
         }
     }

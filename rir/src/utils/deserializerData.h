@@ -104,8 +104,25 @@ namespace rir {
             addTVData(container, store);
         }
 
+        //
+        // 3: FBData: Optional
+        //
+        static void addFBData(SEXP container, SEXP data) { addSEXP(container, data, 3); }
+        static SEXP getFBData(SEXP container) { return getSEXP(container, 3); }
 
-        static unsigned int getContainerSize() { return 3; }
+        static void addFBData(SEXP container, std::vector<SEXP> slotData) {
+            rir::Protect protecc;
+            SEXP store;
+            protecc(store = Rf_allocVector(VECSXP, slotData.size()));
+            int i = 0;
+            for (auto & ele : slotData) {
+                addSEXP(store, ele, i);
+                i++;
+            }
+            addFBData(container, store);
+        }
+
+        static unsigned int getContainerSize() { return 4; }
 
         static void print(SEXP container, const unsigned int & space) {
             printSpace(space);
@@ -134,6 +151,34 @@ namespace rir {
                 for (int i = 0; i < Rf_length(TVData); i++) {
                     auto ele = getUint32t(TVData, i);
                     std::cerr << ele << " ";
+                }
+                std::cerr << "]" << std::endl;
+            }
+
+            if (getFBData(container) == R_NilValue) {
+                printSpace(space);
+                std::cerr << "└─(ENTRY 3, FB Slots): NULL" << std::endl;
+            } else {
+                SEXP FBData = getFBData(container);
+
+                printSpace(space);
+                std::cerr << "└─(ENTRY 3, FB Slots): [ ";
+
+                for (int i = 0; i < Rf_length(FBData); i++) {
+                    auto ele = VECTOR_ELT(FBData, i);
+                    if (ele == R_NilValue) {
+                        std::cerr << "NIL ";
+                    } else if (ele == R_dot_defined) {
+                        std::cerr << "T ";
+                    } else if (ele == R_dot_Method) {
+                        std::cerr << "F ";
+                    } else if (TYPEOF(ele) == VECSXP){
+                        auto hast = VECTOR_ELT(ele, 0);
+                        auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
+                        std::cout << "(" << CHAR(PRINTNAME(hast)) << "," << index << ") ";
+                    } else {
+                        std::cout << "UN ";
+                    }
                 }
                 std::cerr << "]" << std::endl;
             }
@@ -183,14 +228,33 @@ namespace rir {
         }
 
         //
+        // 2: FBSlots
+        //
+
+        static void addFBSlots(SEXP container, SEXP data) { addSEXP(container, data, 3); }
+        static SEXP getFBSlots(SEXP container) { return getSEXP(container, 3); }
+
+        static void addFBSlots(SEXP container, const std::vector<int> & data) {
+            SEXP store;
+            rir::Protect protecc;
+            protecc(store = Rf_allocVector(VECSXP, data.size()));
+            int i = 0;
+            for (auto & ele : data) {
+                addInt(store, ele, i);
+                i++;
+            }
+            addFBSlots(container, store);
+        }
+
+        //
         // Other
         //
 
         static unsigned int getContainerSize(const int & n) { return reserved() + n; }
 
-        static unsigned int reserved() { return 3; }
+        static unsigned int reserved() { return 4; }
 
-        static unsigned int binsStartingIndex() { return 3; }
+        static unsigned int binsStartingIndex() { return 4; }
 
         static unsigned int getNumBins(SEXP container) {
             assert(TYPEOF(container) == VECSXP);
@@ -228,6 +292,21 @@ namespace rir {
                 }
                 std::cerr << "]" << std::endl;
             }
+
+            printSpace(space);
+            SEXP fbData = getFBSlots(container);
+
+            if (fbData == R_NilValue) {
+                std::cerr << "└─(ENTRY 3, FB Slots  ): [ ]" << std::endl;
+            } else {
+                std::cerr << "└─(ENTRY 3, FB Slots  ): " << "[ ";
+                for (int i = 0; i < Rf_length(fbData); i++) {
+                    std::cerr << Rf_asInteger(VECTOR_ELT(fbData, i)) << " ";
+                }
+                std::cerr << "]" << std::endl;
+            }
+
+
 
             auto numBin = getNumBins(container);
             int i = 1;

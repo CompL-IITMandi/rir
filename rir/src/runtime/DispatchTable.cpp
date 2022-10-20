@@ -1,5 +1,7 @@
 #include "DispatchTable.h"
 
+#define DEBUG_L2_ENTRIES 0
+
 #include "utils/BitcodeLinkUtility.h"
 namespace rir {
     void DispatchTable::tryLinking(SEXP currHastSym, const unsigned long & con, const int & nargs) {
@@ -8,9 +10,93 @@ namespace rir {
 
     void DispatchTable::insertL2V2(Function* fun, SEXP uEleContainer) {
 
+
+        SEXP FBData = UnlockingElement::getGFunTFInfo(uEleContainer);
+        #if DEBUG_L2_ENTRIES > 0
+        std::cout << "insertL2V2 Start";
+        #endif
+
+        std::vector<int> funGFBData;
+
+        for (int i = 0; i < Rf_length(FBData); i++) {
+            auto ele = VECTOR_ELT(FBData, i);
+            if (ele == R_NilValue) {
+                funGFBData.push_back(0);
+                // std::cerr << "NIL ";
+            } else if (ele == R_dot_defined) {
+                funGFBData.push_back(-1);
+                // std::cerr << "T ";
+            } else if (ele == R_dot_Method) {
+                funGFBData.push_back(-2);
+                // std::cerr << "F ";
+            } else if (TYPEOF(ele) == VECSXP) {
+                auto hast = VECTOR_ELT(ele, 0);
+                auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
+
+                auto c = BitcodeLinkUtil::getCodeObjectAtOffset(hast, index);
+                funGFBData.push_back(c->src);
+                // std::cout << "[L2 unlock adding](" << CHAR(PRINTNAME(hast)) << "," << index << ") -> " << c->src;
+            } else {
+                funGFBData.push_back(0);
+                // std::cout << "UN ";
+            }
+        }
+
+        // std::cout << std::endl;
+
+        #if DEBUG_L2_ENTRIES > 0
+        std::cout << "[FUN] GNRL FEEDBACK: [";
+        for (auto & ele : funGFBData) {
+            std::cout << ele << " ";
+        }
+        std::cout << "]" << std::endl;
+        #endif
+
+        std::vector<ObservedValues> TVals;
+        SEXP funTF = UnlockingElement::getFunTFInfo(uEleContainer);
+        for (int i = 0; i < Rf_length(funTF); i++) {
+            auto ele = generalUtil::getUint32t(funTF, i);
+            TVals.push_back( *((ObservedValues *) &ele) ); // Casting uint32_t to Observed Value
+        }
+
+        #if DEBUG_L2_ENTRIES > 0
+        std::cout << "[FUN] TYPE FEEDBACK: [";
+        for (auto & ele : TVals) {
+            std::cout << *((uint32_t*) &ele) << " ";
+        }
+        std::cout << "]" << std::endl;
+        #endif
+
         fun->setVersioned(this->container());
 
         // doFeedbackRun = true;
+
+        // Populate general feedback
+        SEXP ssInfo = UnlockingElement::getGTFSlotInfo(uEleContainer);
+        std::vector<int> indices1;
+        std::vector<GenFeedbackHolder> GENSlots;
+
+        for (int i = 0; i < Rf_length(ssInfo); i++) {
+            indices1.push_back(Rf_asInteger(VECTOR_ELT(ssInfo, i)));
+        }
+
+        BitcodeLinkUtil::getGeneralFeedbackPtrsAtIndices(indices1, GENSlots, this);
+
+        #if DEBUG_L2_ENTRIES > 0
+        std::cout << "[CODE] GEN SLOTS: [";
+        for (auto & ele : GENSlots) {
+            if (ele.tests) {
+                std::cout << "[T] ";
+            } else if (ele.pc) {
+                std::cout << "[C](";
+            } else {
+                std::cout << "[E] ";
+            }
+        }
+        std::cout << "]" << std::endl;
+        #endif
+
+
 
         assert(fun->signature().optimization !=
                FunctionSignature::OptimizationLevel::Baseline);
@@ -19,38 +105,19 @@ namespace rir {
         SEXP idxContainer = getEntry(idx);
 
         if (idxContainer == R_NilValue) {
+            #if DEBUG_L2_ENTRIES > 0
+            std::cout << "Case 0: Empty Slot!" << std::endl;
+            #endif
             Protect p;
             // Creation of a new L2V2 table takes place if slot is null
             SEXP slotsInfo = UnlockingElement::getTFSlotInfo(uEleContainer);
             std::vector<int> indices;
             std::vector<ObservedValues*> BCTFSlots;
-
             for (int i = 0; i < Rf_length(slotsInfo); i++) {
                 indices.push_back(Rf_asInteger(VECTOR_ELT(slotsInfo, i)));
             }
-
             BitcodeLinkUtil::getTypeFeedbackPtrsAtIndices(indices, BCTFSlots, this);
 
-            // Debug
-            // std::cout << "Current Slot Vals: [ ";
-            // for (auto & ele : BCTFSlots) {
-            //     std::cout << *((uint32_t*) ele) << " ";
-            // }
-            // std::cout << "]" << std::endl;
-
-            std::vector<ObservedValues> TVals;
-            SEXP funTF = UnlockingElement::getFunTFInfo(uEleContainer);
-            for (int i = 0; i < Rf_length(funTF); i++) {
-                auto ele = generalUtil::getUint32t(funTF, i);
-                TVals.push_back( *((ObservedValues *) &ele) ); // Casting uint32_t to Observed Value
-            }
-
-            // Debug
-            // std::cout << "Current Fun: [ ";
-            // for (auto & ele : TVals) {
-            //     std::cout << *((uint32_t*) &ele) << " ";
-            // }
-            // std::cout << "]" << std::endl;
 
             std::vector<SEXP> defaultArgs;
             size_t functionSize = sizeof(Function);
@@ -63,12 +130,28 @@ namespace rir {
 
             dummy->registerDeopt();
 
-            L2Dispatch * l2vt = L2Dispatch::create(dummy, BCTFSlots, p);
-            l2vt->insert(fun, TVals);
+            #if DEBUG_L2_ENTRIES > 0
+            std::cout << "(*) Creating L2" << std::endl;
+            #endif
+
+
+            L2Dispatch * l2vt = L2Dispatch::create(dummy, BCTFSlots, GENSlots, p);
+
+            // General feedback data in function
+
+            #if DEBUG_L2_ENTRIES > 0
+            std::cout << "(*) Inserting function" << std::endl;
+            #endif
+
+
+            l2vt->insert(fun, TVals, funGFBData);
 
             setEntry(idx, l2vt->container());
         } else {
             if (Function::check(idxContainer)) {
+                #if DEBUG_L2_ENTRIES > 0
+                std::cout << "Case 1: Existing Function!" << std::endl;
+                #endif
                 // Protect p;
                 // Function * old = Function::unpack(idxContainer);
                 // L2Dispatch * l2vt = L2Dispatch::create(old, p);
@@ -84,31 +167,33 @@ namespace rir {
                 for (int i = 0; i < Rf_length(slotsInfo); i++) {
                     indices.push_back(Rf_asInteger(VECTOR_ELT(slotsInfo, i)));
                 }
-
                 BitcodeLinkUtil::getTypeFeedbackPtrsAtIndices(indices, BCTFSlots, this);
 
-                std::vector<ObservedValues> TVals;
-                SEXP funTF = UnlockingElement::getFunTFInfo(uEleContainer);
-                for (int i = 0; i < Rf_length(funTF); i++) {
-                    auto ele = generalUtil::getUint32t(funTF, i);
-                    TVals.push_back( *((ObservedValues *) &ele) ); // Casting uint32_t to Observed Value
-                }
 
                 Function * old = Function::unpack(idxContainer);
 
-                L2Dispatch * l2vt = L2Dispatch::create(old, BCTFSlots, p);
-                l2vt->insert(fun, TVals);
+                #if DEBUG_L2_ENTRIES > 0
+                std::cout << "(*) Creating L2" << std::endl;
+                #endif
+
+                L2Dispatch * l2vt = L2Dispatch::create(old, BCTFSlots, GENSlots, p);
+
+                #if DEBUG_L2_ENTRIES > 0
+                std::cout << "(*) Inserting function" << std::endl;
+                #endif
+                l2vt->insert(fun, TVals, funGFBData);
             } else if (L2Dispatch::check(idxContainer)) {
+                #if DEBUG_L2_ENTRIES > 0
+                std::cout << "Case 2: Existing L2!" << std::endl;
+                #endif
                 L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
 
-                std::vector<ObservedValues> TVals;
-                SEXP funTF = UnlockingElement::getFunTFInfo(uEleContainer);
-                for (int i = 0; i < Rf_length(funTF); i++) {
-                    auto ele = generalUtil::getUint32t(funTF, i);
-                    TVals.push_back( *((ObservedValues *) &ele) ); // Casting uint32_t to Observed Value
-                }
+                #if DEBUG_L2_ENTRIES > 0
+                std::cout << "(*) Inserting function" << std::endl;
+                #endif
 
-                l2vt->insert(fun, TVals);
+
+                l2vt->insert(fun, TVals, funGFBData);
             } else {
                 Rf_error("Dispatch table L2insertion error, corrupted slot!!");
             }

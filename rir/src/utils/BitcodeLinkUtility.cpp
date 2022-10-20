@@ -8,26 +8,25 @@
 #include "utils/Pool.h"
 #include "utils/UMap.h"
 
-#include <unordered_map>
-#include <iostream>
-#include <functional>
 #include <cassert>
+#include <functional>
+#include <iostream>
+#include <unordered_map>
 
-#include "runtimePatches.h"
 #include "R/Printing.h"
 #include "api.h"
+#include "runtimePatches.h"
 
-#include "compiler/pir/module.h"
-#include "compiler/log/stream_logger.h"
-#include "compiler/compiler.h"
 #include "compiler/backend.h"
+#include "compiler/compiler.h"
+#include "compiler/log/stream_logger.h"
+#include "compiler/pir/module.h"
 
 #include "utils/WorklistManager.h"
 #include "utils/deserializerData.h"
 
 #include <chrono>
 using namespace std::chrono;
-
 
 #define GROWTHRATE 5
 #define PRINT_LINKING_STATUS 0
@@ -36,30 +35,30 @@ using namespace std::chrono;
 #define PRINT_HAST_SRC_ENTRIES 0
 #define DEBUG_DESERIALIZER_CHECKPOINTS 0
 
-
 namespace rir {
+
 
 //
 // AST Hashing function
 //
 
-static size_t charToInt(const char* p, size_t & hast) {
+static size_t charToInt(const char* p, size_t& hast) {
     for (size_t i = 0; i < strlen(p); ++i) {
         hast = ((hast << 5) + hast) + p[i];
     }
     return hast;
 }
 
-static void hash_ast(SEXP ast, size_t & hast) {
+static void hash_ast(SEXP ast, size_t& hast) {
     int len = Rf_length(ast);
     int type = TYPEOF(ast);
 
     if (type == SYMSXP) {
-        const char * pname = CHAR(PRINTNAME(ast));
+        const char* pname = CHAR(PRINTNAME(ast));
         hast = hast * 31;
         charToInt(pname, hast);
     } else if (type == STRSXP) {
-        const char * pname = CHAR(STRING_ELT(ast, 0));
+        const char* pname = CHAR(STRING_ELT(ast, 0));
         hast = hast * 31;
         charToInt(pname, hast);
     } else if (type == LGLSXP) {
@@ -99,9 +98,11 @@ SEXP BitcodeLinkUtil::getHast(SEXP body, SEXP env) {
     } else if (x == R_EmptyEnv) {
         qHast << "EE:";
     } else if (R_IsPackageEnv(x)) {
-        qHast << "PE:" << Rf_translateChar(STRING_ELT(R_PackageEnvName(x), 0)) << ":";
+        qHast << "PE:" << Rf_translateChar(STRING_ELT(R_PackageEnvName(x), 0))
+              << ":";
     } else if (R_IsNamespaceEnv(x)) {
-        qHast << "NS:" << Rf_translateChar(STRING_ELT(R_NamespaceEnvSpec(x), 0)) << ":";
+        qHast << "NS:" << Rf_translateChar(STRING_ELT(R_NamespaceEnvSpec(x), 0))
+              << ":";
     } else {
         return R_NilValue;
         qHast << "AE:";
@@ -113,95 +114,242 @@ SEXP BitcodeLinkUtil::getHast(SEXP body, SEXP env) {
     return calcHast;
 }
 
-void BitcodeLinkUtil::populateTypeFeedbackData(SEXP container, DispatchTable * vtab) {
-    DispatchTable * currVtab = vtab;
+// Handling call site information
+void BitcodeLinkUtil::populateOtherFeedbackData(SEXP container,
+                                                DispatchTable* vtab) {
+    DispatchTable* currVtab = vtab;
 
-    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
-        // Default args
-        if (funn) {
-            auto nargs = funn->nargs();
-            for (unsigned i = 0; i < nargs; i++) {
-                auto code = funn->defaultArg(i);
-                if (code != nullptr) {
-                    iterateOverCodeObjs(code, nullptr);
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                    }
                 }
             }
-        }
 
-        Opcode* pc = c->code();
-        std::vector<BC::FunIdx> promises;
-        Protect p;
-        while (pc < c->endCode()) {
-            BC bc = BC::decode(pc, c);
-            bc.addMyPromArgsTo(promises);
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
 
-            // call sites
-            switch (bc.bc) {
+                if (bc.bc == Opcode::record_call_) {
+                    ObservedCallees prof = bc.immediate.callFeedback;
+                    contextData::addObservedCallSiteInfo(container, &prof, c);
+                }
+
+                if (bc.bc == Opcode::record_test_) {
+                    contextData::addObservedTestToVector(container, &bc.immediate.testFeedback);
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                    }
+                }
+
+                pc = BC::next(pc);
+            }
+
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+            }
+        };
+
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
+
+void BitcodeLinkUtil::populateTypeFeedbackData(SEXP container,
+                                               DispatchTable* vtab) {
+    DispatchTable* currVtab = vtab;
+
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                    }
+                }
+            }
+
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
+
+                // call sites
+                switch (bc.bc) {
                 case Opcode::record_type_:
 
                     // std::cout << "record_type_(" << i << "): ";
                     // bc.immediate.typeFeedback.print(std::cout);
                     // std::cout << std::endl;
-                    // std::cout << "[[ " << &bc.immediate.typeFeedback << " ]]" << std::endl;
-                    contextData::addObservedValueToVector(container, &bc.immediate.typeFeedback);
+                    // std::cout << "[[ " << &bc.immediate.typeFeedback << " ]]"
+                    // << std::endl;
+                    contextData::addObservedValueToVector(
+                        container, &bc.immediate.typeFeedback);
 
-                default: {}
-            }
-
-            // inner functions
-            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
-                SEXP iConst = bc.immediateConst();
-                if (DispatchTable::check(iConst)) {
-                    currVtab = DispatchTable::unpack(iConst);
-                    auto c = currVtab->baseline()->body();
-                    auto f = c->function();
-                    iterateOverCodeObjs(c, f);
+                default: {
                 }
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                    }
+                }
+
+                pc = BC::next(pc);
             }
 
-            pc = BC::next(pc);
-        }
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+            }
+        };
 
-        // Iterate over promises code objects recursively
-        for (auto i : promises) {
-            auto prom = c->getPromise(i);
-            iterateOverCodeObjs(prom, nullptr);
-        }
-    };
-
-    Code * genesisCodeObj = currVtab->baseline()->body();
-    Function * genesisFunObj = genesisCodeObj->function();
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
 
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
 }
 
-void BitcodeLinkUtil::getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<ObservedValues*> & res, DispatchTable * vtab) {
+void BitcodeLinkUtil::getGeneralFeedbackPtrsAtIndices(
+    std::vector<int>& indices, std::vector<GenFeedbackHolder>& res,
+    DispatchTable* vtab) {
     // Indices must be sorted for this to work
-    DispatchTable * currVtab = vtab;
+    DispatchTable* currVtab = vtab;
+
+    int idx = 0;
+
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                    }
+                }
+            }
+
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
+
+                // call sites
+                switch (bc.bc) {
+                case Opcode::record_call_: {
+                    if (std::count(indices.begin(), indices.end(), idx)) {
+                        res.push_back({c, pc, nullptr});
+                    }
+                    idx++;
+                    break;
+                }
+                case Opcode::record_test_: {
+                    if (std::count(indices.begin(), indices.end(), idx)) {
+                        res.push_back({c, nullptr, pc});
+                    }
+                    idx++;
+                    break;
+                }
+                default: {
+                }
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                    }
+                }
+
+                pc = BC::next(pc);
+            }
+
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+            }
+        };
+
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
+
+void BitcodeLinkUtil::getTypeFeedbackPtrsAtIndices(
+    std::vector<int>& indices, std::vector<ObservedValues*>& res,
+    DispatchTable* vtab) {
+    // Indices must be sorted for this to work
+    DispatchTable* currVtab = vtab;
 
     int i = 0;
 
-    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
-        // Default args
-        if (funn) {
-            auto nargs = funn->nargs();
-            for (unsigned i = 0; i < nargs; i++) {
-                auto code = funn->defaultArg(i);
-                if (code != nullptr) {
-                    iterateOverCodeObjs(code, nullptr);
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                    }
                 }
             }
-        }
 
-        Opcode* pc = c->code();
-        std::vector<BC::FunIdx> promises;
-        Protect p;
-        while (pc < c->endCode()) {
-            BC bc = BC::decode(pc, c);
-            bc.addMyPromArgsTo(promises);
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
 
-            // call sites
-            switch (bc.bc) {
+                // call sites
+                switch (bc.bc) {
                 case Opcode::record_type_: {
                     // switch (*pos) {
                     // case Opcode::record_type_: {
@@ -216,95 +364,102 @@ void BitcodeLinkUtil::getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, s
                     }
                     i++;
                 }
-                default: {}
-            }
-
-            // inner functions
-            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
-                SEXP iConst = bc.immediateConst();
-                if (DispatchTable::check(iConst)) {
-                    currVtab = DispatchTable::unpack(iConst);
-                    auto c = currVtab->baseline()->body();
-                    auto f = c->function();
-                    iterateOverCodeObjs(c, f);
+                default: {
                 }
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                    }
+                }
+
+                pc = BC::next(pc);
             }
 
-            pc = BC::next(pc);
-        }
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+            }
+        };
 
-        // Iterate over promises code objects recursively
-        for (auto i : promises) {
-            auto prom = c->getPromise(i);
-            iterateOverCodeObjs(prom, nullptr);
-        }
-    };
-
-    Code * genesisCodeObj = currVtab->baseline()->body();
-    Function * genesisFunObj = genesisCodeObj->function();
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
 
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
 }
 
 struct TraversalResult {
-    Code * code;
-    DispatchTable * vtable;
+    Code* code;
+    DispatchTable* vtable;
     unsigned srcIdx;
 };
 
-static inline TraversalResult getResultAtOffset(DispatchTable * vtab, const unsigned & requiredOffset) {
+static inline TraversalResult
+getResultAtOffset(DispatchTable* vtab, const unsigned& requiredOffset) {
     bool done = false;
     unsigned indexOffset = 0;
 
-    DispatchTable * currVtab = vtab;
-    Code * currCode = nullptr;
+    DispatchTable* currVtab = vtab;
+    Code* currCode = nullptr;
     unsigned poolIdx = currVtab->baseline()->body()->src;
 
-    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
-        if (done) return;
-        if (indexOffset == requiredOffset) {
-            // required thing was a code obj or a dispatch table obj
-            poolIdx = c->src;
-            currCode = c;
-            done = true;
-            return;
-        }
-        indexOffset++;
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            if (done)
+                return;
+            if (indexOffset == requiredOffset) {
+                // required thing was a code obj or a dispatch table obj
+                poolIdx = c->src;
+                currCode = c;
+                done = true;
+                return;
+            }
+            indexOffset++;
 
-        // Default args
-        if (funn) {
-            auto nargs = funn->nargs();
-            for (unsigned i = 0; i < nargs; i++) {
-                auto code = funn->defaultArg(i);
-                if (code != nullptr) {
-                    iterateOverCodeObjs(code, nullptr);
-                    if (done) return;
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                        if (done)
+                            return;
+                    }
                 }
             }
-        }
 
-        Opcode* pc = c->code();
-        std::vector<BC::FunIdx> promises;
-        Protect p;
-        while (pc < c->endCode()) {
-            if (done) return;
-            BC bc = BC::decode(pc, c);
-            bc.addMyPromArgsTo(promises);
-
-            // src code language objects
-            unsigned s = c->getSrcIdxAt(pc, true);
-            if (s != 0) {
-                if (indexOffset == requiredOffset) {
-                    // required thing was src pool index
-                    poolIdx = s;
-                    done = true;
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                if (done)
                     return;
-                }
-                indexOffset++;
-            }
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
 
-            // call sites
-            switch (bc.bc) {
+                // src code language objects
+                unsigned s = c->getSrcIdxAt(pc, true);
+                if (s != 0) {
+                    if (indexOffset == requiredOffset) {
+                        // required thing was src pool index
+                        poolIdx = s;
+                        done = true;
+                        return;
+                    }
+                    indexOffset++;
+                }
+
+                // call sites
+                switch (bc.bc) {
                 case Opcode::call_:
                 case Opcode::named_call_:
                     if (indexOffset == requiredOffset) {
@@ -333,34 +488,38 @@ static inline TraversalResult getResultAtOffset(DispatchTable * vtab, const unsi
                     }
                     indexOffset++;
                     break;
-                default: {}
-            }
-
-            // inner functions
-            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
-                SEXP iConst = bc.immediateConst();
-                if (DispatchTable::check(iConst)) {
-                    currVtab = DispatchTable::unpack(iConst);
-                    auto c = currVtab->baseline()->body();
-                    auto f = c->function();
-                    iterateOverCodeObjs(c, f);
-                    if (done) return;
+                default: {
                 }
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                        if (done)
+                            return;
+                    }
+                }
+
+                pc = BC::next(pc);
             }
 
-            pc = BC::next(pc);
-        }
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+                if (done)
+                    return;
+            }
+        };
 
-        // Iterate over promises code objects recursively
-        for (auto i : promises) {
-            auto prom = c->getPromise(i);
-            iterateOverCodeObjs(prom, nullptr);
-            if (done) return;
-        }
-    };
-
-    Code * genesisCodeObj = currVtab->baseline()->body();
-    Function * genesisFunObj = genesisCodeObj->function();
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
 
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
 
@@ -371,7 +530,7 @@ static inline TraversalResult getResultAtOffset(DispatchTable * vtab, const unsi
     return r;
 }
 
-Code * BitcodeLinkUtil::getCodeObjectAtOffset(SEXP hastSym, int requiredOffset) {
+Code* BitcodeLinkUtil::getCodeObjectAtOffset(SEXP hastSym, int requiredOffset) {
     REnvHandler vtabMap(HAST_VTAB_MAP);
     SEXP vtabContainer = vtabMap.get(hastSym);
     if (!vtabContainer) {
@@ -386,7 +545,8 @@ Code * BitcodeLinkUtil::getCodeObjectAtOffset(SEXP hastSym, int requiredOffset) 
     return r.code;
 }
 
-unsigned BitcodeLinkUtil::getSrcPoolIndexAtOffset(SEXP hastSym, int requiredOffset) {
+unsigned BitcodeLinkUtil::getSrcPoolIndexAtOffset(SEXP hastSym,
+                                                  int requiredOffset) {
     REnvHandler vtabMap(HAST_VTAB_MAP);
     SEXP vtabContainer = vtabMap.get(hastSym);
     if (!vtabContainer) {
@@ -401,7 +561,8 @@ unsigned BitcodeLinkUtil::getSrcPoolIndexAtOffset(SEXP hastSym, int requiredOffs
     return r.srcIdx;
 }
 
-SEXP BitcodeLinkUtil::getVtableContainerAtOffset(SEXP hastSym, int requiredOffset) {
+SEXP BitcodeLinkUtil::getVtableContainerAtOffset(SEXP hastSym,
+                                                 int requiredOffset) {
     REnvHandler vtabMap(HAST_VTAB_MAP);
     SEXP vtabContainer = vtabMap.get(hastSym);
     if (!vtabContainer) {
@@ -415,18 +576,24 @@ SEXP BitcodeLinkUtil::getVtableContainerAtOffset(SEXP hastSym, int requiredOffse
     return r.vtable->container();
 }
 
-DispatchTable * BitcodeLinkUtil::getVtableAtOffset(DispatchTable * vtab, int requiredOffset) {
+DispatchTable* BitcodeLinkUtil::getVtableAtOffset(DispatchTable* vtab,
+                                                  int requiredOffset) {
     auto res = getResultAtOffset(vtab, requiredOffset);
     return res.vtable;
 }
 
-void BitcodeLinkUtil::populateHastSrcData(DispatchTable* vtable, SEXP parentHast) {
+void BitcodeLinkUtil::populateHastSrcData(DispatchTable* vtable,
+                                          SEXP parentHast) {
+#if PRINT_HAST_SRC_ENTRIES == 1
+                    std::cout << "PARENT " << CHAR(PRINTNAME(parentHast)) << std::endl;
+#endif
     REnvHandler srcHastMap(SRC_HAST_MAP);
-    DispatchTable * currVtab = vtable;
+    DispatchTable* currVtab = vtable;
     unsigned indexOffset = 0;
 
-    auto addSrcToMap = [&] (const unsigned & src, bool sourcePool = true) {
-        // create a mapping for each src [representing code object to its hast and offset index]
+    auto addSrcToMap = [&](const unsigned& src, bool sourcePool = true) {
+        // create a mapping for each src [representing code object to its hast
+        // and offset index]
         SEXP srcSym;
         if (sourcePool) {
             srcSym = Rf_install(std::to_string(src).c_str());
@@ -446,93 +613,106 @@ void BitcodeLinkUtil::populateHastSrcData(DispatchTable* vtable, SEXP parentHast
         // else {
         //     std::cout << "More than one entry for the same src" << std::endl;
         // }
-
     };
 
-    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
-        #if PRINT_HAST_SRC_ENTRIES == 1
-        std::cout << "src_hast_entry[C] at indexOffset: " << indexOffset << "," << c->src << std::endl;
-        #endif
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+#if PRINT_HAST_SRC_ENTRIES == 1
+            std::cout << "src_hast_entry[C] at indexOffset: " << indexOffset
+                      << "," << c->src << std::endl;
+#endif
 
-        addSrcToMap(c->src);
-        indexOffset++;
-        if (funn) {
-            auto nargs = funn->nargs();
-            for (unsigned i = 0; i < nargs; i++) {
-                auto code = funn->defaultArg(i);
-                if (code != nullptr) {
-                    iterateOverCodeObjs(code, nullptr);
+            addSrcToMap(c->src);
+            indexOffset++;
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                    }
                 }
             }
-        }
 
-        Opcode* pc = c->code();
-        std::vector<BC::FunIdx> promises;
-        Protect p;
-        while (pc < c->endCode()) {
-            BC bc = BC::decode(pc, c);
-            bc.addMyPromArgsTo(promises);
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
 
-            // src code language objects
-            unsigned s = c->getSrcIdxAt(pc, true);
-            if (s != 0) {
-                addSrcToMap(s);
-                #if PRINT_HAST_SRC_ENTRIES == 1
-                std::cout << "src_hast_entry[source_pool] at indexOffset: " << indexOffset << "," << s << std::endl;
-                #endif
-                indexOffset++;
-            }
+                // src code language objects
+                unsigned s = c->getSrcIdxAt(pc, true);
+                if (s != 0) {
+                    addSrcToMap(s);
+#if PRINT_HAST_SRC_ENTRIES == 1
+                    std::cout << "src_hast_entry[source_pool] at indexOffset: "
+                              << indexOffset << "," << s << std::endl;
+#endif
+                    indexOffset++;
+                }
 
-            // call sites
-            switch (bc.bc) {
+                // call sites
+                switch (bc.bc) {
                 case Opcode::call_:
                 case Opcode::named_call_:
-                    #if PRINT_HAST_SRC_ENTRIES == 1
-                    std::cout << "src_hast_entry[constant_pool] at indexOffset: " << indexOffset << "," << bc.immediate.callFixedArgs.ast << std::endl;
-                    #endif
+#if PRINT_HAST_SRC_ENTRIES == 1
+                    std::cout
+                        << "src_hast_entry[constant_pool] at indexOffset: "
+                        << indexOffset << "," << bc.immediate.callFixedArgs.ast
+                        << std::endl;
+#endif
                     addSrcToMap(bc.immediate.callFixedArgs.ast, false);
                     indexOffset++;
                     break;
                 case Opcode::call_dots_:
-                    #if PRINT_HAST_SRC_ENTRIES == 1
-                    std::cout << "src_hast_entry[constant_pool] at indexOffset: " << indexOffset << "," << bc.immediate.callFixedArgs.ast << std::endl;
-                    #endif
+#if PRINT_HAST_SRC_ENTRIES == 1
+                    std::cout
+                        << "src_hast_entry[constant_pool] at indexOffset: "
+                        << indexOffset << "," << bc.immediate.callFixedArgs.ast
+                        << std::endl;
+#endif
                     addSrcToMap(bc.immediate.callFixedArgs.ast, false);
                     indexOffset++;
                     break;
                 case Opcode::call_builtin_:
-                    #if PRINT_HAST_SRC_ENTRIES == 1
-                    std::cout << "src_hast_entry[constant_pool] at indexOffset: " << indexOffset << "," << bc.immediate.callBuiltinFixedArgs.ast << std::endl;
-                    #endif
+#if PRINT_HAST_SRC_ENTRIES == 1
+                    std::cout
+                        << "src_hast_entry[constant_pool] at indexOffset: "
+                        << indexOffset << ","
+                        << bc.immediate.callBuiltinFixedArgs.ast << std::endl;
+#endif
                     addSrcToMap(bc.immediate.callBuiltinFixedArgs.ast, false);
                     indexOffset++;
                     break;
-                default: {}
-            }
-
-            // inner functions
-            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
-                SEXP iConst = bc.immediateConst();
-                if (DispatchTable::check(iConst)) {
-                    currVtab = DispatchTable::unpack(iConst);
-                    auto c = currVtab->baseline()->body();
-                    auto f = c->function();
-                    iterateOverCodeObjs(c, f);
+                default: {
                 }
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                    }
+                }
+
+                pc = BC::next(pc);
             }
 
-            pc = BC::next(pc);
-        }
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+            }
+        };
 
-        // Iterate over promises code objects recursively
-        for (auto i : promises) {
-            auto prom = c->getPromise(i);
-            iterateOverCodeObjs(prom, nullptr);
-        }
-    };
-
-    Code * genesisCodeObj = currVtab->baseline()->body();
-    Function * genesisFunObj = currVtab->baseline()->body()->function();
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = currVtab->baseline()->body()->function();
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
 }
 
@@ -554,16 +734,19 @@ static void insertToBlacklist(SEXP hastSym) {
     REnvHandler blacklistMap(BL_MAP);
     if (!blacklistMap.get(hastSym)) {
         blacklistMap.set(hastSym, R_TrueValue);
-        #if DEBUG_BLACKLIST == 1
-        std::cout << "(R) Blacklisting: " << CHAR(PRINTNAME(hastSym)) << std::endl;
-        #endif
+#if DEBUG_BLACKLIST == 1
+        std::cout << "(R) Blacklisting: " << CHAR(PRINTNAME(hastSym))
+                  << std::endl;
+#endif
         serializerCleanup();
     }
 }
 
-bool BitcodeLinkUtil::readyForSerialization(SEXP clos, DispatchTable* vtable, SEXP hastSym) {
-    // if the hast already corresponds to other src address and is a different closureObj then
-    // there was a collision and we cannot use the function and all functions that depend on it
+bool BitcodeLinkUtil::readyForSerialization(SEXP clos, DispatchTable* vtable,
+                                            SEXP hastSym) {
+    // if the hast already corresponds to other src address and is a different
+    // closureObj then there was a collision and we cannot use the function and
+    // all functions that depend on it
     REnvHandler vtabMap(HAST_VTAB_MAP);
     if (vtabMap.get(hastSym)) {
         insertToBlacklist(hastSym);
@@ -572,17 +755,18 @@ bool BitcodeLinkUtil::readyForSerialization(SEXP clos, DispatchTable* vtable, SE
     return true;
 }
 
-static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime) {
+static void doUnlockingElement(SEXP uEleContainer, size_t& linkTime) {
     auto start = high_resolution_clock::now();
 
-    // // if this context was already added due to unexpected compilation at runtime, skip addition, this can result in duplicate LLVM symbols
-    // for (size_t i = 0; i < vtab->size(); i++) {
+    // // if this context was already added due to unexpected compilation at
+    // runtime, skip addition, this can result in duplicate LLVM symbols for
+    // (size_t i = 0; i < vtab->size(); i++) {
     //     auto entry = vtab->get(i);
     //     if (entry->context().toI() == contextData::getContext(cData)) {
     //         #if PRINT_LINKING_STATUS == 1
-    //         std::cout << "duplicate linkage: " << CHAR(PRINTNAME(hSym)) << "_" << CHAR(PRINTNAME(offsetSymbol)) << "_" << contextData::getContext(cData) << std::endl;
-    //         #endif
-    //         return;
+    //         std::cout << "duplicate linkage: " << CHAR(PRINTNAME(hSym)) <<
+    //         "_" << CHAR(PRINTNAME(offsetSymbol)) << "_" <<
+    //         contextData::getContext(cData) << std::endl; #endif return;
     //     }
     // }
 
@@ -601,7 +785,6 @@ static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime) {
     backend.deserializeAndPopulateBitcode(uEleContainer);
     delete m;
 
-
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     linkTime += duration.count();
@@ -609,24 +792,26 @@ static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime) {
     logger.title("Deserialized " + name);
 }
 
-static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, size_t & linkTime, bool nargsPassed = false, const unsigned & nargs = 0) {
+static void processWorklistElements(std::vector<BC::PoolIdx>& wlElementVec,
+                                    size_t& linkTime, bool nargsPassed = false,
+                                    const unsigned& nargs = 0) {
     std::vector<unsigned int> toRemove;
 
     if (nargsPassed) {
-        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
         std::cerr << "(c) Working on optimistic worklist!" << std::endl;
-        #endif
+#endif
         for (unsigned int i = 0; i < wlElementVec.size(); i++) {
             BC::PoolIdx ueIdx = wlElementVec[i];
             SEXP optuEleContainer = Pool::get(ueIdx);
 
-            #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
             std::cerr << "(c) Reducing counter for OUE" << ueIdx << std::endl;
-            #endif
+#endif
 
-            #if PRINT_WORKLIST_ENTRIES == 1
+#if PRINT_WORKLIST_ENTRIES == 1
             OptUnlockingElement::print(optuEleContainer, 2);
-            #endif
+#endif
 
             // generalUtil::printSpace(2);
             // std::cout << "processWorklistElements" << std::endl;
@@ -636,16 +821,22 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
             // (numargs of available >= numargs of expected)
             // If not, we cannot remove the worklist element
             //
-            if (unsigned * numArgs = OptUnlockingElement::getNumArgs(optuEleContainer)) {
+            if (unsigned* numArgs =
+                    OptUnlockingElement::getNumArgs(optuEleContainer)) {
                 if (!(nargs >= (*numArgs))) {
-                    // std::cout << "OptUnlockingElement: " << optuEleContainer << std::endl;
+                    // std::cout << "OptUnlockingElement: " << optuEleContainer
+                    // << std::endl;
                     // OptUnlockingElement::print(optuEleContainer, 0);
                     //
                     // Optimistic unlock worst case fail
                     // ?TODO: If this case happens, find out why it does
                     //
-                    std::cerr << "[TO DEBUG] Optimistic unlock worst case fail, nargs: " << nargs << ", expectedNargs: " << *numArgs << std::endl;
-                    // std::cerr << "[WARNING] Ignoring check, lets see when this breaks!" << std::endl;
+                    std::cerr << "[TO DEBUG] Optimistic unlock worst case "
+                                 "fail, nargs: "
+                              << nargs << ", expectedNargs: " << *numArgs
+                              << std::endl;
+                    // std::cerr << "[WARNING] Ignoring check, lets see when
+                    // this breaks!" << std::endl;
 
                     continue;
                 }
@@ -655,13 +846,14 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
 
             SEXP uEleContainer = OptUnlockingElement::getUE(optuEleContainer);
 
-            int * counter = UnlockingElement::getCounter(uEleContainer);
+            int* counter = UnlockingElement::getCounter(uEleContainer);
             *counter = *counter - 1;
 
             if (*counter == 0) {
-                #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-                std::cerr << "(c) Counter is zero, now performing linking!" << std::endl;
-                #endif
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+                std::cerr << "(c) Counter is zero, now performing linking!"
+                          << std::endl;
+#endif
                 //
                 // Do unlocking if counter becomes 0
                 //
@@ -670,32 +862,32 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
             }
         }
     } else {
-        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
         std::cerr << "(c) Working on simple worklist!" << std::endl;
-        #endif
+#endif
         for (unsigned int i = 0; i < wlElementVec.size(); i++) {
             BC::PoolIdx ueIdx = wlElementVec[i];
             SEXP uEleContainer = Pool::get(ueIdx);
 
-            #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
             std::cerr << "(c) Reducing counter for UE" << ueIdx << std::endl;
-            #endif
+#endif
 
-            #if PRINT_WORKLIST_ENTRIES == 1
+#if PRINT_WORKLIST_ENTRIES == 1
             UnlockingElement::print(ueIdx, 2);
-            #endif
-
+#endif
 
             // Processed indices can be removed
             toRemove.push_back(i);
 
-            int * counter = UnlockingElement::getCounter(uEleContainer);
+            int* counter = UnlockingElement::getCounter(uEleContainer);
             *counter = *counter - 1;
 
             if (*counter == 0) {
-                #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-                std::cerr << "(c) Counter is zero, now performing linking!" << std::endl;
-                #endif
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+                std::cerr << "(c) Counter is zero, now performing linking!"
+                          << std::endl;
+#endif
                 //
                 // Do unlocking if counter becomes 0
                 //
@@ -704,7 +896,6 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
             }
         }
     }
-
 
     // https://stackoverflow.com/questions/35055227/how-to-erase-multiple-elements-from-stdvector-by-index-using-erase-function
     // Sorting toRemove is ascending order is needed but
@@ -717,7 +908,8 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
     // the relative order of indices to remove does not change
     //
 
-    for (std::vector<unsigned int>::reverse_iterator i = toRemove.rbegin(); i != toRemove.rend(); ++ i) {
+    for (std::vector<unsigned int>::reverse_iterator i = toRemove.rbegin();
+         i != toRemove.rend(); ++i) {
         wlElementVec.erase(wlElementVec.begin() + *i);
     }
 }
@@ -727,33 +919,36 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
 //
 void BitcodeLinkUtil::tryUnlocking(SEXP currHastSym) {
 
-    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-    std::cerr << "(c) Unlocking worklist-1 for [" << CHAR(PRINTNAME(currHastSym)) << "]" << std::endl;
-    #endif
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    std::cerr << "(c) Unlocking worklist-1 for ["
+              << CHAR(PRINTNAME(currHastSym)) << "]" << std::endl;
+#endif
 
-    // std::cout << "Worklist1[" << CHAR(PRINTNAME(currHastSym)) << "] query" << std::endl;
-    // std::cout << "Worklist1 Bindings" << std::endl;
-    // for (auto & ele : Worklist1::worklist) {
+    // std::cout << "Worklist1[" << CHAR(PRINTNAME(currHastSym)) << "] query" <<
+    // std::endl; std::cout << "Worklist1 Bindings" << std::endl; for (auto &
+    // ele : Worklist1::worklist) {
     //     std::cout << " " << CHAR(PRINTNAME(ele.first)) << std::endl;
     // }
 
-    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-    std::cerr << "(c) " << Worklist1::worklist.count(currHastSym) << " worklist-1 entries!" << std::endl;
-    #endif
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    std::cerr << "(c) " << Worklist1::worklist.count(currHastSym)
+              << " worklist-1 entries!" << std::endl;
+#endif
 
     if (Worklist1::worklist.count(currHastSym) > 0) {
-        std::vector<BC::PoolIdx> & wl = Worklist1::worklist[currHastSym];
+        std::vector<BC::PoolIdx>& wl = Worklist1::worklist[currHastSym];
 
-        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-        std::cerr << "(c) Started processing worklist, size: " << wl.size() << std::endl;
-        #endif
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+        std::cerr << "(c) Started processing worklist, size: " << wl.size()
+                  << std::endl;
+#endif
 
         processWorklistElements(wl, linkTime);
 
-        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-        std::cerr << "(c) Finished processing worklist, size: " << wl.size() << std::endl;
-        #endif
-
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+        std::cerr << "(c) Finished processing worklist, size: " << wl.size()
+                  << std::endl;
+#endif
 
         if (wl.size() == 0) {
             Worklist1::remove(currHastSym);
@@ -764,19 +959,21 @@ void BitcodeLinkUtil::tryUnlocking(SEXP currHastSym) {
 //
 // Check if Worklist2 has work for the current hast_context
 //
-void BitcodeLinkUtil::tryUnlockingOpt(SEXP currHastSym, const unsigned long & con, const int & nargs) {
+void BitcodeLinkUtil::tryUnlockingOpt(SEXP currHastSym,
+                                      const unsigned long& con,
+                                      const int& nargs) {
     std::stringstream ss;
     ss << CHAR(PRINTNAME(currHastSym)) << "_" << con;
     SEXP worklistKey = Rf_install(ss.str().c_str());
 
-    // std::cout << "Worklist2[" << CHAR(PRINTNAME(worklistKey)) << "] query" << std::endl;
-    // std::cout << "Worklist2 Bindings" << std::endl;
-    // for (auto & ele : Worklist2::worklist) {
+    // std::cout << "Worklist2[" << CHAR(PRINTNAME(worklistKey)) << "] query" <<
+    // std::endl; std::cout << "Worklist2 Bindings" << std::endl; for (auto &
+    // ele : Worklist2::worklist) {
     //     std::cout << " " << CHAR(PRINTNAME(ele.first)) << std::endl;
     // }
 
     if (Worklist2::worklist.count(worklistKey) > 0) {
-        std::vector<BC::PoolIdx> & wl = Worklist2::worklist[worklistKey];
+        std::vector<BC::PoolIdx>& wl = Worklist2::worklist[worklistKey];
         processWorklistElements(wl, linkTime, true, nargs);
 
         if (wl.size() == 0) {
@@ -785,7 +982,7 @@ void BitcodeLinkUtil::tryUnlockingOpt(SEXP currHastSym, const unsigned long & co
     }
 }
 
-void BitcodeLinkUtil::markStale(SEXP currHastSym, const unsigned long & con) {
+void BitcodeLinkUtil::markStale(SEXP currHastSym, const unsigned long& con) {
     // std::stringstream ss;
     // ss << CHAR(PRINTNAME(currHastSym)) << "_" << con;
     // SEXP optMapKey = Rf_install(ss.str().c_str());
@@ -800,9 +997,7 @@ void BitcodeLinkUtil::markStale(SEXP currHastSym, const unsigned long & con) {
     // }
 }
 
-void BitcodeLinkUtil::applyMask(DispatchTable * vtab, SEXP hSym) {
-
-}
+void BitcodeLinkUtil::applyMask(DispatchTable* vtab, SEXP hSym) {}
 
 //
 // Removes already satisfied dependencies and returns number of unsatisfied ones
@@ -817,7 +1012,6 @@ static std::pair<int, std::vector<int>> reduceReqMap(SEXP rMap) {
     //     std::cout << CHAR(PRINTNAME(VECTOR_ELT(rMap, i))) << " ";
     // }
     // std::cout << "]" << std::endl;
-
 
     REnvHandler hastVtabMap(HAST_VTAB_MAP);
     for (int i = 0; i < Rf_length(rMap); i++) {
@@ -864,13 +1058,14 @@ static std::pair<int, std::vector<int>> reduceReqMap(SEXP rMap) {
                 }
 
                 bool optimisticSiteExists = false;
-                DispatchTable * requiredVtab = DispatchTable::unpack(vtabContainer);
+                DispatchTable* requiredVtab =
+                    DispatchTable::unpack(vtabContainer);
                 for (size_t i = 0; i < requiredVtab->size(); i++) {
                     auto entry = requiredVtab->get(i);
                     if (entry->context().toI() == con &&
                         entry->signature().numArguments >= (unsigned)numArgs) {
-                            optimisticSiteExists = true;
-                            break;
+                        optimisticSiteExists = true;
+                        break;
                     }
                 }
 
@@ -885,8 +1080,6 @@ static std::pair<int, std::vector<int>> reduceReqMap(SEXP rMap) {
                 unsatisfiedDependencies++;
             }
         }
-
-
     }
 
     // // Reduced Requirement Map
@@ -897,70 +1090,82 @@ static std::pair<int, std::vector<int>> reduceReqMap(SEXP rMap) {
     // }
     // std::cout << "]" << std::endl;
 
-    return std::pair<int, std::vector<int>>(unsatisfiedDependencies, optimisticIdx);
+    return std::pair<int, std::vector<int>>(unsatisfiedDependencies,
+                                            optimisticIdx);
 }
 
-void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
+void BitcodeLinkUtil::tryLinking(DispatchTable* vtab, SEXP hSym) {
     //
     // Level 0 - Only call context dispatch
     // Level 1 - Context + multi binary dispatch
     // Level 2 - Context + multi binary dispatch + Type Versioning
     //
-    static int L2LEVEL = getenv("L2_LEVEL") ? std::stoi(getenv("L2_LEVEL")) : 10;
+    static int L2LEVEL =
+        getenv("L2_LEVEL") ? std::stoi(getenv("L2_LEVEL")) : 10;
 
     //
     // Only applies the mask to the dispatch table
     //
-    static bool ONLYMASK = getenv("ONLY_APPLY_MASK") ? std::stoi(getenv("ONLY_APPLY_MASK")) == 1 : false;
+    static bool ONLYMASK = getenv("ONLY_APPLY_MASK")
+                               ? std::stoi(getenv("ONLY_APPLY_MASK")) == 1
+                               : false;
 
     //
     // Deserialization of binaries + applying the mask
     //
-    static bool MASK = getenv("APPLY_MASK") ? std::stoi(getenv("APPLY_MASK")) == 1 : false;
+    static bool MASK =
+        getenv("APPLY_MASK") ? std::stoi(getenv("APPLY_MASK")) == 1 : false;
 
     SEXP ddCont = GeneralWorklist::get(hSym);
     //
-    // Add hast to the dispatch table as we know this is the 0th offset by default.
+    // Add hast to the dispatch table as we know this is the 0th offset by
+    // default.
     //
 
-    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-    std::cerr << "(c) Deserializer Started [" << CHAR(PRINTNAME(hSym)) << "]" << std::endl;
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    std::cerr << "(c) Deserializer Started [" << CHAR(PRINTNAME(hSym)) << "]"
+              << std::endl;
     deserializerData::print(ddCont, 2);
-    #endif
+#endif
 
-
-
-    SEXP hastSym  = deserializerData::getHast(ddCont);
+    SEXP hastSym = deserializerData::getHast(ddCont);
     vtab->hast = hastSym;
 
-    // Early linking breaks the implicit binary ordering, should complete worklist1 before linking these binaries
+    // Early linking breaks the implicit binary ordering, should complete
+    // worklist1 before linking these binaries
     std::vector<BC::PoolIdx> earlyLinkingIdx;
 
-    deserializerData::iterateOverUnits(ddCont, [&](SEXP ddContainer, SEXP offsetUnitContainer, SEXP contextUnitContainer, SEXP binaryUnitContainer) {
+    deserializerData::iterateOverUnits(ddCont, [&](SEXP ddContainer,
+                                                   SEXP offsetUnitContainer,
+                                                   SEXP contextUnitContainer,
+                                                   SEXP binaryUnitContainer) {
         //
         // Creating the UnlockElement
         //
 
         int offsetIdx = offsetUnit::getOffsetIdxAsInt(offsetUnitContainer);
-        SEXP epoch    = binaryUnit::getEpoch(binaryUnitContainer);
+        SEXP epoch = binaryUnit::getEpoch(binaryUnitContainer);
 
         // 0. PathPrefix
         std::stringstream pathPrefix;
-        pathPrefix << CHAR(PRINTNAME(hastSym)) << "_" << offsetIdx << "_" << CHAR(PRINTNAME(epoch));
+        pathPrefix << CHAR(PRINTNAME(hastSym)) << "_" << offsetIdx << "_"
+                   << CHAR(PRINTNAME(epoch));
 
         // 1. Dispatch Table
-        DispatchTable * requiredVtab = getVtableAtOffset(vtab, offsetIdx);
+        DispatchTable* requiredVtab = getVtableAtOffset(vtab, offsetIdx);
 
         //
         // MASK RELATED
         //
 
         if (MASK) {
-            requiredVtab->mask = rir::Context(offsetUnit::getMaskAsUnsignedLong(offsetUnitContainer));
+            requiredVtab->mask = rir::Context(
+                offsetUnit::getMaskAsUnsignedLong(offsetUnitContainer));
         }
 
         if (ONLYMASK) {
-            requiredVtab->mask = rir::Context(offsetUnit::getMaskAsUnsignedLong(offsetUnitContainer));
+            requiredVtab->mask = rir::Context(
+                offsetUnit::getMaskAsUnsignedLong(offsetUnitContainer));
             return;
         }
 
@@ -981,21 +1186,29 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
         // 4. nArgs - conditionally added
 
         // 5. context
-        unsigned long con = contextUnit::getContextAsUnsignedLong(contextUnitContainer);
+        unsigned long con =
+            contextUnit::getContextAsUnsignedLong(contextUnitContainer);
 
         // 6. TFSlotInfo - added when versioning is 2
         // 7. FunTF      - added when versioning is 2
 
         auto ueIdx = UnlockingElement::createWorklistElement(
-            pathPrefix.str().c_str(),
-            requiredVtab->container(),
-            versioning,
-            reduceRes.first,
-            con);
+            pathPrefix.str().c_str(), requiredVtab->container(), versioning,
+            reduceRes.first, con);
 
         if (versioning == 2) {
-            UnlockingElement::addTFSlotInfo(Pool::get(ueIdx), contextUnit::getTFSlots(contextUnitContainer));
-            UnlockingElement::addFunTFInfo(Pool::get(ueIdx), binaryUnit::getTVData(binaryUnitContainer));
+            UnlockingElement::addTFSlotInfo(
+                Pool::get(ueIdx),
+                contextUnit::getTFSlots(contextUnitContainer));
+            UnlockingElement::addFunTFInfo(
+                Pool::get(ueIdx), binaryUnit::getTVData(binaryUnitContainer));
+
+            UnlockingElement::addGTFSlotInfo(
+                Pool::get(ueIdx),
+                contextUnit::getFBSlots(contextUnitContainer));
+            UnlockingElement::addGFunTFInfo(
+                Pool::get(ueIdx), binaryUnit::getFBData(binaryUnitContainer));
+
         }
 
         // UnlockingElement::print(wlIdx, 0);
@@ -1012,19 +1225,20 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
             return;
         }
 
-        std::vector<int> & optIdx = reduceRes.second;
+        std::vector<int>& optIdx = reduceRes.second;
 
         for (int i = 0; i < Rf_length(rMap); i++) {
             if (VECTOR_ELT(rMap, i) != R_NilValue) {
                 SEXP dep = VECTOR_ELT(rMap, i);
-                bool optimisticCase = std::find(optIdx.begin(), optIdx.end(), i) != optIdx.end();
+                bool optimisticCase =
+                    std::find(optIdx.begin(), optIdx.end(), i) != optIdx.end();
 
                 if (optimisticCase) {
                     //
                     // Key: HAST_CONTEXT
-                    // When function gets inserted into the vtable, we create this key
-                    // using the stored hast and inserted context.
-                    // We do work on worklist two if the key exists
+                    // When function gets inserted into the vtable, we create
+                    // this key using the stored hast and inserted context. We
+                    // do work on worklist two if the key exists
                     //
                     SEXP hastKey;
 
@@ -1039,16 +1253,20 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
                         auto firstDel = n.find('_');
                         auto secondDel = n.find('_', firstDel + 1);
                         auto hast = n.substr(0, firstDel);
-                        auto context = n.substr(firstDel + 1, secondDel - firstDel - 1);
+                        auto context =
+                            n.substr(firstDel + 1, secondDel - firstDel - 1);
                         auto nargs = n.substr(secondDel + 1);
 
                         hastKey = Rf_install(n.substr(0, secondDel).c_str());
 
-                        // std::cout << "adding nargs to: " << Pool::get(ueIdx) << ", nargs: " << n << std::endl;
+                        // std::cout << "adding nargs to: " << Pool::get(ueIdx)
+                        // << ", nargs: " << n << std::endl;
 
-                        // UnlockingElement::addNumArgs(Pool::get(ueIdx), std::stoi(nargs));
+                        // UnlockingElement::addNumArgs(Pool::get(ueIdx),
+                        // std::stoi(nargs));
 
-                        optIdx = OptUnlockingElement::createOptWorklistElement(std::stoi(nargs), Pool::get(ueIdx));
+                        optIdx = OptUnlockingElement::createOptWorklistElement(
+                            std::stoi(nargs), Pool::get(ueIdx));
                     }
 
                     //
@@ -1057,10 +1275,12 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
 
                     Worklist2::worklist[hastKey].push_back(optIdx);
 
-                    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-                    std::cerr << "(c) Adding worklist-2 entry for " << CHAR(PRINTNAME(hastKey)) << " at OUE" << optIdx << std::endl;
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+                    std::cerr << "(c) Adding worklist-2 entry for "
+                              << CHAR(PRINTNAME(hastKey)) << " at OUE" << optIdx
+                              << std::endl;
                     OptUnlockingElement::print(optIdx, 2);
-                    #endif
+#endif
                 } else {
                     //
                     // Add to worklist1
@@ -1068,10 +1288,12 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
 
                     Worklist1::worklist[dep].push_back(ueIdx);
 
-                    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-                    std::cerr << "(c) Adding worklist-1 entry for " << CHAR(PRINTNAME(dep)) << " at UE" << ueIdx << std::endl;
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+                    std::cerr << "(c) Adding worklist-1 entry for "
+                              << CHAR(PRINTNAME(dep)) << " at UE" << ueIdx
+                              << std::endl;
                     UnlockingElement::print(ueIdx, 2);
-                    #endif
+#endif
                 }
             }
         }
@@ -1080,15 +1302,17 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
     // Do worklist 1
     tryUnlocking(hSym);
 
-    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
-    std::cerr << "(c) " << earlyLinkingIdx.size() << " semi-early linking targets!" << std::endl;
-    #endif
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    std::cerr << "(c) " << earlyLinkingIdx.size()
+              << " semi-early linking targets!" << std::endl;
+#endif
 
-    // Early linking is now semi early linking, to preserve implicit binary ordering for V = 1 and V = 2 dispatch
-    for (auto & ueIdx : earlyLinkingIdx) {
-        #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    // Early linking is now semi early linking, to preserve implicit binary
+    // ordering for V = 1 and V = 2 dispatch
+    for (auto& ueIdx : earlyLinkingIdx) {
+#if DEBUG_DESERIALIZER_CHECKPOINTS == 1
         std::cerr << "(c) SEMI EARLY LINKING FOR UE" << ueIdx << std::endl;
-        #endif
+#endif
         doUnlockingElement(Pool::get(ueIdx), linkTime);
         Pool::patch(ueIdx, R_NilValue);
     }
@@ -1098,5 +1322,6 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
 }
 
 size_t BitcodeLinkUtil::linkTime = 0;
-bool BitcodeLinkUtil::contextualCompilationSkip = getenv("SKIP_CONTEXTUAL_COMPILATION") ? true : false;
-}
+bool BitcodeLinkUtil::contextualCompilationSkip =
+    getenv("SKIP_CONTEXTUAL_COMPILATION") ? true : false;
+} // namespace rir
