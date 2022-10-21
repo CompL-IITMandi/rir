@@ -32,10 +32,10 @@ namespace rir {
             } else if (TYPEOF(ele) == VECSXP) {
                 auto hast = VECTOR_ELT(ele, 0);
                 auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
-
+                // std::cout << "[L2 unlock adding](" << CHAR(PRINTNAME(hast)) << "," << index << ") -> ";
                 auto c = BitcodeLinkUtil::getCodeObjectAtOffset(hast, index);
+                // std::cout << "[Found src] -> " << c->src;
                 funGFBData.push_back(c->src);
-                // std::cout << "[L2 unlock adding](" << CHAR(PRINTNAME(hast)) << "," << index << ") -> " << c->src;
             } else {
                 funGFBData.push_back(0);
                 // std::cout << "UN ";

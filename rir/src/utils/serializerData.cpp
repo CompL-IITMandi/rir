@@ -172,12 +172,13 @@ void contextData::addObservedCallSiteInfo(SEXP container, ObservedCallees * feed
                     UNPROTECT(1);
                 }
             } else {
-                std::cout << "Serializer Feedback, unsupported call site is type: " << TYPEOF(target) << std::endl;
-                if (TYPEOF(target) == CLOSXP) {
-                    std::cout << "  TYPEOF(BODY(target))" << TYPEOF(BODY(target)) << std::endl;
-                    std::cout << "  Code::check(BODY(target))" << Code::check(BODY(target)) << std::endl;
-                    std::cout << "  DispatchTable::check(BODY(target))" << DispatchTable::check(BODY(target)) << std::endl;
-                }
+                // std::cout << "Serializer Feedback, unsupported call site is type: " << TYPEOF(target) << std::endl;
+                // if (TYPEOF(target) == CLOSXP) {
+                //     std::cout << "  TYPEOF(BODY(target))" << TYPEOF(BODY(target)) << std::endl;
+                //     std::cout << "  Code::check(BODY(target))" << Code::check(BODY(target)) << std::endl;
+                //     std::cout << "  DispatchTable::check(BODY(target))" << DispatchTable::check(BODY(target)) << std::endl;
+                // }
+                SET_VECTOR_ELT(store, sIndex, R_NilValue);
             }
         } else {
             SET_VECTOR_ELT(store, sIndex, R_NilValue);
@@ -245,12 +246,13 @@ void contextData::addObservedCallSiteInfo(SEXP container, ObservedCallees * feed
                     UNPROTECT(1);
                 }
             } else {
-                std::cout << "Serializer Feedback, unsupported call site is type: " << TYPEOF(target) << std::endl;
-                if (TYPEOF(target) == CLOSXP) {
-                    std::cout << "  TYPEOF(BODY(target))" << TYPEOF(BODY(target)) << std::endl;
-                    std::cout << "  Code::check(BODY(target))" << Code::check(BODY(target)) << std::endl;
-                    std::cout << "  DispatchTable::check(BODY(target))" << DispatchTable::check(BODY(target)) << std::endl;
-                }
+                // std::cout << "Serializer Feedback, unsupported call site is type: " << TYPEOF(target) << std::endl;
+                // if (TYPEOF(target) == CLOSXP) {
+                //     std::cout << "  TYPEOF(BODY(target))" << TYPEOF(BODY(target)) << std::endl;
+                //     std::cout << "  Code::check(BODY(target))" << Code::check(BODY(target)) << std::endl;
+                //     std::cout << "  DispatchTable::check(BODY(target))" << DispatchTable::check(BODY(target)) << std::endl;
+                // }
+                SET_VECTOR_ELT(store, sIndex, R_NilValue);
             }
         } else {
             SET_VECTOR_ELT(store, sIndex, R_NilValue);

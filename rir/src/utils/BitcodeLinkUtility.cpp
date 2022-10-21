@@ -585,7 +585,7 @@ DispatchTable* BitcodeLinkUtil::getVtableAtOffset(DispatchTable* vtab,
 void BitcodeLinkUtil::populateHastSrcData(DispatchTable* vtable,
                                           SEXP parentHast) {
 #if PRINT_HAST_SRC_ENTRIES == 1
-                    std::cout << "PARENT " << CHAR(PRINTNAME(parentHast)) << std::endl;
+                    std::cout << "PRINT_HAST_SRC_ENTRIES_PARENT " << CHAR(PRINTNAME(parentHast)) << std::endl;
 #endif
     REnvHandler srcHastMap(SRC_HAST_MAP);
     DispatchTable* currVtab = vtable;
