@@ -37,6 +37,8 @@
 #include "utils/deserializerData.h"
 #include "utils/WorklistManager.h"
 
+#include "utils/FileHandler.h"
+
 using namespace std::chrono;
 using namespace rir;
 
@@ -355,7 +357,7 @@ static void loadMetadata(std::string metaDataPath) {
     BitcodeLinkUtil::contextualCompilationSkip = true;
 
     FILE *reader;
-    reader = fopen(metaDataPath.c_str(),"r");
+    reader = FileHandler::getFileIfExists(metaDataPath);
 
     if (!reader) {
         DebugMessages::printDeserializerErrors("Unable to open meta for deserialization" + metaDataPath, 0);
@@ -365,7 +367,7 @@ static void loadMetadata(std::string metaDataPath) {
     SEXP ddContainer;
     protecc(ddContainer= R_LoadFromFile(reader, 0));
 
-    fclose(reader);
+    fflush(reader);
 
     GeneralWorklist::insert(ddContainer);
 
@@ -743,10 +745,6 @@ REXPORT SEXP stopDebugMessages() {
     return R_NilValue;
 }
 
-static bool fileExists(std::string fName) {
-    std::ifstream f(fName.c_str());
-    return f.good();
-}
 
 static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std::string & name, SEXP cData, bool & serializerError) {
     Protect protecc;
@@ -758,20 +756,14 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
 
     SEXP sDataContainer;
 
-    if (fileExists(fName)) {
+    // Check if metadata already exists
+    if (FILE * oldFile = FileHandler::getFileIfExists(fName)) {
         DebugMessages::printSerializerMessage("(*) metadata already exists", 2);
 
-        FILE *reader;
-        reader = fopen(fName.c_str(),"r");
-
-        if (!reader) {
-            serializerError = true;
-            DebugMessages::printSerializerMessage("(*) serializeClosure failed, unable to open existing metadata", 1);
-            return;
-        }
-
         SEXP result;
-        protecc(result= R_LoadFromFile(reader, 0));
+        protecc(result= R_LoadFromFile(oldFile, 0));
+
+        fflush(oldFile);
 
         sDataContainer = result;
 
@@ -783,7 +775,6 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
             serializerData::addName(sDataContainer, Rf_install(name.c_str()));
         }
 
-        fclose(reader);
     } else {
         protecc(sDataContainer = Rf_allocVector(VECSXP, serializerData::getStorageSize()));
 
@@ -808,8 +799,7 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
     SEXP epoch = serializerData::addBitcodeData(sDataContainer, offsetSym, contextSym, cData);
 
     // 2. Write updated metadata
-    FILE *fptr;
-    fptr = fopen(fName.c_str(),"w");
+    FILE *fptr = FileHandler::createOrGetFileForWriting(fName);
     if (!fptr) {
         serializerError = true;
         DebugMessages::printSerializerMessage("(*) serializeClosure failed, unable to write metadata", 1);
@@ -817,11 +807,12 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
     }
 
     R_SaveToFile(sDataContainer, fptr, 0);
-    fclose(fptr);
 
     if (DebugMessages::serializerDebugLevel() > 1) {
         serializerData::print(sDataContainer, 2);
     }
+
+    fflush(fptr);
 
     // rename temp files
     {
@@ -1045,8 +1036,9 @@ void serializerCleanup() {
                 std::stringstream metaPath;
                 metaPath << prefix << "/" << fName;
 
-                FILE *reader;
-                reader = fopen(metaPath.str().c_str(),"r");
+                std::string currPathh = metaPath.str();
+
+                FILE *reader = FileHandler::getFileIfExists(currPathh);
 
                 if (!reader) {
                     DebugMessages::printSerializerMessage("(*) serializer cleanup failed", 1);
@@ -1055,7 +1047,7 @@ void serializerCleanup() {
 
                 SEXP result;
                 protecc(result= R_LoadFromFile(reader, 0));
-                fclose(reader);
+                fflush(reader);
 
                 // check if the currentHast is blacklisted
                 SEXP hast = serializerData::getHast(result);
