@@ -61,33 +61,7 @@ struct L2Dispatch
 			return getEntry(GENESIS);
 		}
 
-		//
-		// V = 1 dispatch, Here we only dispatch to the latest unlocked binary and move towards more generic ones if we deopt
-		//
-		Function * V1Dispatch() {
-			SEXP functionVector = getEntry(FVEC);
-			for (int i = _last; i >= 0; i--) {
-				SEXP currFunHolder = VECTOR_ELT(functionVector, i);
-				Function * currFun = Function::unpack(currFunHolder);
-				if (!currFun->disabled()) {
-					#if DEBUG_HIT_MISS == 1
-					std::cout << "V1 HIT" << std::endl;
-					#endif
-					return currFun;
-				}
-			}
-
-			#if DEBUG_HIT_MISS == 1
-			std::cout << "V1 MISS" << std::endl;
-			#endif
-
-			//
-			// If all of these are disabled, then we dispatch to the genesis function.
-			// In the beginning, genesis is just a dummy disabled function, but can later
-			// be replaced by a JIT compiled version.
-			//
-			return Function::unpack(getGenesisFunctionContainer());
-		}
+		Function * V1Dispatch();
 
 		void disassemble(std::ostream& out) {
 			ObservedValues* observedTF = getBCSlots();
@@ -128,48 +102,7 @@ struct L2Dispatch
 		// unnecessarity disabled, so for brevity we only dispatch when things are as expected.
 		//
 
-		Function * V2Dispatch() {
-			ObservedValues* observedTF = getBCSlots();
-			SEXP functionVector = getEntry(FVEC);
-			SEXP functionTFVector = getEntry(TVEC);
-			// In this dispatch, only one type version is assumed so latest linked and available method is dispatched
-			for (int i = _last; i >= 0; i--) {
-				SEXP currFunHolder = VECTOR_ELT(functionVector, i);
-				SEXP currTFHolder = VECTOR_ELT(functionTFVector, i);
-
-				Function * currFun = Function::unpack(currFunHolder);
-
-				ObservedValues* currTF = (ObservedValues *) DATAPTR(currTFHolder);
-
-				bool match = true;
-
-				// std::cout << "Checking Function [" << currFun << "]: " << i << "(" << currFun->disabled() << ")" << std::endl;
-
-				for (unsigned int j = 0; j < _numSlots; j++) {
-					// std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
-					if (getFeedbackAsUint(observedTF[j]) != getFeedbackAsUint(currTF[j])) match = false;
-				}
-
-				if (match && !currFun->disabled()) {
-					#if DEBUG_HIT_MISS == 1
-					std::cout << "V2 HIT" << std::endl;
-					#endif
-					return currFun;
-				}
-			}
-			#if DEBUG_HIT_MISS == 1
-			std::cout << "V2 MISS" << std::endl;
-			#endif
-			//
-			// If this fails we return to the genesisFunction, this might be a dummy function or a JIT compiled function
-			//	The reason we dont fallback to V1 dispatch is that a Type Version may get unnecessarily disabled if we randomly
-			// 	dispatch to it without checking type feedback, which will make is unusable in the future. To prevent this we
-			// 	rely on the genesis function.
-			//
-			// return V1Dispatch();
-
-			return Function::unpack(getGenesisFunctionContainer());
-		}
+		Function * V2Dispatch();
 
 		Function * dispatch() {
 			// If nothing exists return genesis
@@ -234,6 +167,10 @@ struct L2Dispatch
 
 		int capacity() {
 			return Rf_length(getEntry(FVEC));
+		}
+
+		int entries() {
+			return _last + 1;
 		}
 
   private:
