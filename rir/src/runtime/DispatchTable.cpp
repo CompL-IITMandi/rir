@@ -7,12 +7,6 @@ namespace rir {
     }
 
     void DispatchTable::insertL2V2(Function* fun, SEXP uEleContainer) {
-
-        // 0 - off
-		// 1 - generic
-		// 2 - specialized
-		static int REV_DISPATCH = getenv("REV_DISPATCH") ? std::stoi(getenv("REV_DISPATCH")) : 0;
-
         fun->setVersioned(this->container());
 
         // doFeedbackRun = true;
@@ -113,15 +107,7 @@ namespace rir {
                     TVals.push_back( *((ObservedValues *) &ele) ); // Casting uint32_t to Observed Value
                 }
 
-                if (REV_DISPATCH == 0) {
-                    l2vt->insert(fun, TVals);
-                }
-
-                if (REV_DISPATCH == 2) {
-                    if (l2vt->entries() == 1) {
-                        l2vt->insert(fun, TVals);
-                    }
-                }
+                l2vt->insert(fun, TVals);
             } else {
                 Rf_error("Dispatch table L2insertion error, corrupted slot!!");
             }
@@ -153,6 +139,12 @@ namespace rir {
                 }
             } else if (L2Dispatch::check(idxContainer)) {
                 L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+                idxContainer = l2vt->getGenesisFunctionContainer();
+
+                Function * old = Function::unpack(idxContainer);
+                fun->addDeoptCount(old->deoptCount());
+
+                // Check if genesis already exists, if yes copy deopt counts
                 l2vt->insertGenesis(fun);
             } else {
                 Rf_error("Dispatch table insertion error, corrupted slot!!");
@@ -165,11 +157,6 @@ namespace rir {
     }
 
     void DispatchTable::insertL2V1(Function* fun) {
-        // 0 - off
-		// 1 - generic
-		// 2 - specialized
-        static int REV_DISPATCH = getenv("REV_DISPATCH") ? std::stoi(getenv("REV_DISPATCH")) : 0;
-
         // doFeedbackRun = true;
         assert(fun->signature().optimization !=
                FunctionSignature::OptimizationLevel::Baseline);
@@ -207,16 +194,7 @@ namespace rir {
                 l2vt->insert(fun);
             } else if (L2Dispatch::check(idxContainer)) {
                 L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
-                if (REV_DISPATCH == 0) {
-                    l2vt->insert(fun);
-                }
-
-                // Special case when REV_DISPATCH == 2, then insert only if size is one
-                if (REV_DISPATCH == 2) {
-                    if (l2vt->entries() == 1) {
-                        l2vt->insert(fun);
-                    }
-                }
+                l2vt->insert(fun);
             } else {
                 Rf_error("Dispatch table L2insertion error, corrupted slot!!");
             }

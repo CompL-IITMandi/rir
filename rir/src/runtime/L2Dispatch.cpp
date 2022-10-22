@@ -14,37 +14,6 @@ Function * L2Dispatch::V1Dispatch() {
 
 	SEXP functionVector = getEntry(FVEC);
 
-	// 0 - off
-	// 1 - generic
-	// 2 - specialized
-	static int REV_DISPATCH = getenv("REV_DISPATCH") ? std::stoi(getenv("REV_DISPATCH")) : 0;
-
-	switch(REV_DISPATCH) {
-		case 1: {
-			SEXP currFunHolder = VECTOR_ELT(functionVector, 0);
-			auto res = Function::unpack(currFunHolder);
-			// ensure res is not disabled
-			if (!res->disabled()) {
-				return Function::unpack(currFunHolder);
-			} else {
-				return Function::unpack(getGenesisFunctionContainer());
-			}
-			break;
-		}
-		case 2: {
-			SEXP currFunHolder = VECTOR_ELT(functionVector, _last);
-			auto res = Function::unpack(currFunHolder);
-			// ensure res is not disabled
-			if (!res->disabled()) {
-				return Function::unpack(currFunHolder);
-			} else {
-				return Function::unpack(getGenesisFunctionContainer());
-			}
-			break;
-		}
-	}
-
-
 	for (int i = _last; i >= 0; i--) {
 		SEXP currFunHolder = VECTOR_ELT(functionVector, i);
 		Function * currFun = Function::unpack(currFunHolder);
@@ -73,36 +42,6 @@ Function * L2Dispatch::V2Dispatch() {
 	ObservedValues* observedTF = getBCSlots();
 	SEXP functionVector = getEntry(FVEC);
 	SEXP functionTFVector = getEntry(TVEC);
-
-	// 0 - off
-	// 1 - generic
-	// 2 - specialized
-	static int REV_DISPATCH = getenv("REV_DISPATCH") ? std::stoi(getenv("REV_DISPATCH")) : 0;
-
-	switch(REV_DISPATCH) {
-		case 1: {
-			SEXP currFunHolder = VECTOR_ELT(functionVector, 0);
-			auto res = Function::unpack(currFunHolder);
-			// ensure res is not disabled
-			if (!res->disabled()) {
-				return Function::unpack(currFunHolder);
-			} else {
-				return Function::unpack(getGenesisFunctionContainer());
-			}
-			break;
-		}
-		case 2: {
-			SEXP currFunHolder = VECTOR_ELT(functionVector, _last);
-			auto res = Function::unpack(currFunHolder);
-			// ensure res is not disabled
-			if (!res->disabled()) {
-				return Function::unpack(currFunHolder);
-			} else {
-				return Function::unpack(getGenesisFunctionContainer());
-			}
-			break;
-		}
-	}
 
 	// In this dispatch, only one type version is assumed so latest linked and available method is dispatched
 	for (int i = _last; i >= 0; i--) {

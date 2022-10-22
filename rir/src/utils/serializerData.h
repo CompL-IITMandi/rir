@@ -226,7 +226,35 @@ namespace rir {
             auto cpool = getCpool(container);
             for (int i = 0; i < Rf_length(cpool); i++) {
                 auto c = VECTOR_ELT(cpool, i);
-                std::cout << TYPEOF(c) << " ";
+                std::cout << "TYPE(" << TYPEOF(c) << ") ";
+                // if (TYPEOF(c) == SYMSXP) {
+                //     std::cout << CHAR(PRINTNAME(c)) << std::endl;
+                // } else if (TYPEOF(c) == RAWSXP) {
+                //     if (Rf_length(c) == 1045) {
+                //         DeoptMetadata* m = (DeoptMetadata *)DATAPTR(c);
+                //         // m->print(std::cout);
+                //         for (size_t i = 0; i < m->numFrames; i++) {
+                //             if (m->frames[i].code == 0) {
+                //                 auto hast = m->frames[i].hast;
+                //                 int index = m->frames[i].index;
+
+                //                 std::cout << "hast:" << hast << std::endl;
+                //                 std::cout << "index:" << index << std::endl;
+
+                //                 // m->frames[i].pc = (Opcode*)((uintptr_t)code + m->frames[i].offset);
+                //             }
+                //         }
+                //     }
+                //     std::cout << "RAW[" << Rf_length(c) << "]" << std::endl;
+                // } else if (TYPEOF(c) == INTSXP) {
+                //     std::cout << "INTSXP(" << Rf_length(c) << ")" << std::endl;
+                //     for (int k = 0; k < Rf_length(c); k++) {
+                //         std::cout << "   " << INTEGER(c)[k] << ")" << std::endl;
+                //     }
+                // } else if (TYPEOF(c) == LANGSXP) {
+                //     std::cout << "LANGSXP: " << c << std::endl;
+                // }
+                // std::cout << " ";
             }
             std::cout << "]" << std::endl;
 

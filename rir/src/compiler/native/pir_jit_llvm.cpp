@@ -380,11 +380,6 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
     vtab = DispatchTable::unpack(UnlockingElement::getVtableContainer(uEleContainer));
 
-    // Skip deserialization if runtime has already compiled it
-    if (versioning == 0 && vtab->contains(Context(con))) {
-        return;
-    }
-
     // Path to the pool
     std::stringstream poolPath;
     poolPath << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".pool";
@@ -405,6 +400,12 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     SEXP cPool = SerializedPool::getCpool(result);
     SEXP sPool = SerializedPool::getSpool(result);
 
+    // static SEXP reqhast = Rf_install("GE:11899018579809053758");
+    // if (reqhast == vtab->hast) {
+    //     std::cout << "Bad function hast: m_GE:11899018579809053758" << std::endl;
+    //     UnlockingElement::print(uEleContainer, 0);
+    //     SerializedPool::print(result, 0);
+    // }
     fclose(reader);
 
     // load bitcode from file, patch and link to
@@ -413,6 +414,22 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     std::unordered_map<int64_t, int64_t> poolPatch;
     for (int i = 0; i < Rf_length(cPool); i++) {
         auto ele = VECTOR_ELT(cPool, i);
+
+        // If the entry is an inverse mapping, patch it with the correct runtime offset
+        if (TYPEOF(ele) == VECSXP && Rf_length(ele) == 2) {
+            SEXP hast = VECTOR_ELT(ele, 0);
+            SEXP index = VECTOR_ELT(ele, 1);
+            if (TYPEOF(hast) == SYMSXP && TYPEOF(index) == SYMSXP) {
+                auto currIdx = BitcodeLinkUtil::getSrcPoolIndexAtOffset(hast, std::stoi(std::string(CHAR(PRINTNAME(index)))));
+
+                if (currIdx == 0) {
+                    std::cerr << "deserializer quietly failing, inverse mapping might have failed for " << currIdx << std::endl;
+                    return;
+                }
+                ele = Pool::get(currIdx);
+            }
+        }
+
         poolPatch[i] = Pool::makeSpace();
         Pool::patch(poolPatch[i], ele);
     }
@@ -902,6 +919,14 @@ void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPo
         if (TYPEOF(obj) == 26) {
             *serializerError = true;
             DebugMessages::printSerializerErrors("(*) constant pool contains EXTERNALSXP, not supported.", 2);
+        }
+        if (TYPEOF(obj) == LANGSXP) {
+            if (BitcodeLinkUtil::sourcePoolInverseMapping.count(obj) > 0) {
+                obj = BitcodeLinkUtil::sourcePoolInverseMapping[obj];
+            } else {
+                *serializerError = true;
+                DebugMessages::printSerializerErrors("(*) constant pool contains a leaked LANGSXP.", 2);
+            }
         }
         SET_VECTOR_ELT(cPool, i, obj);
     }

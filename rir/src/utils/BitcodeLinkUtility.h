@@ -45,11 +45,13 @@ namespace rir {
         static void markStale(SEXP currHastSym, const unsigned long & con);
         static Code * getCodeObjectAtOffset(SEXP hastSym, int offset);
         static unsigned getSrcPoolIndexAtOffset(SEXP hastSym, int offset);
+        static unsigned getSrcPoolIndexAtOffsetWEAK(SEXP hastSym, int offset);
         static SEXP getVtableContainerAtOffset(SEXP hastSym, int offset);
         static DispatchTable * getVtableAtOffset(DispatchTable * vtab, int offset);
         static void printSources(DispatchTable* vtable, SEXP hastSym);
         static void populateTypeFeedbackData(SEXP container, DispatchTable * vtab);
         static void getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<ObservedValues*> & res, DispatchTable * vtab);
+        static std::unordered_map<SEXP, SEXP> sourcePoolInverseMapping;
     };
 
 }

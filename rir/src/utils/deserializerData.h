@@ -209,6 +209,13 @@ namespace rir {
             }
         }
 
+        static void iterator(SEXP container, const std::function< void(SEXP, unsigned int curr, unsigned int last) >& callback) {
+            unsigned int n = Rf_length(container);
+            for (unsigned int i = binsStartingIndex(); i < n; i++) {
+                callback(getSEXP(container, i), i, n);
+            }
+        }
+
         static void print(SEXP container, const unsigned int & space) {
             printSpace(space);
             std::cerr << "├─(ENTRY 0, Context   ): (" << getContextAsUnsignedLong(container) << ") " << rir::Context(getContextAsUnsignedLong(container)) << std::endl;
@@ -369,6 +376,26 @@ namespace rir {
 
             });
         }
+
+        //
+        // callback(ddContainer, offsetUnitContainer, contextUnitContainer, binaryUnitContainer)
+        //
+        static void iterateOverUnits(SEXP ddContainer, const std::function< void(SEXP, SEXP, SEXP, SEXP, unsigned int, unsigned int) >& callback) {
+
+            iterator(ddContainer, [&](SEXP offsetUnitContainer) {
+
+                offsetUnit::iterator(offsetUnitContainer, [&] (SEXP contextUnitContainer) {
+
+                    contextUnit::iterator(contextUnitContainer, [&](SEXP binaryUnitContainer, unsigned int i, unsigned int last) {
+
+                        callback(ddContainer, offsetUnitContainer, contextUnitContainer, binaryUnitContainer, i, last);
+
+                    });
+                });
+
+            });
+        }
+
 
         static void print(SEXP container, const int & space) {
             printSpace(space);

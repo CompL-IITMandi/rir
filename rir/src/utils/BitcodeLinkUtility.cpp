@@ -39,6 +39,7 @@ using namespace std::chrono;
 
 namespace rir {
 
+std::unordered_map<SEXP, SEXP> BitcodeLinkUtil::sourcePoolInverseMapping;
 //
 // AST Hashing function
 //
@@ -401,6 +402,21 @@ unsigned BitcodeLinkUtil::getSrcPoolIndexAtOffset(SEXP hastSym, int requiredOffs
     return r.srcIdx;
 }
 
+unsigned BitcodeLinkUtil::getSrcPoolIndexAtOffsetWEAK(SEXP hastSym, int requiredOffset) {
+    REnvHandler vtabMap(HAST_VTAB_MAP);
+    SEXP vtabContainer = vtabMap.get(hastSym);
+    if (!vtabContainer) {
+        return 0;
+    }
+    if (!DispatchTable::check(vtabContainer)) {
+        return 0;
+    }
+    auto vtab = DispatchTable::unpack(vtabContainer);
+    auto r = getResultAtOffset(vtab, requiredOffset);
+
+    return r.srcIdx;
+}
+
 SEXP BitcodeLinkUtil::getVtableContainerAtOffset(SEXP hastSym, int requiredOffset) {
     REnvHandler vtabMap(HAST_VTAB_MAP);
     SEXP vtabContainer = vtabMap.get(hastSym);
@@ -442,6 +458,12 @@ void BitcodeLinkUtil::populateHastSrcData(DispatchTable* vtable, SEXP parentHast
             SET_VECTOR_ELT(resVec, 1, indexSym);
             srcHastMap.set(srcSym, resVec);
             UNPROTECT(1);
+        }
+
+        if (!sourcePool) {
+            if (sourcePoolInverseMapping.count(Pool::get(src)) == 0) {
+                sourcePoolInverseMapping[Pool::get(src)] = srcHastMap.get(srcSym);
+            }
         }
         // else {
         //     std::cout << "More than one entry for the same src" << std::endl;
@@ -488,21 +510,21 @@ void BitcodeLinkUtil::populateHastSrcData(DispatchTable* vtable, SEXP parentHast
                 case Opcode::call_:
                 case Opcode::named_call_:
                     #if PRINT_HAST_SRC_ENTRIES == 1
-                    std::cout << "src_hast_entry[constant_pool] at indexOffset: " << indexOffset << "," << bc.immediate.callFixedArgs.ast << std::endl;
+                    std::cout << "src_hast_entry[constant_pool] at indexOffset: " << indexOffset << "," << bc.immediate.callFixedArgs.ast << " [ " << Pool::get(bc.immediate.callFixedArgs.ast) << "]" << std::endl;
                     #endif
                     addSrcToMap(bc.immediate.callFixedArgs.ast, false);
                     indexOffset++;
                     break;
                 case Opcode::call_dots_:
                     #if PRINT_HAST_SRC_ENTRIES == 1
-                    std::cout << "src_hast_entry[constant_pool] at indexOffset: " << indexOffset << "," << bc.immediate.callFixedArgs.ast << std::endl;
+                    std::cout << "src_hast_entry[constant_pool] at indexOffset: " << indexOffset << "," << bc.immediate.callFixedArgs.ast << " [ " << Pool::get(bc.immediate.callFixedArgs.ast) << "]" << std::endl;
                     #endif
                     addSrcToMap(bc.immediate.callFixedArgs.ast, false);
                     indexOffset++;
                     break;
                 case Opcode::call_builtin_:
                     #if PRINT_HAST_SRC_ENTRIES == 1
-                    std::cout << "src_hast_entry[constant_pool] at indexOffset: " << indexOffset << "," << bc.immediate.callBuiltinFixedArgs.ast << std::endl;
+                    std::cout << "src_hast_entry[constant_pool] at indexOffset: " << indexOffset << "," << bc.immediate.callBuiltinFixedArgs.ast << " [ " << Pool::get(bc.immediate.callFixedArgs.ast) << "]" << std::endl;
                     #endif
                     addSrcToMap(bc.immediate.callBuiltinFixedArgs.ast, false);
                     indexOffset++;
@@ -908,6 +930,10 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
     //
     static int L2LEVEL = getenv("L2_LEVEL") ? std::stoi(getenv("L2_LEVEL")) : 10;
 
+    static bool ONLY_SIMPLE_BINS = getenv("ONLY_SIMPLE_BINS") ? getenv("ONLY_SIMPLE_BINS")[0] = '1' : false;
+
+    static bool ONLY_REV = getenv("ONLY_REV") ? getenv("ONLY_REV")[0] = '1' : false;
+
     //
     // Only applies the mask to the dispatch table
     //
@@ -936,7 +962,14 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
     // Early linking breaks the implicit binary ordering, should complete worklist1 before linking these binaries
     std::vector<BC::PoolIdx> earlyLinkingIdx;
 
-    deserializerData::iterateOverUnits(ddCont, [&](SEXP ddContainer, SEXP offsetUnitContainer, SEXP contextUnitContainer, SEXP binaryUnitContainer) {
+    deserializerData::iterateOverUnits(ddCont, [&](SEXP ddContainer, SEXP offsetUnitContainer, SEXP contextUnitContainer, SEXP binaryUnitContainer, unsigned int i, unsigned int last) {
+
+        if (ONLY_REV) {
+            if (i + 1 != last) {
+                return;
+            }
+        }
+
         //
         // Creating the UnlockElement
         //
@@ -976,6 +1009,13 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
 
         // 3. Counter Value
         SEXP rMap = binaryUnit::getReqMap(binaryUnitContainer);
+
+        if (ONLY_SIMPLE_BINS) {
+            if (Rf_length(rMap) > 0) {
+                return;
+            }
+        }
+
         auto reduceRes = reduceReqMap(rMap);
 
         // 4. nArgs - conditionally added
@@ -1012,6 +1052,10 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
             return;
         }
 
+        // if (REV_DISPATCH > 0) {
+        //     Pool::patch(ueIdx, R_NilValue);
+        //     return;
+        // }
         std::vector<int> & optIdx = reduceRes.second;
 
         for (int i = 0; i < Rf_length(rMap); i++) {
