@@ -24,12 +24,24 @@ Function * L2Dispatch::V2Dispatch() {
 		switch(REV_DISPATCH) {
 			case 1: {
 				SEXP currFunHolder = VECTOR_ELT(functionVector, 0);
-				return Function::unpack(currFunHolder);
+				auto res = Function::unpack(currFunHolder);
+				// ensure res is not disabled
+				if (!res->disabled()) {
+					return Function::unpack(currFunHolder);
+				} else {
+					return Function::unpack(getGenesisFunctionContainer());
+				}
 				break;
 			}
 			case 2: {
 				SEXP currFunHolder = VECTOR_ELT(functionVector, _last);
-				return Function::unpack(currFunHolder);
+				auto res = Function::unpack(currFunHolder);
+				// ensure res is not disabled
+				if (!res->disabled()) {
+					return Function::unpack(currFunHolder);
+				} else {
+					return Function::unpack(getGenesisFunctionContainer());
+				}
 				break;
 			}
 		}
