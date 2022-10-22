@@ -15,6 +15,26 @@ Function * L2Dispatch::V2Dispatch() {
 		SEXP functionVector = getEntry(FVEC);
 		SEXP functionTFVector = getEntry(TVEC);
 		SEXP functionGFBVector = getEntry(GVEC);
+
+		// 0 - off
+		// 1 - generic
+		// 2 - specialized
+		static int REV_DISPATCH = getenv("REV_DISPATCH") ? std::stoi(getenv("REV_DISPATCH")) : 0;
+
+		switch(REV_DISPATCH) {
+			case 1: {
+				SEXP currFunHolder = VECTOR_ELT(functionVector, 0);
+				return Function::unpack(currFunHolder);
+				break;
+			}
+			case 2: {
+				SEXP currFunHolder = VECTOR_ELT(functionVector, _last);
+				return Function::unpack(currFunHolder);
+				break;
+			}
+		}
+
+
 		// In this dispatch, only one type version is assumed so latest linked and available method is dispatched
 		for (int i = _last; i >= 0; i--) {
 			SEXP currFunHolder = VECTOR_ELT(functionVector, i);
