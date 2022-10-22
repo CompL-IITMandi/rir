@@ -668,7 +668,7 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
             SerializedPool::addFArg(serializedPoolData, fArgDataVec);
             SerializedPool::addFChildren(serializedPoolData, fChildrenData);
 
-            jit.serializeModule(cData, done[mainFunCodeObj], serializedPoolData, relevantNames, mainName);
+            jit.serializeModule(cData, done[mainFunCodeObj], serializedPoolData, relevantNames, mainName, rMap);
 
             if (DebugMessages::serializerDebugLevel() > 1) {
                 SerializedPool::print(serializedPoolData, 2);

@@ -420,7 +420,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
             SEXP hast = VECTOR_ELT(ele, 0);
             SEXP index = VECTOR_ELT(ele, 1);
             if (TYPEOF(hast) == SYMSXP && TYPEOF(index) == SYMSXP) {
-                auto currIdx = BitcodeLinkUtil::getSrcPoolIndexAtOffset(hast, std::stoi(std::string(CHAR(PRINTNAME(index)))));
+                auto currIdx = BitcodeLinkUtil::getSrcPoolIndexAtOffsetWEAK(hast, std::stoi(std::string(CHAR(PRINTNAME(index)))));
 
                 if (currIdx == 0) {
                     std::cerr << "deserializer quietly failing, inverse mapping might have failed for " << currIdx << std::endl;
@@ -658,7 +658,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
 }
 
-void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName) {
+void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName, std::set<SEXP> & rMap) {
     auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : "bitcodes";
 
     std::vector<int64_t> cpEntries;
@@ -923,6 +923,7 @@ void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPo
         if (TYPEOF(obj) == LANGSXP) {
             if (BitcodeLinkUtil::sourcePoolInverseMapping.count(obj) > 0) {
                 obj = BitcodeLinkUtil::sourcePoolInverseMapping[obj];
+                rMap.insert(VECTOR_ELT(obj, 0));
             } else {
                 *serializerError = true;
                 DebugMessages::printSerializerErrors("(*) constant pool contains a leaked LANGSXP.", 2);

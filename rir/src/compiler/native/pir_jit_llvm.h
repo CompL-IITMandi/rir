@@ -141,7 +141,7 @@ class PirJitLLVM {
     // serializer
     std::set<SEXP> * reqMapForCompilation = nullptr;
     bool* serializerError = nullptr;
-    void serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName);
+    void serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName, std::set<SEXP> & rMap);
     void updateFunctionNameInModule(std::string, std::string);
     void patchFixupHandle(const std::string & newName, Code * code);
     void printModule();
