@@ -10,6 +10,11 @@ namespace rir {
 
     void DispatchTable::insertL2V2(Function* fun, SEXP uEleContainer) {
 
+        // 0 - off
+		// 1 - generic
+		// 2 - specialized
+		static int REV_DISPATCH = getenv("REV_DISPATCH") ? std::stoi(getenv("REV_DISPATCH")) : 0;
+
 
         SEXP FBData = UnlockingElement::getGFunTFInfo(uEleContainer);
         #if DEBUG_L2_ENTRIES > 0
@@ -183,17 +188,25 @@ namespace rir {
                 #endif
                 l2vt->insert(fun, TVals, funGFBData);
             } else if (L2Dispatch::check(idxContainer)) {
-                #if DEBUG_L2_ENTRIES > 0
-                std::cout << "Case 2: Existing L2!" << std::endl;
-                #endif
-                L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+                if (REV_DISPATCH == 0) {
+                    #if DEBUG_L2_ENTRIES > 0
+                    std::cout << "Case 2: Existing L2!" << std::endl;
+                    #endif
 
-                #if DEBUG_L2_ENTRIES > 0
-                std::cout << "(*) Inserting function" << std::endl;
-                #endif
+                    #if DEBUG_L2_ENTRIES > 0
+                    std::cout << "(*) Inserting function" << std::endl;
+                    #endif
+                    L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+                    l2vt->insert(fun, TVals, funGFBData);
+                }
 
-
-                l2vt->insert(fun, TVals, funGFBData);
+                // Special case when REV_DISPATCH == 2, then insert only if size is one
+                if (REV_DISPATCH == 2) {
+                    L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+                    if (l2vt->entries() == 1) {
+                        l2vt->insert(fun, TVals, funGFBData);
+                    }
+                }
             } else {
                 Rf_error("Dispatch table L2insertion error, corrupted slot!!");
             }
@@ -237,6 +250,11 @@ namespace rir {
     }
 
     void DispatchTable::insertL2V1(Function* fun) {
+        // 0 - off
+		// 1 - generic
+		// 2 - specialized
+        static int REV_DISPATCH = getenv("REV_DISPATCH") ? std::stoi(getenv("REV_DISPATCH")) : 0;
+
         // doFeedbackRun = true;
         assert(fun->signature().optimization !=
                FunctionSignature::OptimizationLevel::Baseline);
@@ -273,8 +291,19 @@ namespace rir {
                 setEntry(idx, l2vt->container());
                 l2vt->insert(fun);
             } else if (L2Dispatch::check(idxContainer)) {
-                L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
-                l2vt->insert(fun);
+                if (REV_DISPATCH == 0) {
+                    L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+                    l2vt->insert(fun);
+                }
+
+                // Special case when REV_DISPATCH == 2, then insert only if size is one
+                if (REV_DISPATCH == 2) {
+                    L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+                    if (l2vt->entries() == 1) {
+                        l2vt->insert(fun);
+                    }
+                }
+
             } else {
                 Rf_error("Dispatch table L2insertion error, corrupted slot!!");
             }

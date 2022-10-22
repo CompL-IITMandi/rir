@@ -226,6 +226,10 @@ struct L2Dispatch
 			return Rf_length(getEntry(FVEC));
 		}
 
+		int entries() {
+			return _last + 1;
+		}
+
   private:
     L2Dispatch() = delete;
 
