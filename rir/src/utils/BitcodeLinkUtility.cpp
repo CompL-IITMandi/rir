@@ -137,17 +137,18 @@ void BitcodeLinkUtil::populateTypeFeedbackData(SEXP container, DispatchTable * v
             bc.addMyPromArgsTo(promises);
 
             // call sites
-            switch (bc.bc) {
-                case Opcode::record_type_:
-
-                    // std::cout << "record_type_(" << i << "): ";
-                    // bc.immediate.typeFeedback.print(std::cout);
+            if (bc.bc == Opcode::record_type_) {
+                    // std::cout << "FOR CODE:  " << c << std::endl;
+                    // std::cout << "record_type " << feedback << " [" << *((uint32_t *) feedback) << "]" << std::endl;
+                    // std::cout << "  ";
+                    // feedback->print(std::cout);
                     // std::cout << std::endl;
-                    // std::cout << "[[ " << &bc.immediate.typeFeedback << " ]]" << std::endl;
                     contextData::addObservedValueToVector(container, &bc.immediate.typeFeedback);
-
-                default: {}
             }
+            // switch (bc.bc) {
+            //     case Opcode::record_type_:
+            //         break;
+            // }
 
             // inner functions
             if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
@@ -180,7 +181,7 @@ void BitcodeLinkUtil::getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, s
     // Indices must be sorted for this to work
     DispatchTable * currVtab = vtab;
 
-    int i = 0;
+    int reqIdx = 0;
 
     std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
         // Default args
@@ -207,15 +208,19 @@ void BitcodeLinkUtil::getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, s
                     // switch (*pos) {
                     // case Opcode::record_type_: {
                     // assert(*pos == Opcode::record_type_);
-                    ObservedValues* feedback = (ObservedValues*)(pc + 1);
-                    // std::cout << "record_type_(" << i << "): ";
-                    // feedback->print(std::cout);
-                    // std::cout << std::endl;
-                    // std::cout << "[[ " << feedback << " ]]" << std::endl;
-                    if (std::count(indices.begin(), indices.end(), i)) {
+                    if (std::count(indices.begin(), indices.end(), reqIdx)) {
+                        // std::cout << "FOR CODE:  " << c << std::endl;
+                        ObservedValues* feedback = (ObservedValues*)(pc + 1);
+                        // std::cout << "[I]PERCIEVED AT: " << feedback << std::endl;
+                        // feedback->print(std::cout);
+                        // std::cout << std::endl;
+
+                        // std::cout << "[I]ACTUAL: " << std::endl;
+                        // bc.immediate.typeFeedback.print(std::cout);
+                        // std::cout << std::endl;
                         res.push_back(feedback);
                     }
-                    i++;
+                    reqIdx++;
                 }
                 default: {}
             }
@@ -1140,6 +1145,76 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
     // Remove the generalWorklistElement
     GeneralWorklist::remove(hSym);
 }
+
+void BitcodeLinkUtil::printValidLookupIndices(DispatchTable * vtab) {
+    // Indices must be sorted for this to work
+    DispatchTable * currVtab = vtab;
+
+    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
+        // Default args
+        if (funn) {
+            auto nargs = funn->nargs();
+            for (unsigned i = 0; i < nargs; i++) {
+                auto code = funn->defaultArg(i);
+                if (code != nullptr) {
+                    iterateOverCodeObjs(code, nullptr);
+                }
+            }
+        }
+
+        Opcode* pc = c->code();
+        std::vector<BC::FunIdx> promises;
+        Protect p;
+        while (pc < c->endCode()) {
+            BC bc = BC::decode(pc, c);
+            bc.addMyPromArgsTo(promises);
+
+            // call sites
+            switch (bc.bc) {
+                case Opcode::record_type_: {
+                    // switch (*pos) {
+                    // case Opcode::record_type_: {
+                    // assert(*pos == Opcode::record_type_);
+                    ObservedValues* feedback = (ObservedValues*)(pc + 1);
+                    std::cout << "PERCIEVED AT: " << feedback << std::endl;
+                    feedback->print(std::cout);
+                    std::cout << std::endl;
+
+                    std::cout << "ACTUAL: " << std::endl;
+                    bc.immediate.typeFeedback.print(std::cout);
+                    std::cout << std::endl;
+
+                }
+                default: {}
+            }
+
+            // inner functions
+            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                SEXP iConst = bc.immediateConst();
+                if (DispatchTable::check(iConst)) {
+                    currVtab = DispatchTable::unpack(iConst);
+                    auto c = currVtab->baseline()->body();
+                    auto f = c->function();
+                    iterateOverCodeObjs(c, f);
+                }
+            }
+
+            pc = BC::next(pc);
+        }
+
+        // Iterate over promises code objects recursively
+        for (auto i : promises) {
+            auto prom = c->getPromise(i);
+            iterateOverCodeObjs(prom, nullptr);
+        }
+    };
+
+    Code * genesisCodeObj = currVtab->baseline()->body();
+    Function * genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
+
 
 size_t BitcodeLinkUtil::linkTime = 0;
 bool BitcodeLinkUtil::contextualCompilationSkip = getenv("SKIP_CONTEXTUAL_COMPILATION") ? true : false;

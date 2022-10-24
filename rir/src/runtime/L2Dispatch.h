@@ -64,13 +64,19 @@ struct L2Dispatch
 		Function * V1Dispatch();
 
 		void disassemble(std::ostream& out) {
-			ObservedValues* observedTF = getBCSlots();
+			// ObservedValues* observedTF = getBCSlots();
 			SEXP functionVector = getEntry(FVEC);
 			SEXP functionTFVector = getEntry(TVEC);
-			out << "= L2 dispatch Start =" << std::endl;
+			out << "= L2: " << Function::unpack(getGenesisFunctionContainer())->context() << " =" << std::endl;
+			for (unsigned int j = 0; j < _numSlots; j++) {
+				out << "	SLOT(" << j << "): " << BCTFSlots[j] << "[" << getFeedbackAsUint(*BCTFSlots[j]) << "]" << std::endl;
+				out << "		[ ";
+				BCTFSlots[j]->print(out);
+				out << "]" << std::endl;
+			}
 
-			out << "= Genesis slot: " << Function::unpack(getGenesisFunctionContainer()) << std::endl;
-			Function::unpack(getGenesisFunctionContainer())->disassemble(out);
+			// out << "= Genesis slot: " << Function::unpack(getGenesisFunctionContainer()) << std::endl;
+			// // Function::unpack(getGenesisFunctionContainer())->disassemble(out);
 
 			for (int i = _last; i >= 0; i--) {
 				SEXP currFunHolder = VECTOR_ELT(functionVector, i);
@@ -79,18 +85,30 @@ struct L2Dispatch
 				ObservedValues* currTF = (ObservedValues *) DATAPTR(currTFHolder);
 
 				out << "= L2 slot: " << i << "(" << currFun << ")" << std::endl;
-				for (unsigned int j = 0; j < _numSlots; j++) {
-					std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
-				}
 				currFun->disassemble(out);
+				for (unsigned int j = 0; j < _numSlots; j++) {
+					bool match = true;
+					out << "		[ ";
+					currTF[j].print(out);
+					out << "]" << std::endl;
+
+
+					for (unsigned int j = 0; j < _numSlots; j++) {
+						if (getFeedbackAsUint(*BCTFSlots[j]) != getFeedbackAsUint(currTF[j])) match = false;
+					}
+					if (match) {
+						std::cout << "TF MATCHED" << std::endl;
+					}
+
+				}
 			}
 		}
 
-		ObservedValues * getBCSlots() {
-			SEXP BCVecContainer = getEntry(BCVEC);
-			ObservedValues* * tmp = (ObservedValues* *) DATAPTR(BCVecContainer);
-			return *tmp;
-		}
+		// ObservedValues * getBCSlots() {
+		// 	SEXP BCVecContainer = getEntry(BCVEC);
+		// 	ObservedValues* * tmp = (ObservedValues* *) DATAPTR(BCVecContainer);
+		// 	return *tmp;
+		// }
 
 		uint32_t getFeedbackAsUint(const rir::ObservedValues & v) {
 			return *((uint32_t *) &v);
@@ -193,32 +211,34 @@ struct L2Dispatch
 			}
 
 		// BCTFSlots are the required bytecode type feedback slot pointers
-		explicit L2Dispatch(Function* genesis, const std::vector<ObservedValues*> & BCTFSlots):
+		explicit L2Dispatch(Function* genesis, const std::vector<ObservedValues*> & L2Slots):
 			RirRuntimeObject(sizeof(L2Dispatch),ENTRIES_SIZE),
 			_versioning(2) {
 
-				_numSlots = BCTFSlots.size();
+				_numSlots = L2Slots.size();
 				Protect protecc;
 				//
 				// 1. Populate BCVEC entries to point to ByteCode Locations
 				//
-				SEXP BCVector;
-				// We make it a contigious big object, so we can directly index without VECTOR_ELT for each slot
-				protecc(BCVector = Rf_allocVector(RAWSXP, _numSlots * sizeof(ObservedValues*)));
-				ObservedValues* * tmp = (ObservedValues* *) DATAPTR(BCVector);
+				// SEXP BCVector;
+				// // We make it a contigious big object, so we can directly index without VECTOR_ELT for each slot
+				// protecc(BCVector = Rf_allocVector(RAWSXP, _numSlots * sizeof(ObservedValues*)));
+				// ObservedValues* * tmp = (ObservedValues* *) DATAPTR(BCVector);
 
-				// ObservedValues* workWith = *tmp;
+				// // ObservedValues* workWith = *tmp;
 
-				for (unsigned int i = 0; i < _numSlots; i++) {
-					ObservedValues* ele = BCTFSlots[i];
-					//
-					// Note: Pointer-pointers are so weird
-					//
-					tmp[i] = ele;
-				}
+				// for (unsigned int i = 0; i < _numSlots; i++) {
+				// 	ObservedValues* ele = BCTFSlots[i];
+				// 	//
+				// 	// Note: Pointer-pointers are so weird
+				// 	//
+				// 	tmp[i] = ele;
+				// }
 
-				// Store BCVEC in the GC area
-				setEntry(BCVEC, BCVector);
+				BCTFSlots = L2Slots;
+
+				// // Store BCVEC in the GC area
+				setEntry(BCVEC, R_NilValue);
 
 
 				//
@@ -262,8 +282,9 @@ struct L2Dispatch
 			}
 
 		}
-
     const unsigned _versioning;
+
+    std::vector<ObservedValues*> BCTFSlots;
     int _last = -1;
 	unsigned int _numSlots;
 };

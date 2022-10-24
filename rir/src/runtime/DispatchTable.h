@@ -34,6 +34,23 @@ struct DispatchTable
 
     size_t size() const { return size_; }
 
+    void printWithAll() {
+        for (size_t i = 1; i < size(); ++i) {
+
+            SEXP funContainer = getEntry(i);
+
+            if (L2Dispatch::check(funContainer)) {
+                std::cout << "L2 at idx: " << i << std::endl;
+                L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+                l2vt->disassemble(std::cout);
+            }
+            //  else {
+            //     std::cout << "REGDISP at idx: " << i << std::endl;
+            //     Function::unpack(getEntry(i))->disassemble(std::cout);
+            // }
+        }
+    }
+
     bool isL2(size_t i) const {
         assert(i < capacity());
 

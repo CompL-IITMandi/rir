@@ -807,6 +807,9 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
 
     SEXP epoch = serializerData::addBitcodeData(sDataContainer, offsetSym, contextSym, cData);
 
+    DebugMessages::printSerializerMessage(std::string("current epoch: ") + std::string(CHAR(PRINTNAME(epoch))), 2);
+
+
     // 2. Write updated metadata
     FILE *fptr;
     fptr = fopen(fName.c_str(),"w");
@@ -862,6 +865,12 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         Rf_error("Cannot optimize compiled expression, only closure");
     }
 
+    // auto currDispatch = DispatchTable::unpack(BODY(what))->dispatch(assumptions);
+    // if (currDispatch->context() == assumptions && !currDispatch->disabled()) {
+    //     std::cout << "WEIRD CASE!" << std::endl;
+    //     return what;
+    // }
+
     PROTECT(what);
 
     bool dryRun = debug.includes(pir::DebugFlag::DryRun);
@@ -869,6 +878,16 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     pir::Module* m = new pir::Module;
     pir::StreamLogger logger(debug);
     logger.title("Compiling " + name);
+
+    // DispatchTable::unpack(BODY(what))->baseline()->disassemble(std::cout);
+
+    // BitcodeLinkUtil::printValidLookupIndices(DispatchTable::unpack(BODY(what)));
+
+    // std::cout << "CC Context: " << assumptions << std::endl;
+    // DispatchTable::unpack(BODY(what))->printWithAll();
+    // std::cout << "Dispatch Table: " << DispatchTable::unpack(BODY(what)) << std::endl;
+    // DispatchTable::unpack(BODY(what))->printWithAll();
+
     pir::Compiler cmp(m, logger);
     pir::Backend backend(m, logger, name);
     auto compile = [&](pir::ClosureVersion* c) {

@@ -52,6 +52,8 @@ namespace rir {
         static void populateTypeFeedbackData(SEXP container, DispatchTable * vtab);
         static void getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<ObservedValues*> & res, DispatchTable * vtab);
         static std::unordered_map<SEXP, SEXP> sourcePoolInverseMapping;
+        static void printValidLookupIndices(DispatchTable * vtab);
+
     };
 
 }

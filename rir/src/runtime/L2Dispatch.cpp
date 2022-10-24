@@ -39,7 +39,8 @@ Function * L2Dispatch::V1Dispatch() {
 
 
 Function * L2Dispatch::V2Dispatch() {
-	ObservedValues* observedTF = getBCSlots();
+	// ObservedValues* observedTF = getBCSlots();
+
 	SEXP functionVector = getEntry(FVEC);
 	SEXP functionTFVector = getEntry(TVEC);
 
@@ -58,7 +59,7 @@ Function * L2Dispatch::V2Dispatch() {
 
 		for (unsigned int j = 0; j < _numSlots; j++) {
 			// std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
-			if (getFeedbackAsUint(observedTF[j]) != getFeedbackAsUint(currTF[j])) match = false;
+			if (getFeedbackAsUint(*BCTFSlots[j]) != getFeedbackAsUint(currTF[j])) match = false;
 		}
 
 		if (match && !currFun->disabled()) {
