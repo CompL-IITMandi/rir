@@ -469,6 +469,12 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
             } else {
                 DispatchTable* dt = DispatchTable::unpack(vtabContainer);
                 BitcodeLinkUtil::populateTypeFeedbackData(cData, dt);
+
+                // Optionally collect other feedback data
+                static bool populateOtherFeedback = getenv("OTHER_FEEDBACK_INFO") ? getenv("OTHER_FEEDBACK_INFO")[0] == '1' : true; // On by default
+                if (populateOtherFeedback) {
+                    BitcodeLinkUtil::populateOtherFeedbackData(cData, dt);
+                }
             }
         }
     }
@@ -695,6 +701,31 @@ rir::Function* Backend::doCompile(ClosureVersion* cls,
             }
 
             contextData::addReqMapForCompilation(cData, rData);
+
+            SEXP fbdContainer = contextData::getFBD(cData);
+            // Ensure General Feedback derives from the requirement map
+            for (int i = 0; i < Rf_length(fbdContainer); i++) {
+                SEXP ele = VECTOR_ELT(fbdContainer, i);
+                if (TYPEOF(ele) == VECSXP){
+                    auto hast = VECTOR_ELT(ele, 0);
+                    // auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
+                    bool exists = false;
+                    std::string str(CHAR(PRINTNAME(hast)));
+                    for (auto & ele : reqMap) {
+                        std::string str2(CHAR(PRINTNAME(ele)));
+
+                        if (str2.find(str) != std::string::npos) {
+                            // std::cout << "Exists: " << str << ", At reqmap: " << str2 << std::endl;
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        // std::cout << "[REM_GEN_FB] !Exists: " << str << std::endl;
+                        SET_VECTOR_ELT(fbdContainer, i, R_NilValue);
+                    }
+                }
+            }
 
             //
             // Collect type feedback before lowering as lowering may update some slots

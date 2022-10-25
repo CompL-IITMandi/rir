@@ -279,10 +279,13 @@ namespace rir {
         // 3 (unsigned int) creationIndex
         // Within a run this index is unique, handle merging across program runs this is invalid.
 
+        // 4 (SEXP) otherFeedbackInfo
+        // Stores the test info and other callee info
+
         public:
             // Misc functions
             static unsigned getStorageSize() {
-                return 4;
+                return 5;
             }
 
             static void addSEXP(SEXP container, SEXP data, const int & index) {
@@ -299,6 +302,8 @@ namespace rir {
                     std::cout << " ";
                 }
             }
+            static void addObservedTestToVector(SEXP container, ObservedTest * observedVal);
+            static void addObservedCallSiteInfo(SEXP container, ObservedCallees * observedVal, rir::Code *);
 
             static void addObservedValueToVector(SEXP container, ObservedValues * observedVal);
             // ENTRY 0: Con
@@ -384,6 +389,15 @@ namespace rir {
                 return *res;
             }
 
+            // ENTRY 4: TypeFeedbackData
+            static void addFBD(SEXP container, SEXP data) {
+                addSEXP(container, data, 4);
+            }
+
+            static SEXP getFBD(SEXP container) {
+                return getSEXP(container, 4);
+            }
+
             static void print(SEXP container, unsigned int space) {
                 printSpace(space);
                 std::cout << "== contextData ==" << std::endl;
@@ -416,6 +430,28 @@ namespace rir {
 
                 printSpace(space);
                 std::cout << "ENTRY(3)[Creation Index]: " << getCI(container) << std::endl;
+
+                printSpace(space);
+                SEXP fbdContainer = getFBD(container);
+                std::cout << "ENTRY(4)[Other Feedback Info](" << Rf_length(fbdContainer) << " Entries): <";
+
+                for (int i = 0; i < Rf_length(fbdContainer); i++) {
+                    SEXP ele = VECTOR_ELT(fbdContainer, i);
+                    if (ele == R_NilValue) {
+                        std::cout << "NIL, ";
+                    } else if (ele == R_dot_defined) {
+                        std::cout << "T, ";
+                    } else if (ele == R_dot_Method) {
+                        std::cout << "F, ";
+                    } else if (TYPEOF(ele) == VECSXP){
+                        auto hast = VECTOR_ELT(ele, 0);
+                        auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
+                        std::cout << "(" << CHAR(PRINTNAME(hast)) << "," << index << "), ";
+                    } else {
+                        std::cout << "UN, ";
+                    }
+                }
+                std::cout << ">" << std::endl;
             }
     };
 

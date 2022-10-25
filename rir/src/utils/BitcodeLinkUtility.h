@@ -54,6 +54,9 @@ namespace rir {
         static std::unordered_map<SEXP, SEXP> sourcePoolInverseMapping;
         static void printValidLookupIndices(DispatchTable * vtab);
 
+        // Handling Other Feedbakc data
+        static void populateOtherFeedbackData(SEXP container, DispatchTable * vtab);
+
     };
 
 }
