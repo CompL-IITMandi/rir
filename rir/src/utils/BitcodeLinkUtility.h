@@ -56,7 +56,7 @@ namespace rir {
 
         // Handling Other Feedbakc data
         static void populateOtherFeedbackData(SEXP container, DispatchTable * vtab);
-
+        static void getGeneralFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<GenFeedbackHolder> & res, DispatchTable * vtab);
     };
 
 }

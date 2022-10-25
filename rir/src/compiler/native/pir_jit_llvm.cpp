@@ -371,14 +371,6 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     int versioning = UnlockingElement::getVersioningInfo(uEleContainer);
     unsigned long con = UnlockingElement::getContext(uEleContainer);
 
-    DispatchTable * vtab;
-
-    if (!DispatchTable::check(UnlockingElement::getVtableContainer(uEleContainer))) {
-        std::cerr << "deserializer quietly failing, vtab is corrupted! " << std::endl;
-        return;
-    }
-
-    vtab = DispatchTable::unpack(UnlockingElement::getVtableContainer(uEleContainer));
 
     // Path to the pool
     std::stringstream poolPath;
@@ -625,7 +617,18 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         item->function(function.function());
     }
 
+    DispatchTable * vtab;
 
+    if (!DispatchTable::check(UnlockingElement::getVtableContainer(uEleContainer))) {
+        std::cerr << "deserializer quietly failing, vtab is corrupted! " << std::endl;
+        return;
+    }
+
+    SEXP vtabContainer = UnlockingElement::getVtableContainer(uEleContainer);
+
+    protecc(vtabContainer);
+
+    vtab = DispatchTable::unpack(vtabContainer);
 
     function.function()->inheritFlags(vtab->baseline());
 
@@ -634,6 +637,10 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     // UnlockingElement::print(uEleContainer, 4);
 
     auto currFun = function.function();
+
+    protecc(currFun->container());
+
+    std::cout << "Deserialization success, adding to dispatch table" << std::endl;
 
     // generalUtil::printSpace(2);
     // std::cout << "Versioning: " << versioning << std::endl;

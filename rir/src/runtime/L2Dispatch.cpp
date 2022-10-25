@@ -43,15 +43,21 @@ Function * L2Dispatch::V2Dispatch() {
 
 	SEXP functionVector = getEntry(FVEC);
 	SEXP functionTFVector = getEntry(TVEC);
+	SEXP GFVector       = getEntry(GVEC);
+	SEXP BCGVector = getEntry(BCGVEC);
+
+	GenFeedbackHolder * GENSlots = (GenFeedbackHolder *) DATAPTR(BCGVector);
 
 	// In this dispatch, only one type version is assumed so latest linked and available method is dispatched
 	for (int i = _last; i >= 0; i--) {
 		SEXP currFunHolder = VECTOR_ELT(functionVector, i);
 		SEXP currTFHolder = VECTOR_ELT(functionTFVector, i);
 
+
 		Function * currFun = Function::unpack(currFunHolder);
 
 		ObservedValues* currTF = (ObservedValues *) DATAPTR(currTFHolder);
+
 
 		bool match = true;
 
@@ -60,6 +66,70 @@ Function * L2Dispatch::V2Dispatch() {
 		for (unsigned int j = 0; j < _numSlots; j++) {
 			// std::cout << "Slot[" << j << "]: " << getFeedbackAsUint(observedTF[j]) << ", " << getFeedbackAsUint(currTF[j]) << std::endl;
 			if (getFeedbackAsUint(*BCTFSlots[j]) != getFeedbackAsUint(currTF[j])) match = false;
+		}
+
+		if (match) {
+
+			SEXP currFunIntData = VECTOR_ELT(GFVector, i);
+			std::vector<int> currentFunctionGenData;
+			for (int m = 0; m < Rf_length(currFunIntData); m++) {
+				currentFunctionGenData.push_back(INTEGER(currFunIntData)[m]);
+			}
+
+			for (unsigned int j = 0; j < currentFunctionGenData.size(); j++) {
+
+				auto currFunFeedbackId = currentFunctionGenData[j];
+				if (currFunFeedbackId == 0) {
+					// Nada, maybe check?
+				} else if (currFunFeedbackId < 0) {
+					// Set match is false if values are not same
+					BC bc = BC::decode(GENSlots[j].pc, GENSlots[j].code);
+					ObservedTest prof = bc.immediate.testFeedback;
+					if (prof.seen == ObservedTest::OnlyTrue && currFunFeedbackId == -2) {
+						// -2 == OnlyFalse
+						match = false;
+						std::cout << "[-2 fail]" << std::endl;
+					} else if (prof.seen == ObservedTest::OnlyFalse && currFunFeedbackId == -1) {
+						// -1 == OnlyTrue
+						match = false;
+						std::cout << "[-1 fail]" << std::endl;
+					}
+
+				} else {
+					// Match function sources
+
+					if (GENSlots[j].pc) {
+						BC bc = BC::decode(GENSlots[j].pc, GENSlots[j].code);
+
+						ObservedCallees prof = bc.immediate.callFeedback;
+
+						if (prof.numTargets == 1) {
+							SEXP currClos = prof.getTarget(GENSlots[j].code, 0);
+							assert(TYPEOF(currClos) == CLOSXP);
+							SEXP currBody = BODY(currClos);
+							if (TYPEOF(currBody) == EXTERNALSXP && DispatchTable::check(currBody)) {
+								int srcsrc = DispatchTable::unpack(currBody)->baseline()->body()->src;
+								if (srcsrc != currFunFeedbackId) {
+									match = false;
+									// std::cout << "[L2 Final Check Fail]" << std::endl;
+								}
+								std::cout << "[Call Match successful]" << std::endl;
+							} else {
+								match = false;
+								std::cout << "[L2 Body Check Fail]" << std::endl;
+								std::cout << "[TYPEOF]" << TYPEOF(currBody) << std::endl;
+								std::cout << "[DispatchTable]" << DispatchTable::check(currBody) << std::endl;
+							}
+						} else {
+							std::cout << "[L2 mono fail]" << std::endl;
+						}
+
+					} else {
+						std::cout << "[NO PC error]: " << GENSlots[j].pc << std::endl;
+					}
+
+				}
+			}
 		}
 
 		if (match && !currFun->disabled()) {

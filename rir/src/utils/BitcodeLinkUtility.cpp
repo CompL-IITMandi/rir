@@ -314,6 +314,83 @@ void BitcodeLinkUtil::getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, s
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
 }
 
+void BitcodeLinkUtil::getGeneralFeedbackPtrsAtIndices(
+    std::vector<int>& indices, std::vector<GenFeedbackHolder>& res,
+    DispatchTable* vtab) {
+    // Indices must be sorted for this to work
+    DispatchTable* currVtab = vtab;
+
+    int idx = 0;
+
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                    }
+                }
+            }
+
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
+
+                // call sites
+                switch (bc.bc) {
+                case Opcode::record_call_: {
+                    if (std::count(indices.begin(), indices.end(), idx)) {
+                        res.push_back({c, pc, nullptr});
+                    }
+                    idx++;
+                    break;
+                }
+                case Opcode::record_test_: {
+                    if (std::count(indices.begin(), indices.end(), idx)) {
+                        res.push_back({c, nullptr, pc});
+                    }
+                    idx++;
+                    break;
+                }
+                default: {
+                }
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                    }
+                }
+
+                pc = BC::next(pc);
+            }
+
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+            }
+        };
+
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
+
+
 struct TraversalResult {
     Code * code;
     DispatchTable * vtable;
@@ -1103,6 +1180,12 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
         if (versioning == 2) {
             UnlockingElement::addTFSlotInfo(Pool::get(ueIdx), contextUnit::getTFSlots(contextUnitContainer));
             UnlockingElement::addFunTFInfo(Pool::get(ueIdx), binaryUnit::getTVData(binaryUnitContainer));
+
+            UnlockingElement::addGTFSlotInfo(
+                Pool::get(ueIdx),
+                contextUnit::getFBSlots(contextUnitContainer));
+            UnlockingElement::addGFunTFInfo(
+                Pool::get(ueIdx), binaryUnit::getFBData(binaryUnitContainer));
         }
 
         // UnlockingElement::print(wlIdx, 0);

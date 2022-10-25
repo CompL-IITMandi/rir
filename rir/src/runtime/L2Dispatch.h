@@ -8,13 +8,16 @@ namespace rir {
 typedef SEXP L2DispatchEntry;
 
 #define DEBUG_HIT_MISS 0
-#define ENTRIES_SIZE 4
+#define ENTRIES_SIZE 6
 #define GROWTH_RATE 5
 
 #define BCVEC 0
 #define FVEC 1
 #define TVEC 2
 #define GENESIS 3
+#define GVEC 4
+
+#define BCGVEC 5
 /*
  * A level 2 dispatcher for type versioning.
  *
@@ -38,12 +41,12 @@ struct L2Dispatch
 		//
 		// Constructor For V = 2
 		//
-		static L2Dispatch* create(Function* genesis, const std::vector<ObservedValues*> & BCTFSlots, Protect & p) {
+		static L2Dispatch* create(Function* genesis, const std::vector<ObservedValues*> & BCTFSlots, const std::vector<GenFeedbackHolder> & GENSlots, Protect & p) {
 			size_t sz =
 					sizeof(L2Dispatch) + (ENTRIES_SIZE * sizeof(L2DispatchEntry));
 			SEXP s;
 			p(s = Rf_allocVector(EXTERNALSXP, sz));
-			return new (INTEGER(s)) L2Dispatch(genesis, BCTFSlots);
+			return new (INTEGER(s)) L2Dispatch(genesis, BCTFSlots, GENSlots);
     	}
 
 		//
@@ -135,7 +138,7 @@ struct L2Dispatch
 		}
 
 		// V = 2
-		void insert(Function* f, const std::vector<ObservedValues> & TVals) {
+		void insert(Function* f, const std::vector<ObservedValues> & TVals, const std::vector<int> & GFBVals) {
 			// Expand the vector if capacity is full
 			if (_last + 1 == capacity()) {
 				expandStorage();
@@ -143,6 +146,7 @@ struct L2Dispatch
 			assert(_last + 1 < capacity());
 			SEXP FunctionVector = getEntry(FVEC);
 			SEXP TFVector       = getEntry(TVEC);
+			SEXP GFVector       = getEntry(GVEC);
 
 			_last++;
 
@@ -161,6 +165,20 @@ struct L2Dispatch
 			}
 
 			SET_VECTOR_ELT(TFVector, _last, store);
+
+
+			// Create a store of src indices
+			// Note: instead of pointers, we store the values here instead
+			protecc(store = Rf_allocVector(VECSXP, GFBVals.size()));
+
+			for (unsigned int i = 0; i < GFBVals.size(); i++) {
+				SEXP currVal;
+				PROTECT(currVal = Rf_ScalarInteger(GFBVals[i]));
+				SET_VECTOR_ELT(store, i, currVal);
+				UNPROTECT(1);
+			}
+
+			SET_VECTOR_ELT(GFVector, _last, store);
 		}
 
 
@@ -211,7 +229,7 @@ struct L2Dispatch
 			}
 
 		// BCTFSlots are the required bytecode type feedback slot pointers
-		explicit L2Dispatch(Function* genesis, const std::vector<ObservedValues*> & L2Slots):
+		explicit L2Dispatch(Function* genesis, const std::vector<ObservedValues*> & L2Slots, const std::vector<GenFeedbackHolder> & GenL2Slots):
 			RirRuntimeObject(sizeof(L2Dispatch),ENTRIES_SIZE),
 			_versioning(2) {
 
@@ -220,34 +238,37 @@ struct L2Dispatch
 				//
 				// 1. Populate BCVEC entries to point to ByteCode Locations
 				//
-				// SEXP BCVector;
-				// // We make it a contigious big object, so we can directly index without VECTOR_ELT for each slot
-				// protecc(BCVector = Rf_allocVector(RAWSXP, _numSlots * sizeof(ObservedValues*)));
-				// ObservedValues* * tmp = (ObservedValues* *) DATAPTR(BCVector);
-
-				// // ObservedValues* workWith = *tmp;
-
-				// for (unsigned int i = 0; i < _numSlots; i++) {
-				// 	ObservedValues* ele = BCTFSlots[i];
-				// 	//
-				// 	// Note: Pointer-pointers are so weird
-				// 	//
-				// 	tmp[i] = ele;
-				// }
+				//
 
 				BCTFSlots = L2Slots;
 
+				SEXP BCGVector;
+				// We make it a contigious big object, so we can directly index without VECTOR_ELT for each slot
+				protecc(BCGVector = Rf_allocVector(RAWSXP, GenL2Slots.size() * sizeof(GenFeedbackHolder)));
+				GenFeedbackHolder* tmp = (GenFeedbackHolder *) DATAPTR(BCGVector);
+
+				// ObservedValues* workWith = *tmp;
+
+				for (unsigned int i = 0; i < GenL2Slots.size(); i++) {
+					GenFeedbackHolder ele = GenL2Slots[i];
+					//
+					// Note: Pointer-pointers are so weird
+					//
+					*(tmp + i) = ele;
+				}
+
 				// // Store BCVEC in the GC area
-				setEntry(BCVEC, R_NilValue);
+				setEntry(BCGVEC, BCGVector);
 
 
 				//
 				// 2. Populate Function Vector and its corresponding TFVector
 				//
 
-				SEXP FunctionVector, TFVector;
+				SEXP FunctionVector, TFVector, GFVector;
 				protecc(FunctionVector = Rf_allocVector(VECSXP, GROWTH_RATE));
 				protecc(TFVector = Rf_allocVector(VECSXP, GROWTH_RATE));
+				protecc(GFVector = Rf_allocVector(VECSXP, GROWTH_RATE));
 
 				_last = -1;
 
@@ -256,6 +277,7 @@ struct L2Dispatch
 				// Store the vector in the GC area
 				setEntry(FVEC, FunctionVector);
 				setEntry(TVEC, TFVector);
+				setEntry(GVEC, GFVector);
 
 
 			}
@@ -273,20 +295,31 @@ struct L2Dispatch
 
 			// If versioning is 2, expand the TFVector aswell
 			if (_versioning == 2) {
+				// Expand type
 				oldVec = getEntry(TVEC);
 				oldSize = Rf_length(oldVec);
 				p(newVec = Rf_allocVector(VECSXP, oldSize + GROWTH_RATE));
 				memcpy(DATAPTR(newVec), DATAPTR(oldVec), oldSize * sizeof(SEXP));
 
 				setEntry(TVEC, newVec);
+
+				// Expand general
+				oldVec = getEntry(GVEC);
+				oldSize = Rf_length(oldVec);
+				p(newVec = Rf_allocVector(VECSXP, oldSize + GROWTH_RATE));
+				memcpy(DATAPTR(newVec), DATAPTR(oldVec), oldSize * sizeof(SEXP));
+
+				setEntry(GVEC, newVec);
 			}
 
 		}
     const unsigned _versioning;
 
     std::vector<ObservedValues*> BCTFSlots;
+
     int _last = -1;
 	unsigned int _numSlots;
+
 };
 #pragma pack(pop)
 } // namespace rir

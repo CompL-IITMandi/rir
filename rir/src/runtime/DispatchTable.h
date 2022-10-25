@@ -171,65 +171,7 @@ struct DispatchTable
     void insertL2V1(Function* fun);
 
     // Function slot negotiation
-    int negotiateSlot(const Context& assumptions) {
-        assert(size() > 0);
-        size_t i;
-        for (i = size() - 1; i > 0; --i) {
-            auto old = get(i);
-            if (old->context() == assumptions) {
-                // We already gave this context, dont delete it, just return the index
-                return i;
-            }
-            if (!(assumptions < get(i)->context())) {
-                break;
-            }
-        }
-        i++;
-        assert(!contains(assumptions));
-        if (size() == capacity()) {
-#ifdef DEBUG_DISPATCH
-            std::cout << "Tried to insert into a full Dispatch table. Have: \n";
-            for (size_t i = 0; i < size(); ++i) {
-                auto e = getEntry(i);
-                std::cout << "* " << Function::unpack(e)->context() << "\n";
-            }
-            std::cout << "\n";
-            std::cout << "Tried to insert: " << assumptions << "\n";
-            Rf_error("dispatch table overflow");
-#endif
-            // Evict one element and retry
-            auto pos = 1 + (Random::singleton()() % (size() - 1));
-            size_--;
-            while (pos < size()) {
-                setEntry(pos, getEntry(pos + 1));
-                pos++;
-            }
-            return negotiateSlot(assumptions);
-        }
-
-        for (size_t j = size(); j > i; --j)
-            setEntry(j, getEntry(j - 1));
-        size_++;
-
-        // Slot i is now available for insertion of context now
-        setEntry(i, R_NilValue);
-        return i;
-
-#ifdef DEBUG_DISPATCH
-        std::cout << "Added version to DT, new order is: \n";
-        for (size_t i = 0; i < size(); ++i) {
-            auto e = getEntry(i);
-            std::cout << "* " << Function::unpack(e)->context() << "\n";
-        }
-        std::cout << "\n";
-        for (size_t i = 0; i < size() - 1; ++i) {
-            assert(get(i)->context() < get(i + 1)->context());
-            assert(get(i)->context() != get(i + 1)->context());
-            assert(!(get(i + 1)->context() < get(i)->context()));
-        }
-        assert(contains(fun->context()));
-#endif
-    }
+    int negotiateSlot(const Context& assumptions);
     // insert function ordered by increasing number of assumptions
 //     void insert(Function* fun) {
 //         // TODO: we might need to grow the DT here!
