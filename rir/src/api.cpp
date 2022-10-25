@@ -758,7 +758,10 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
 
     SEXP sDataContainer;
 
-    if (fileExists(fName)) {
+    int onlyLast = getenv("ONLY_LAST") ? std::stoi(getenv("ONLY_LAST")) : 0;
+
+
+    if (onlyLast == 0 && fileExists(fName)) {
         DebugMessages::printSerializerMessage("(*) metadata already exists", 2);
 
         FILE *reader;
