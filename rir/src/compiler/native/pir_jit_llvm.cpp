@@ -640,7 +640,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
     protecc(currFun->container());
 
-    std::cout << "Deserialization success, adding to dispatch table" << std::endl;
+    // std::cout << "Deserialization success, adding to dispatch table" << std::endl;
 
     // generalUtil::printSpace(2);
     // std::cout << "Versioning: " << versioning << std::endl;

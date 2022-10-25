@@ -1,7 +1,7 @@
 #include "DispatchTable.h"
 
 #include "utils/BitcodeLinkUtility.h"
-#define DEBUG_L2_ENTRIES 1
+#define DEBUG_L2_ENTRIES 0
 
 namespace rir {
     void DispatchTable::tryLinking(SEXP currHastSym, const unsigned long & con, const int & nargs) {
@@ -14,7 +14,7 @@ namespace rir {
 
         SEXP FBData = UnlockingElement::getGFunTFInfo(uEleContainer);
         #if DEBUG_L2_ENTRIES > 0
-        std::cout << "insertL2V2 Start" << std::endl;
+        std::cout << "insertL2V2 Start: " << fun << std::endl;
         #endif
 
         std::vector<int> funGFBData;
