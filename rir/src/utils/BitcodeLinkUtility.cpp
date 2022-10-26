@@ -140,7 +140,21 @@ void BitcodeLinkUtil::populateOtherFeedbackData(SEXP container,
                 bc.addMyPromArgsTo(promises);
 
                 if (bc.bc == Opcode::record_call_) {
+                    // ObservedCallees * v = (ObservedCallees *) (pc + 1);
+                    // std::cout << "Decoded target from pointer: [";
+                    // for (auto & ele : v->targets) {
+                    //     std::cout << ele << " ";
+                    // }
+                    // std::cout << "]" << std::endl;
+
                     ObservedCallees prof = bc.immediate.callFeedback;
+
+                    // std::cout << "Decoded target from data: [";
+                    // for (auto & ele : prof.targets) {
+                    //     std::cout << ele << " ";
+                    // }
+                    // std::cout << "]" << std::endl;
+
                     contextData::addObservedCallSiteInfo(container, &prof, c);
                 }
 
@@ -346,14 +360,14 @@ void BitcodeLinkUtil::getGeneralFeedbackPtrsAtIndices(
                 switch (bc.bc) {
                 case Opcode::record_call_: {
                     if (std::count(indices.begin(), indices.end(), idx)) {
-                        res.push_back({c, pc, nullptr});
+                        res.push_back({c, pc + 1});
                     }
                     idx++;
                     break;
                 }
                 case Opcode::record_test_: {
                     if (std::count(indices.begin(), indices.end(), idx)) {
-                        res.push_back({c, nullptr, pc});
+                        res.push_back({c, pc + 1});
                     }
                     idx++;
                     break;

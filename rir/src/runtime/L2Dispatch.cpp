@@ -91,49 +91,52 @@ Function * L2Dispatch::V2Dispatch() {
 
 			SEXP currFunIntData = VECTOR_ELT(GFVector, i);
 			int * tmp1 = (int *) DATAPTR(currFunIntData);
-			std::vector<int> currentFunctionGenData;
-			// std::cout << "CurrFunData: [ ";
-			for (unsigned int m = 0; m < _numGenSlots; m++) {
-				// std::cout  << tmp1[m] << " ";
-				currentFunctionGenData.push_back(tmp1[m]);
-			}
+
+
+
+			// std::vector<int> currentFunctionGenData;
+			// // std::cout << "CurrFunData: [ ";
+			// for (unsigned int m = 0; m < _numGenSlots; m++) {
+			// 	// std::cout  << tmp1[m] << " ";
+			// 	currentFunctionGenData.push_back(tmp1[m]);
+			// }
 			// std::cout << "]" << std::endl;
 
-			for (unsigned int j = 0; j < currentFunctionGenData.size(); j++) {
+			for (unsigned int j = 0; j < _numGenSlots; j++) {
+				Opcode * currPC =  GENSlots[j].pc;
+				rir::Code * currCode =  GENSlots[j].code;
 
-				auto currFunFeedbackId = currentFunctionGenData[j];
+				auto currFunFeedbackId = tmp1[j];
 				if (currFunFeedbackId == 0) {
 					// Nada, maybe check?
 				} else if (currFunFeedbackId < 0) {
-					if (GENSlots[j].tests) {
+					if (currPC) {
 						// Set match is false if values are not same
-						BC bc = BC::decode(GENSlots[j].tests, GENSlots[j].code);
-						ObservedTest prof = bc.immediate.testFeedback;
-						if (prof.seen == ObservedTest::OnlyTrue && currFunFeedbackId == -2) {
+						ObservedTest * prof = (ObservedTest *) currPC;
+						if (prof->seen == ObservedTest::OnlyTrue && currFunFeedbackId == -2) {
 							// -2 == OnlyFalse
 							match = false;
 							// std::cout << "[-2 fail]" << std::endl;
-						} else if (prof.seen == ObservedTest::OnlyFalse && currFunFeedbackId == -1) {
+						} else if (prof->seen == ObservedTest::OnlyFalse && currFunFeedbackId == -1) {
 							// -1 == OnlyTrue
 							match = false;
 							// std::cout << "[-1 fail]" << std::endl;
 						}
 					} else {
 						// std::cout << "LOOKUP INDEX: " << j << std::endl;
-						// std::cout << "[NO PC error, test slot]: " << GENSlots[j].pc << ", IAM: " << currFun << std::endl;
+						// std::cout << "[NO PC error, test slot]: " << currPC << ", IAM: " << currFun << std::endl;
 						// Rf_error("NO PC ERROR");
 					}
 
 				} else {
 					// Match function sources
 
-					if (GENSlots[j].pc) {
-						BC bc = BC::decode(GENSlots[j].pc, GENSlots[j].code);
+					if (currPC) {
 
-						ObservedCallees prof = bc.immediate.callFeedback;
+						ObservedCallees * prof = (ObservedCallees *) currPC;
 
-						if (prof.numTargets == 1) {
-							SEXP currClos = prof.getTarget(GENSlots[j].code, 0);
+						if (prof->numTargets == 1) {
+							SEXP currClos = currCode->getExtraPoolEntry(prof->targets[0]);
 							assert(TYPEOF(currClos) == CLOSXP);
 							SEXP currBody = BODY(currClos);
 							if (TYPEOF(currBody) == EXTERNALSXP && DispatchTable::check(currBody)) {
@@ -154,7 +157,7 @@ Function * L2Dispatch::V2Dispatch() {
 						}
 
 					} else {
-						// std::cout << "[NO PC error]: " << GENSlots[j].pc << ", IAM: " << currFun << std::endl;
+						// std::cout << "[NO PC error]: " << currPC << ", IAM: " << currFun << std::endl;
 					}
 
 				}
