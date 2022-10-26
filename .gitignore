@@ -41,3 +41,4 @@ external/*
 rsync-recommended
 recommended
 tmp
+buildCollectingTFData/*
