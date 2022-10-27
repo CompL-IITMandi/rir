@@ -493,30 +493,31 @@ REXPORT SEXP compileStats(SEXP name, SEXP path) {
     ostrm << "Serialized Closures      : " << serializerSuccess << std::endl;
     ostrm << "Unlinked BC (Worklist1)  : " << Worklist1::worklist.size() << std::endl;
     ostrm << "Unlinked BC (Worklist2)  : " << Worklist2::worklist.size() << std::endl;
+    ostrm << "Deoptimizations          : " << BitcodeLinkUtil::deoptCount << std::endl;
 
-    if (Worklist1::worklist.size() > 0) {
-        ostrm << "=== Worklist 1 ===" << std::endl;
-        for (auto & ele : Worklist1::worklist) {
-            ostrm << CHAR(PRINTNAME(ele.first)) << " : [";
-            for(auto & uEleIdx : ele.second) {
-                ostrm << uEleIdx << ", ";
-                // UnlockingElement::print(Pool::get(uEleIdx), 2);
-            }
-            ostrm << "]" << std::endl;
-        }
-    }
+    // if (Worklist1::worklist.size() > 0) {
+    //     ostrm << "=== Worklist 1 ===" << std::endl;
+    //     for (auto & ele : Worklist1::worklist) {
+    //         ostrm << CHAR(PRINTNAME(ele.first)) << " : [";
+    //         for(auto & uEleIdx : ele.second) {
+    //             ostrm << uEleIdx << ", ";
+    //             // UnlockingElement::print(Pool::get(uEleIdx), 2);
+    //         }
+    //         ostrm << "]" << std::endl;
+    //     }
+    // }
 
-    if (Worklist2::worklist.size() > 0) {
-        ostrm << "=== Worklist 2 ===" << std::endl;
-        for (auto & ele : Worklist2::worklist) {
-            ostrm << CHAR(PRINTNAME(ele.first)) << " : [";
-            for(auto & uEleIdx : ele.second) {
-                ostrm << uEleIdx << ", ";
-                // OptUnlockingElement::print(Pool::get(uEleIdx), 2);
-            }
-            ostrm << "]" << std::endl;
-        }
-    }
+    // if (Worklist2::worklist.size() > 0) {
+    //     ostrm << "=== Worklist 2 ===" << std::endl;
+    //     for (auto & ele : Worklist2::worklist) {
+    //         ostrm << CHAR(PRINTNAME(ele.first)) << " : [";
+    //         for(auto & uEleIdx : ele.second) {
+    //             ostrm << uEleIdx << ", ";
+    //             // OptUnlockingElement::print(Pool::get(uEleIdx), 2);
+    //         }
+    //         ostrm << "]" << std::endl;
+    //     }
+    // }
 
     return R_NilValue;
 }

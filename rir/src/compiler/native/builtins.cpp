@@ -1174,6 +1174,7 @@ static SEXP deoptSentinelContainer = []() {
 
 void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
                bool leakedEnv, DeoptReason* deoptReason, SEXP deoptTrigger) {
+    BitcodeLinkUtil::deoptCount++;
     #if DEBUG_BI_INSN == 1
     DebugCheckpoints::printInstruction("deoptImpl", [&] (){
         // std::cout << "    dummy" << std::endl;

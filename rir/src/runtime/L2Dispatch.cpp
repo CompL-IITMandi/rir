@@ -133,6 +133,11 @@ Function * L2Dispatch::V2Dispatch() {
 
 					if (currPC) {
 
+						//
+						// If the binary assumes a a call target, but the runtime is not currently seeing that
+						// call target, in that case do not dispatch to this binary.
+						//
+
 						ObservedCallees * prof = (ObservedCallees *) currPC;
 
 
