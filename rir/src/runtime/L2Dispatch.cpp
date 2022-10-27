@@ -135,8 +135,11 @@ Function * L2Dispatch::V2Dispatch() {
 
 						ObservedCallees * prof = (ObservedCallees *) currPC;
 
-						if (prof->numTargets == 1) {
-							SEXP currClos = currCode->getExtraPoolEntry(prof->targets[0]);
+
+
+						if (prof->numTargets > 0) {
+							auto lastTargetIndex = prof->targets[prof->numTargets-1];
+							SEXP currClos = currCode->getExtraPoolEntry(lastTargetIndex);
 							assert(TYPEOF(currClos) == CLOSXP);
 							SEXP currBody = BODY(currClos);
 							if (TYPEOF(currBody) == EXTERNALSXP && DispatchTable::check(currBody)) {
@@ -153,6 +156,7 @@ Function * L2Dispatch::V2Dispatch() {
 								// std::cout << "[DispatchTable]" << DispatchTable::check(currBody) << std::endl;
 							}
 						} else {
+							match = false;
 							// std::cout << "[L2 mono fail]" << std::endl;
 						}
 
