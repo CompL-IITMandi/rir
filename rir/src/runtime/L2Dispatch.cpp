@@ -144,24 +144,28 @@ Function * L2Dispatch::V2Dispatch() {
 
 						if (prof->numTargets > 0) {
 							auto lastTargetIndex = prof->targets[prof->numTargets-1];
-							SEXP currClos = currCode->getExtraPoolEntry(lastTargetIndex);
-							if (TYPEOF(currClos) == CLOSXP) {
-								SEXP currBody = BODY(currClos);
-								if (TYPEOF(currBody) == EXTERNALSXP && DispatchTable::check(currBody)) {
-									int srcsrc = DispatchTable::unpack(currBody)->baseline()->body()->src;
-									if (srcsrc != currFunFeedbackId) {
+							if (lastTargetIndex < currCode->extraPoolSize) {
+								SEXP currClos = currCode->getExtraPoolEntry(lastTargetIndex);
+								if (TYPEOF(currClos) == CLOSXP) {
+									SEXP currBody = BODY(currClos);
+									if (TYPEOF(currBody) == EXTERNALSXP && DispatchTable::check(currBody)) {
+										int srcsrc = DispatchTable::unpack(currBody)->baseline()->body()->src;
+										if (srcsrc != currFunFeedbackId) {
+											match = false;
+											// std::cout << "[L2 Final Check Fail]" << std::endl;
+										}
+										// std::cout << "[Call Match successful]" << std::endl;
+									} else {
 										match = false;
-										// std::cout << "[L2 Final Check Fail]" << std::endl;
+										// std::cout << "[L2 Body Check Fail]" << std::endl;
+										// std::cout << "[TYPEOF]" << TYPEOF(currBody) << std::endl;
+										// std::cout << "[DispatchTable]" << DispatchTable::check(currBody) << std::endl;
 									}
-									// std::cout << "[Call Match successful]" << std::endl;
 								} else {
+									// We have not handled other cases
 									match = false;
-									// std::cout << "[L2 Body Check Fail]" << std::endl;
-									// std::cout << "[TYPEOF]" << TYPEOF(currBody) << std::endl;
-									// std::cout << "[DispatchTable]" << DispatchTable::check(currBody) << std::endl;
 								}
 							} else {
-								// We have not handled other cases
 								match = false;
 							}
 						} else {
