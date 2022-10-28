@@ -63,10 +63,10 @@ PassScheduleLLVM::PassScheduleLLVM() {
     if (PM.get())
         return;
 
+    PM.reset(new llvm::legacy::PassManager);
     if (rir::pir::Parameter::PIR_LLVM_OPT_LEVEL == 0) {
         return;
     }
-    PM.reset(new llvm::legacy::PassManager);
 
     PM->add(createHotColdSplittingPass());
 
