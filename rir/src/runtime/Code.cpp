@@ -6,6 +6,9 @@
 #include "ir/BC.h"
 #include "utils/Pool.h"
 
+#include "utils/SerializerFlags.h"
+#include "utils/BitcodeLinkUtility.h"
+
 #include <llvm/ExecutionEngine/JITSymbol.h>
 #include <llvm/Support/Errno.h>
 
@@ -13,6 +16,10 @@
 #include <sstream>
 
 #include "runtime/DispatchTable.h"
+
+#include <chrono>
+using namespace std::chrono;
+
 
 namespace rir {
 
@@ -330,9 +337,20 @@ unsigned Code::addExtraPoolEntry(SEXP v) {
 llvm::ExitOnError ExitOnErr;
 
 NativeCode Code::lazyCompile() {
-    auto symbol = ExitOnErr(pir::PirJitLLVM::JIT->lookup(lazyCodeHandle_));
-    nativeCode_ = (NativeCode)symbol.getAddress();
-    return nativeCode_;
+
+    if (SerializerFlags::captureCompileStats) {
+        auto startCompileTimeCounter = high_resolution_clock::now();
+        auto symbol = ExitOnErr(pir::PirJitLLVM::JIT->lookup(lazyCodeHandle_));
+        nativeCode_ = (NativeCode)symbol.getAddress();
+        auto stopCompileTimeCounter = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(stopCompileTimeCounter - startCompileTimeCounter);
+        BitcodeLinkUtil::llvmLoweringTime += duration.count();
+        return nativeCode_;
+    } else {
+        auto symbol = ExitOnErr(pir::PirJitLLVM::JIT->lookup(lazyCodeHandle_));
+        nativeCode_ = (NativeCode)symbol.getAddress();
+        return nativeCode_;
+    }
 }
 
 } // namespace rir

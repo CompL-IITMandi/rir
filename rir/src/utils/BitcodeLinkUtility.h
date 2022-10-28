@@ -33,6 +33,7 @@ namespace rir {
         static size_t deoptCount;
         static bool contextualCompilationSkip;
         static size_t linkTime;
+        static size_t llvmLoweringTime;
         static SEXP getHast(SEXP body, SEXP env);
         static void populateHastSrcData(DispatchTable* vtable, SEXP hastSym);
         static void insertVTable(DispatchTable* vtable, SEXP hastSym);

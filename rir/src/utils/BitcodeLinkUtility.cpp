@@ -1378,4 +1378,6 @@ void BitcodeLinkUtil::printValidLookupIndices(DispatchTable * vtab) {
 size_t BitcodeLinkUtil::linkTime = 0;
 bool BitcodeLinkUtil::contextualCompilationSkip = getenv("SKIP_CONTEXTUAL_COMPILATION") ? true : false;
 size_t BitcodeLinkUtil::deoptCount = 0;
+size_t BitcodeLinkUtil::llvmLoweringTime = 0;
+
 }

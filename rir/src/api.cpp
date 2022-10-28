@@ -488,6 +488,7 @@ REXPORT SEXP compileStats(SEXP name, SEXP path) {
     ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
     ostrm << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
     ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
+    ostrm << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << std::endl;
     ostrm << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
     ostrm << "Compiled Closures:       : " << compilerSuccesses << std::endl;
     ostrm << "Serialized Closures      : " << serializerSuccess << std::endl;
