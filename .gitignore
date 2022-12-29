@@ -37,3 +37,7 @@ benchmarks/
 external/*
 !external/custom-r
 .history
+
+tmp
+recommended/*
+rsync-recommended

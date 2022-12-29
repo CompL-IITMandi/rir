@@ -7,11 +7,15 @@
 #include "runtime/DispatchTable.h"
 #include "utils/FunctionWriter.h"
 #include "utils/Pool.h"
+#include "utils/Hast.h"
 
 #include <cassert>
 #include <functional>
 #include <iostream>
 #include <unordered_map>
+
+#define DEBUG_TABLE_ENTRIES 0
+#define DEBUG_BLACKLIST 0
 
 namespace rir {
 
@@ -76,6 +80,8 @@ class Compiler {
             body = VECTOR_ELT(CDR(body), 0);
         }
 
+        // Calculate hast
+        SEXP hast = Hast::getHast(body, CLOENV(inClosure));
         Compiler c(body, FORMALS(inClosure), CLOENV(inClosure));
         auto res = p(c.finalize());
 
@@ -92,6 +98,51 @@ class Compiler {
 
         // Set the closure fields.
         SET_BODY(inClosure, dt->container());
+
+        if (hast != R_NilValue) {
+            // Check if the hast is already seen
+            if (Hast::hastMap.count(hast) > 0) {
+                #if DEBUG_BLACKLIST == 1 || DEBUG_TABLE_ENTRIES == 1
+                std::cout << "[Blacklisting] Duplicate Hast: " << CHAR(PRINTNAME(hast)) << std::endl;
+                #if DEBUG_BLACKLIST == 1
+                Rf_PrintValue(inClosure);
+                #endif
+                #endif
+                return;
+            }
+
+            #if DEBUG_TABLE_ENTRIES == 1
+            std::cout << "[Hasting] Adding Hast: " << CHAR(PRINTNAME(hast)) << std::endl;
+            // Rf_PrintValue(inClosure);
+            #endif
+
+            // Add the current object to map
+            Hast::hastMap[hast] = {dt->container(), inClosure};
+
+            // vtable->hast = hast;
+
+            // Hast Src data is not needed in pure deserializer run
+            Hast::populateHastSrcData(dt, hast);
+
+            // if (GeneralWorklist::get(hast)) {
+            //     // Bitcode is available for this hast, do worklist
+
+            //     // Tries to link available bitcodes, if they are not unlocked then adds them to either worklist1 or worklist2
+            //     BitcodeLinkUtil::tryLinking(vtable, hast);
+
+            //     // Remove entry from general worklist after work is complete
+            //     GeneralWorklist::remove(hast);
+            // } else {
+            //     // Non serialized code can also have work to do
+            //     // Do work on worklist1 (if work exists).
+            //     BitcodeLinkUtil::tryUnlocking(hast);
+            // }
+
+        } else {
+            #if DEBUG_TABLE_ENTRIES == 1
+            std::cout << "[Blacklisting] Invalid Hast (Anon: " << (Hast::isAnonEnv(CLOENV(inClosure)) ? "True" : "False") << ")" <<  std::endl;
+            #endif
+        }
     }
 };
 

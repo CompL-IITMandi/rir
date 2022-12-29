@@ -22,6 +22,8 @@
 #include <memory>
 #include <string>
 
+#include "utils/CodeCache.h"
+
 using namespace rir;
 
 extern "C" Rboolean R_Visible;
@@ -317,6 +319,17 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
             // body
             pir::Backend backend(m, logger, name);
             auto apply = [&](SEXP body, pir::ClosureVersion* c) {
+
+                // // Save code to cache
+                // if (CodeCache::serializer) {
+
+                //     // Check if the hast is available
+
+                //     // (c->rirSrc()->src)
+
+                //     // Initialize backend
+                //     // backend.initSerializer();
+                // }
                 auto fun = backend.getOrCompile(c);
                 Protect p(fun->container());
                 DispatchTable::unpack(body)->insert(fun);

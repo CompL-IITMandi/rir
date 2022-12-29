@@ -24,6 +24,25 @@ class Backend {
 
     rir::Function* getOrCompile(ClosureVersion* cls);
 
+    void initSerializer(SEXP cData, bool* err) {
+      assert(cData != nullptr);
+      assert(*err == false);
+      contextDataContainer = cData;
+      serializerError = err;
+    }
+
+    bool serializerEnabled() {
+      return (contextDataContainer != nullptr);
+    }
+
+    SEXP getCData() {
+      return contextDataContainer;
+    }
+
+    bool* getSerializerError() {
+      return serializerError;
+    }
+
   private:
     struct LastDestructor {
         LastDestructor();
@@ -36,6 +55,9 @@ class Backend {
     PirJitLLVM jit;
     std::unordered_map<ClosureVersion*, Function*> done;
     Log& logger;
+
+    SEXP contextDataContainer = nullptr;
+    bool* serializerError = nullptr;
 
     rir::Function* doCompile(ClosureVersion* cls, ClosureLog& log);
 };
