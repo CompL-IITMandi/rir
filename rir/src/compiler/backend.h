@@ -31,6 +31,11 @@ class Backend {
       serializerError = err;
     }
 
+    void resetSerializer() {
+      contextDataContainer = nullptr;
+      serializerError = nullptr;
+    }
+
     bool serializerEnabled() {
       return (contextDataContainer != nullptr);
     }

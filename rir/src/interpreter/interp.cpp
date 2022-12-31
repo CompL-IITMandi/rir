@@ -23,6 +23,8 @@
 #include <set>
 #include <unordered_set>
 
+#include "runtime/RuntimeFlags.h"
+
 extern "C" {
 extern SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP);
 extern Rboolean R_Visible;
@@ -986,7 +988,7 @@ SEXP doCall(CallContext& call, bool popArgs) {
 
         fun->registerInvocation();
 
-        if (!isDeoptimizing() && RecompileHeuristic(fun, disabledFun)) {
+        if (RuntimeFlags::contextualCompilationSkip == false && !isDeoptimizing() && RecompileHeuristic(fun, disabledFun)) {
             Context given = call.givenContext;
             // addDynamicAssumptionForOneTarget compares arguments with the
             // signature of the current dispatch target. There the number of

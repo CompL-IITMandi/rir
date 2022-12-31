@@ -26,14 +26,17 @@ if [[ "$DISPLAY" == "" && "$XVFB" != "" ]]; then
   # Some tests fail without display
   echo "Starting virtual FB display"
   # for some reason noreset prevents XOpenDisplay to fail under high load
-  Xvfb :1 -ac -noreset -screen 0 800x166x16&
-  export DISPLAY=:1
+  Xvfb :2 -ac -noreset -screen 2 800x166x16&
+  export DISPLAY=:2
   USING_XVFB=true
 fi
 
-CORES=`nproc 2> /dev/null || echo 1`
-let CORES=$CORES*2
-TEST_MC_CORES=$CORES make $CHK
+# CORES=`nproc 2> /dev/null || echo 1`
+# let CORES=$CORES*2
+# CORES=2
+# TEST_MC_CORES=$CORES make $CHK
+
+make $CHK
 
 RESULT=$?
 

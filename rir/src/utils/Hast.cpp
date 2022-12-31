@@ -4,6 +4,8 @@
 #include "R/Protect.h"
 #include "utils/Pool.h"
 
+#include "utils/serializerData.h"
+
 #define PRINT_HAST_SRC_ENTRIES 0
 
 namespace rir {
@@ -11,6 +13,8 @@ namespace rir {
 std::unordered_map<SEXP, HastData> Hast::hastMap;
 std::unordered_map<unsigned, HastInfo> Hast::sPoolHastMap;
 std::unordered_map<unsigned, HastInfo> Hast::cPoolHastMap;
+
+std::unordered_map<SEXP, HastInfo> Hast::cPoolInverseMap;
 
 static size_t charToInt(const char* p, size_t & hast) {
     for (size_t i = 0; i < strlen(p); ++i) {
@@ -28,6 +32,7 @@ void Hast::populateHastSrcData(DispatchTable* vtable, SEXP parentHast) {
             sPoolHastMap[src] = {parentHast, indexOffset};
         } else {
             cPoolHastMap[src] = {parentHast, indexOffset};
+            cPoolInverseMap[Pool::get(src)] = cPoolHastMap[src];
         }
     };
 
@@ -197,5 +202,285 @@ SEXP Hast::getHast(SEXP body, SEXP env) {
     SEXP calcHast = Rf_install(qHast.str().c_str());
     return calcHast;
 }
+
+struct TraversalResult {
+    Code * code;
+    DispatchTable * vtable;
+    unsigned srcIdx;
+};
+
+static inline TraversalResult getResultAtOffset(DispatchTable * vtab, const unsigned & requiredOffset) {
+    bool done = false;
+    unsigned indexOffset = 0;
+
+    DispatchTable * currVtab = vtab;
+    Code * currCode = nullptr;
+    unsigned poolIdx = currVtab->baseline()->body()->src;
+
+    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
+        if (done) return;
+        if (indexOffset == requiredOffset) {
+            // required thing was a code obj or a dispatch table obj
+            poolIdx = c->src;
+            currCode = c;
+            done = true;
+            return;
+        }
+        indexOffset++;
+
+        // Default args
+        if (funn) {
+            auto nargs = funn->nargs();
+            for (unsigned i = 0; i < nargs; i++) {
+                auto code = funn->defaultArg(i);
+                if (code != nullptr) {
+                    iterateOverCodeObjs(code, nullptr);
+                    if (done) return;
+                }
+            }
+        }
+
+        Opcode* pc = c->code();
+        std::vector<BC::FunIdx> promises;
+        Protect p;
+        while (pc < c->endCode()) {
+            if (done) return;
+            BC bc = BC::decode(pc, c);
+            bc.addMyPromArgsTo(promises);
+
+            // src code language objects
+            unsigned s = c->getSrcIdxAt(pc, true);
+            if (s != 0) {
+                if (indexOffset == requiredOffset) {
+                    // required thing was src pool index
+                    poolIdx = s;
+                    done = true;
+                    return;
+                }
+                indexOffset++;
+            }
+
+            // call sites
+            switch (bc.bc) {
+                case Opcode::call_:
+                case Opcode::named_call_:
+                    if (indexOffset == requiredOffset) {
+                        // required thing was constant pool index
+                        poolIdx = bc.immediate.callFixedArgs.ast;
+                        done = true;
+                        return;
+                    }
+                    indexOffset++;
+                    break;
+                case Opcode::call_dots_:
+                    if (indexOffset == requiredOffset) {
+                        // required thing was constant pool index
+                        poolIdx = bc.immediate.callFixedArgs.ast;
+                        done = true;
+                        return;
+                    }
+                    indexOffset++;
+                    break;
+                case Opcode::call_builtin_:
+                    if (indexOffset == requiredOffset) {
+                        // required thing was constant pool index
+                        poolIdx = bc.immediate.callBuiltinFixedArgs.ast;
+                        done = true;
+                        return;
+                    }
+                    indexOffset++;
+                    break;
+                default: {}
+            }
+
+            // inner functions
+            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                SEXP iConst = bc.immediateConst();
+                if (DispatchTable::check(iConst)) {
+                    currVtab = DispatchTable::unpack(iConst);
+                    auto c = currVtab->baseline()->body();
+                    auto f = c->function();
+                    iterateOverCodeObjs(c, f);
+                    if (done) return;
+                }
+            }
+
+            pc = BC::next(pc);
+        }
+
+        // Iterate over promises code objects recursively
+        for (auto i : promises) {
+            auto prom = c->getPromise(i);
+            iterateOverCodeObjs(prom, nullptr);
+            if (done) return;
+        }
+    };
+
+    Code * genesisCodeObj = currVtab->baseline()->body();
+    Function * genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+
+    TraversalResult r;
+    r.code = currCode;
+    r.vtable = currVtab;
+    r.srcIdx = poolIdx;
+    return r;
+}
+
+
+unsigned Hast::getSrcPoolIndexAtOffset(SEXP hastSym, int requiredOffset) {
+    SEXP vtabContainer = hastMap[hastSym].vtabContainer;
+    if (!vtabContainer) {
+        Rf_error("getSrcPoolIndexAtOffset failed!");
+    }
+    if (!DispatchTable::check(vtabContainer)) {
+        Rf_error("getSrcPoolIndexAtOffset vtable corrupted");
+    }
+    auto vtab = DispatchTable::unpack(vtabContainer);
+    auto r = getResultAtOffset(vtab, requiredOffset);
+
+    return r.srcIdx;
+}
+
+void Hast::populateTypeFeedbackData(SEXP container, DispatchTable * vtab) {
+    DispatchTable * currVtab = vtab;
+
+    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
+        // Default args
+        if (funn) {
+            auto nargs = funn->nargs();
+            for (unsigned i = 0; i < nargs; i++) {
+                auto code = funn->defaultArg(i);
+                if (code != nullptr) {
+                    iterateOverCodeObjs(code, nullptr);
+                }
+            }
+        }
+
+        Opcode* pc = c->code();
+        std::vector<BC::FunIdx> promises;
+        Protect p;
+        while (pc < c->endCode()) {
+            BC bc = BC::decode(pc, c);
+            bc.addMyPromArgsTo(promises);
+
+            // call sites
+            if (bc.bc == Opcode::record_type_) {
+                    // std::cout << "FOR CODE:  " << c << std::endl;
+                    // std::cout << "record_type " << feedback << " [" << *((uint32_t *) feedback) << "]" << std::endl;
+                    // std::cout << "  ";
+                    // feedback->print(std::cout);
+                    // std::cout << std::endl;
+                    contextData::addObservedValueToVector(container, &bc.immediate.typeFeedback);
+            }
+            // switch (bc.bc) {
+            //     case Opcode::record_type_:
+            //         break;
+            // }
+
+            // inner functions
+            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                SEXP iConst = bc.immediateConst();
+                if (DispatchTable::check(iConst)) {
+                    currVtab = DispatchTable::unpack(iConst);
+                    auto c = currVtab->baseline()->body();
+                    auto f = c->function();
+                    iterateOverCodeObjs(c, f);
+                }
+            }
+
+            pc = BC::next(pc);
+        }
+
+        // Iterate over promises code objects recursively
+        for (auto i : promises) {
+            auto prom = c->getPromise(i);
+            iterateOverCodeObjs(prom, nullptr);
+        }
+    };
+
+    Code * genesisCodeObj = currVtab->baseline()->body();
+    Function * genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
+
+// Handling call site information
+void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab) {
+    DispatchTable* currVtab = vtab;
+
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                    }
+                }
+            }
+
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
+
+                if (bc.bc == Opcode::record_call_) {
+                    // ObservedCallees * v = (ObservedCallees *) (pc + 1);
+                    // std::cout << "Decoded target from pointer: [";
+                    // for (auto & ele : v->targets) {
+                    //     std::cout << ele << " ";
+                    // }
+                    // std::cout << "]" << std::endl;
+
+                    ObservedCallees prof = bc.immediate.callFeedback;
+
+                    // std::cout << "Decoded target from data: [";
+                    // for (auto & ele : prof.targets) {
+                    //     std::cout << ele << " ";
+                    // }
+                    // std::cout << "]" << std::endl;
+
+                    contextData::addObservedCallSiteInfo(container, &prof, c);
+                }
+
+                if (bc.bc == Opcode::record_test_) {
+                    contextData::addObservedTestToVector(container, &bc.immediate.testFeedback);
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                    }
+                }
+
+                pc = BC::next(pc);
+            }
+
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+            }
+        };
+
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
+
+
 
 } // namespace rir

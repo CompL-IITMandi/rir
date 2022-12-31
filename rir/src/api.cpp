@@ -23,6 +23,9 @@
 #include <string>
 
 #include "utils/CodeCache.h"
+#include "runtime/RuntimeFlags.h"
+#include "utils/serializerData.h"
+#include "utils/SerializerDebug.h"
 
 using namespace rir;
 
@@ -288,6 +291,124 @@ REXPORT SEXP pirSetDebugFlags(SEXP debugFlags) {
     return R_NilValue;
 }
 
+static bool fileExists(std::string fName) {
+    std::ifstream f(fName.c_str());
+    return f.good();
+}
+
+static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std::string & name, SEXP cData, bool & serializerError) {
+    Protect protecc;
+    SerializerDebug::infoMessage("(*) serializeClosure() started", 2);
+
+    auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : "bitcodes";
+    std::stringstream fN;
+    fN << prefix << "/" << "m_" << CHAR(PRINTNAME(hast)) << ".meta";
+    std::string fName = fN.str();
+
+    SEXP sDataContainer;
+
+    int onlyLast = getenv("ONLY_LAST") ? std::stoi(getenv("ONLY_LAST")) : 0;
+
+
+    if (onlyLast == 0 && fileExists(fName)) {
+
+        SerializerDebug::infoMessage("(*) Metadata already exists", 2);
+
+        FILE *reader;
+        reader = fopen(fName.c_str(),"r");
+
+        if (!reader) {
+            serializerError = true;
+            SerializerDebug::infoMessage("(E) unable to open existing metadata", 4);
+            return;
+        }
+
+        SEXP result;
+        protecc(result= R_LoadFromFile(reader, 0));
+
+        sDataContainer = result;
+
+        //
+        // Correct captured name if this is the parent closure i.e. offset == 0
+        //
+
+        if (indexOffset == 0) {
+            serializerData::addName(sDataContainer, Rf_install(name.c_str()));
+        }
+
+        fclose(reader);
+    } else {
+        protecc(sDataContainer = Rf_allocVector(VECSXP, serializerData::getStorageSize()));
+
+        serializerData::addHast(sDataContainer, hast);
+
+        //
+        // Temporarily store last stored inner functions name, until parent is added
+        //
+
+        std::stringstream nameStr;
+        nameStr << "Inner(" << indexOffset << "): " << name << std::endl;
+
+        serializerData::addName(sDataContainer, Rf_install(nameStr.str().c_str()));
+    }
+    // Add context data
+    std::string offsetStr(std::to_string(indexOffset));
+    SEXP offsetSym = Rf_install(offsetStr.c_str());
+
+    std::string conStr(std::to_string(contextData::getContext(cData)));
+    SEXP contextSym = Rf_install(conStr.c_str());
+
+    SEXP epoch = serializerData::addBitcodeData(sDataContainer, offsetSym, contextSym, cData);
+
+    SerializerDebug::infoMessage("(*) Current epoch", 2);
+    SerializerDebug::infoMessage(CHAR(PRINTNAME(epoch)), 4);
+
+
+    // 2. Write updated metadata
+    FILE *fptr;
+    fptr = fopen(fName.c_str(),"w");
+    if (!fptr) {
+        serializerError = true;
+        SerializerDebug::infoMessage("(E) unable to write metadata", 2);
+        return;
+    }
+
+    R_SaveToFile(sDataContainer, fptr, 0);
+    fclose(fptr);
+
+    if (SerializerDebug::level > 1) {
+        serializerData::print(sDataContainer, 2);
+    }
+
+    // rename temp files
+    {
+        std::stringstream bcFName;
+        std::stringstream bcOldName;
+        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << CHAR(PRINTNAME(epoch)) << ".bc";
+        bcOldName << prefix << "/" << contextData::getContext(cData) << ".bc";
+        int stat = std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
+        if (stat != 0) {
+            serializerError = true;
+            SerializerDebug::infoMessage("(E) Unable to rename bitcode", 2);
+            return;
+        }
+    }
+
+    {
+        std::stringstream bcFName;
+        std::stringstream bcOldName;
+        bcFName << prefix << "/" << CHAR(PRINTNAME(hast)) << "_" << indexOffset << "_" << CHAR(PRINTNAME(epoch)) << ".pool";
+        bcOldName << prefix << "/" << contextData::getContext(cData) << ".pool";
+        int stat = std::rename(bcOldName.str().c_str(), bcFName.str().c_str());
+        if (stat != 0) {
+            serializerError = true;
+            SerializerDebug::infoMessage("(E) Unable to rename pool", 2);
+            return;
+        }
+    }
+
+}
+
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 const pir::DebugOptions& debug) {
     if (!isValidClosureSEXP(what)) {
@@ -320,16 +441,70 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
             pir::Backend backend(m, logger, name);
             auto apply = [&](SEXP body, pir::ClosureVersion* c) {
 
-                // // Save code to cache
-                // if (CodeCache::serializer) {
+                // Save code to cache
+                if (CodeCache::serializer) {
+                    bool readyForSerialization = Hast::sPoolHastMap.count(c->rirSrc()->src) > 0;
+                    if (readyForSerialization) {
+                        //
+                        // === Serializer Start ===
+                        //
+                        SerializerDebug::infoMessage("(>) Serializer Started", 0);
+                        backend.resetSerializer();
 
-                //     // Check if the hast is available
+                        // Disable compilation temporarily? is this needed
+                        bool oldVal = RuntimeFlags::contextualCompilationSkip;
+                        RuntimeFlags::contextualCompilationSkip = true;
 
-                //     // (c->rirSrc()->src)
+                        // 1. Context data container
+                        Protect protecc;
+                        SEXP cDataContainer;
+                        protecc(cDataContainer = Rf_allocVector(VECSXP, contextData::getStorageSize()));
+                        contextData::addContext(cDataContainer, c->context().toI());
 
-                //     // Initialize backend
-                //     // backend.initSerializer();
-                // }
+                        // 2. Error status
+                        bool serializerError = false;
+
+                        // Add data collectors
+                        backend.initSerializer(cDataContainer, &serializerError);
+
+                        // Serialize LLVM bitcode
+                        auto fun = backend.getOrCompile(c);
+                        protecc(fun->container());
+
+                        DispatchTable::unpack(body)->insert(fun);
+                        if (body == BODY(what)) done = fun;
+
+                        // Serialize Metadata if lowering was successful
+                        if (!serializerError) {
+                            auto data = Hast::sPoolHastMap[c->rirSrc()->src];
+                            serializeClosure(data.hast, data.offsetIndex, c->name(), cDataContainer, serializerError);
+                        }
+
+                        // Restore compilation behaviour
+                        RuntimeFlags::contextualCompilationSkip = oldVal;
+
+                        // Reset serializer? is this needed
+                        backend.resetSerializer();
+
+                        //
+                        // === Serializer End ===
+                        //
+
+                        std::stringstream msg;
+
+                        msg << "(/>) Serializer End (" << (serializerError == false ? "Success" : "Failed" ) << ")" << std::endl;
+
+                        SerializerDebug::infoMessage(msg.str(), 0);
+
+
+                        return;
+                    } else {
+                        SerializerDebug::infoMessage("Serializer Skip", 0);
+                        SerializerDebug::infoMessage("src: " + std::to_string(c->rirSrc()->src), 2);
+                    }
+                }
+
+
                 auto fun = backend.getOrCompile(c);
                 Protect p(fun->container());
                 DispatchTable::unpack(body)->insert(fun);

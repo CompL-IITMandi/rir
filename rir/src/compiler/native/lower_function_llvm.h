@@ -119,6 +119,9 @@ class LowerFunctionLLVM {
         return convertToPointer(what, t::SEXPREC, constant);
     }
 
+    std::set<SEXP>* reqMap = nullptr;
+    bool* serializerError = nullptr;
+
     struct Variable {
         bool deadMove(const Variable& other) const;
 

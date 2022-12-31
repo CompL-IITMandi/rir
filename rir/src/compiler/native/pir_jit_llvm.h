@@ -82,7 +82,9 @@ class PirJitLLVM {
         return ss.str().substr(0, rir::Code::MAX_CODE_HANDLE_LENGTH - 6);
     }
 
-    std::unordered_map<Code*, std::pair<rir::Code*, llvm::StringRef>> jitFixup;
+    // std::unordered_map<Code*, std::pair<rir::Code*, llvm::StringRef>> jitFixup;
+    std::unordered_map<Code*, std::pair<rir::Code*, std::string>> jitFixup;
+
     bool finalized = false;
 
     static size_t nModules;
@@ -137,6 +139,14 @@ class PirJitLLVM {
     };
     std::unique_ptr<DebugInfo> DI;
     std::unique_ptr<llvm::DIBuilder> DIB;
+
+    // serializer
+    std::set<SEXP> * reqMapForCompilation = nullptr;
+    bool* serializerError = nullptr;
+    void serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName, std::set<SEXP> & rMap);
+    void updateFunctionNameInModule(std::string, std::string);
+    void patchFixupHandle(const std::string & newName, Code * code);
+    void printModule();
 };
 
 } // namespace pir
