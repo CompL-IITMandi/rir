@@ -15,7 +15,7 @@
 #include <unordered_map>
 
 #define DEBUG_TABLE_ENTRIES 0
-#define DEBUG_BLACKLIST 0
+#define PRINT_SOURCE_ENTRIES 0
 
 namespace rir {
 
@@ -102,18 +102,25 @@ class Compiler {
         if (hast != R_NilValue) {
             // Check if the hast is already seen
             if (Hast::hastMap.count(hast) > 0) {
-                #if DEBUG_BLACKLIST == 1 || DEBUG_TABLE_ENTRIES == 1
+                #if PRINT_SOURCE_ENTRIES == 1 || DEBUG_TABLE_ENTRIES == 1
                 std::cout << "[Blacklisting] Duplicate Hast: " << CHAR(PRINTNAME(hast)) << std::endl;
-                #if DEBUG_BLACKLIST == 1
-                Rf_PrintValue(inClosure);
+                #if PRINT_SOURCE_ENTRIES == 1
+                Hast::printHastSrcData(dt, hast);
+                // Rf_PrintValue(inClosure);
                 #endif
                 #endif
+                // Add hast to blacklist
+                Hast::blacklist.insert(hast);
+                Hast::serializerCleanup();
                 return;
             }
 
-            #if DEBUG_TABLE_ENTRIES == 1
+            #if PRINT_SOURCE_ENTRIES == 1 || DEBUG_TABLE_ENTRIES == 1
             std::cout << "[Hasting] Adding Hast: " << CHAR(PRINTNAME(hast)) << std::endl;
+            #if PRINT_SOURCE_ENTRIES == 1
+            Hast::printHastSrcData(dt, hast);
             // Rf_PrintValue(inClosure);
+            #endif
             #endif
 
             // Add the current object to map
@@ -139,8 +146,11 @@ class Compiler {
             // }
 
         } else {
-            #if DEBUG_TABLE_ENTRIES == 1
+            #if PRINT_SOURCE_ENTRIES == 1 || DEBUG_TABLE_ENTRIES == 1
             std::cout << "[Blacklisting] Invalid Hast (Anon: " << (Hast::isAnonEnv(CLOENV(inClosure)) ? "True" : "False") << ")" <<  std::endl;
+            #if PRINT_SOURCE_ENTRIES == 1
+            Hast::printHastSrcData(dt, R_NilValue);
+            #endif
             #endif
         }
     }

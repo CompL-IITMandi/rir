@@ -374,18 +374,21 @@ static void updateFunctionMetas(std::vector<std::string> & relevantNames,
         protecc(store = Rf_mkString(relevantNames[i].c_str()));
         SET_VECTOR_ELT(fNamesVec, i, store);
 
-        auto data = Hast::sPoolHastMap[srcDataMap[relevantNames[i]]];
-        unsigned calc = Hast::getSrcPoolIndexAtOffset(data.hast, data.offsetIndex);
+        auto hastInfo = Hast::getHastInfo(srcDataMap[relevantNames[i]], true);
+        assert(hastInfo.isValid());
+
+        unsigned calc = Hast::getSrcPoolIndexAtOffset(hastInfo.hast, hastInfo.offsetIndex);
         if (calc != srcDataMap[relevantNames[i]]) {
-            std::cout << "  [WARN] [src mismatch]: " << calc << ", " << srcDataMap[relevantNames[i]] << std::endl;
+            std::cerr << "  [WARN] [src mismatch]: " << calc << ", " << srcDataMap[relevantNames[i]] << std::endl;
+            Rf_error("serializer src mismatch");
             SET_VECTOR_ELT(fSrcDataVec, i, R_NilValue);
         } else {
             Protect protecc_1;
             SEXP dd;
             protecc_1(dd = Rf_allocVector(VECSXP, 2));
 
-            SET_VECTOR_ELT(dd, 0, data.hast);
-            SET_VECTOR_ELT(dd, 1, Rf_ScalarInteger(data.offsetIndex));
+            SET_VECTOR_ELT(dd, 0, hastInfo.hast);
+            SET_VECTOR_ELT(dd, 1, Rf_ScalarInteger(hastInfo.offsetIndex));
 
             SET_VECTOR_ELT(fSrcDataVec, i, dd);
 
@@ -472,22 +475,18 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
             // Find the head code object
             mainFunCodeObj = findFunCodeObj(promMap);
 
-            if (Hast::sPoolHastMap.count(mainFunCodeObj->rirSrc()->src) > 0) {
-                auto data = Hast::sPoolHastMap[mainFunCodeObj->rirSrc()->src];
-                hast = data.hast;
+            auto hastInfo = Hast::getHastInfo(mainFunCodeObj->rirSrc()->src, true);
+            if (hastInfo.isValid()) {
+                hast = hastInfo.hast;
                 assert(Hast::hastMap.count(hast) > 0);
                 SEXP vtabContainer = Hast::hastMap[hast].vtabContainer;
                 assert(DispatchTable::check(vtabContainer));
 
                 auto dt = DispatchTable::unpack(vtabContainer);
 
+                // Collect feedback data
                 Hast::populateTypeFeedbackData(contextDataContainer, dt);
                 Hast::populateOtherFeedbackData(contextDataContainer, dt);
-
-                //
-                // TODO: Do collection of feedback here
-                //
-                // DispatchTable::unpack(Hast::hastMap[hast].vtabContainer)
             } else {
                 *serializerError = true;
                 SerializerDebug::infoMessage("(E) [backend.cpp] hast for main code object missing", 2);
@@ -599,7 +598,9 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
                         processedName[c] = done[c]->mName;
                     }
 
-                    if (Hast::sPoolHastMap.count(c->rirSrc()->src) <= 0) {
+                    auto hastInfo = Hast::getHastInfo(c->rirSrc()->src, true);
+
+                    if (!hastInfo.isValid()) {
                         *serializerError = true;
                         SerializerDebug::infoMessage("(E) [backend.cpp] src hast is R_NilValue", 2);
                         SerializerDebug::infoMessage("src: " + std::to_string(c->rirSrc()->src), 4);

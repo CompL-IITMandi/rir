@@ -156,11 +156,12 @@ void contextData::addObservedCallSiteInfo(SEXP container, ObservedCallees * feed
                 auto targetVtab = DispatchTable::unpack(BODY(target));
                 auto targetCode = targetVtab->baseline()->body();
 
-                if (Hast::sPoolHastMap.count(targetCode->src) > 0) {
+                auto hastInfo = Hast::getHastInfo(targetCode->src, true);
+                if (hastInfo.isValid()) {
                     SEXP ss;
                     PROTECT(ss = Rf_allocVector(VECSXP, 2));
-                    SET_VECTOR_ELT(ss, 0, Hast::sPoolHastMap[targetCode->src].hast);
-                    SET_VECTOR_ELT(ss, 1, Rf_ScalarInteger(Hast::sPoolHastMap[targetCode->src].offsetIndex));
+                    SET_VECTOR_ELT(ss, 0, hastInfo.hast);
+                    SET_VECTOR_ELT(ss, 1, Rf_ScalarInteger(hastInfo.offsetIndex));
 
                     SET_VECTOR_ELT(store, sIndex, ss);
 
@@ -228,11 +229,12 @@ void contextData::addObservedCallSiteInfo(SEXP container, ObservedCallees * feed
                 auto targetVtab = DispatchTable::unpack(BODY(target));
                 auto targetCode = targetVtab->baseline()->body();
 
-                if (Hast::sPoolHastMap.count(targetCode->src) > 0) {
+                auto hastInfo = Hast::getHastInfo(targetCode->src, true);
+                if (hastInfo.isValid()) {
                     SEXP ss;
                     PROTECT(ss = Rf_allocVector(VECSXP, 2));
-                    SET_VECTOR_ELT(ss, 0, Hast::sPoolHastMap[targetCode->src].hast);
-                    SET_VECTOR_ELT(ss, 1, Rf_ScalarInteger(Hast::sPoolHastMap[targetCode->src].offsetIndex));
+                    SET_VECTOR_ELT(ss, 0, hastInfo.hast);
+                    SET_VECTOR_ELT(ss, 1, Rf_ScalarInteger(hastInfo.offsetIndex));
 
                     SET_VECTOR_ELT(store, sIndex, ss);
 

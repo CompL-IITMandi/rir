@@ -5,11 +5,14 @@
 #include "utils/Pool.h"
 
 #include "utils/serializerData.h"
+#include "utils/SerializerDebug.h"
+#include "dirent.h"
 
 #define PRINT_HAST_SRC_ENTRIES 0
 
 namespace rir {
 
+std::set<SEXP> Hast::blacklist;
 std::unordered_map<SEXP, HastData> Hast::hastMap;
 std::unordered_map<unsigned, HastInfo> Hast::sPoolHastMap;
 std::unordered_map<unsigned, HastInfo> Hast::cPoolHastMap;
@@ -21,6 +24,85 @@ static size_t charToInt(const char* p, size_t & hast) {
         hast = ((hast << 5) + hast) + p[i];
     }
     return hast;
+}
+
+void Hast::printHastSrcData(DispatchTable* vtable, SEXP parentHast) {
+    DispatchTable * currVtab = vtable;
+    unsigned indexOffset = 0;
+
+    auto addSrcToMap = [&] (const unsigned & src, bool sourcePool = true) {
+        std::cout << (sourcePool ? "spool: ": "cpool: ") << src << std::endl;
+    };
+
+    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
+        addSrcToMap(c->src);
+        indexOffset++;
+        if (funn) {
+            auto nargs = funn->nargs();
+            for (unsigned i = 0; i < nargs; i++) {
+                auto code = funn->defaultArg(i);
+                if (code != nullptr) {
+                    iterateOverCodeObjs(code, nullptr);
+                }
+            }
+        }
+
+        Opcode* pc = c->code();
+        std::vector<BC::FunIdx> promises;
+        Protect p;
+        while (pc < c->endCode()) {
+            BC bc = BC::decode(pc, c);
+            bc.addMyPromArgsTo(promises);
+
+            // src code language objects
+            unsigned s = c->getSrcIdxAt(pc, true);
+            if (s != 0) {
+                addSrcToMap(s);
+                indexOffset++;
+            }
+
+            // call sites
+            switch (bc.bc) {
+                case Opcode::call_:
+                case Opcode::named_call_:
+                    addSrcToMap(bc.immediate.callFixedArgs.ast, false);
+                    indexOffset++;
+                    break;
+                case Opcode::call_dots_:
+                    addSrcToMap(bc.immediate.callFixedArgs.ast, false);
+                    indexOffset++;
+                    break;
+                case Opcode::call_builtin_:
+                    addSrcToMap(bc.immediate.callBuiltinFixedArgs.ast, false);
+                    indexOffset++;
+                    break;
+                default: {}
+            }
+
+            // inner functions
+            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                SEXP iConst = bc.immediateConst();
+                if (DispatchTable::check(iConst)) {
+                    currVtab = DispatchTable::unpack(iConst);
+                    auto c = currVtab->baseline()->body();
+                    auto f = c->function();
+                    iterateOverCodeObjs(c, f);
+                }
+            }
+
+            pc = BC::next(pc);
+        }
+
+        // Iterate over promises code objects recursively
+        for (auto i : promises) {
+            auto prom = c->getPromise(i);
+            iterateOverCodeObjs(prom, nullptr);
+        }
+    };
+
+    Code * genesisCodeObj = currVtab->baseline()->body();
+    Function * genesisFunObj = currVtab->baseline()->body()->function();
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
 }
 
 void Hast::populateHastSrcData(DispatchTable* vtable, SEXP parentHast) {
@@ -479,6 +561,73 @@ void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab) {
     Function* genesisFunObj = genesisCodeObj->function();
 
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
+
+void Hast::serializerCleanup() {
+    auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : "bitcodes";
+
+    std::stringstream savePath;
+    savePath << prefix << "/";
+
+    DIR *dir;
+    struct dirent *ent;
+
+
+    if ((dir = opendir (savePath.str().c_str())) != NULL) {
+        while ((ent = readdir (dir)) != NULL) {
+            std::string fName = ent->d_name;
+            if (fName.find(".meta") != std::string::npos) {
+                Protect protecc;
+                std::stringstream metaPath;
+                metaPath << prefix << "/" << fName;
+
+                FILE *reader;
+                reader = fopen(metaPath.str().c_str(),"r");
+
+                if (!reader) {
+                    SerializerDebug::infoMessage("(*) serializer cleanup failed", 0);
+                    continue;
+                }
+
+                SEXP result;
+                protecc(result= R_LoadFromFile(reader, 0));
+                fclose(reader);
+
+                // check if the currentHast is blacklisted
+                SEXP hast = serializerData::getHast(result);
+
+                if (blacklist.count(hast) > 0) {
+                    const int removeRes = remove(metaPath.str().c_str());
+                    if( removeRes != 0 ){
+                        std::cerr << "[Warning] Failed to remove: " << metaPath.str() << ", res: " << removeRes << std::endl;
+                    }
+                    continue;
+                }
+
+                // Todo, blacklist specific contexts instead of the whole file...
+                bool err = false;
+                serializerData::iterate(result, [&](SEXP offsetSym, SEXP conSym, SEXP cData, bool isMask) {
+                    if (!isMask) {
+                        auto rData = contextData::getReqMapAsVector(cData);
+                        for (int i = 0; i < Rf_length(rData); i++) {
+                            SEXP dep = VECTOR_ELT(rData, i);
+                            if (blacklist.count(dep) > 0) {
+                                err = true;
+                            }
+                        }
+                    }
+                });
+
+                if (err) {
+                    const int removeRes = remove(metaPath.str().c_str());
+                    if( removeRes != 0 ){
+                        std::cerr << "Failed to remove: " << metaPath.str() << ", res: " << removeRes << std::endl;
+                    }
+                }
+            }
+        }
+        closedir (dir);
+    }
 }
 
 

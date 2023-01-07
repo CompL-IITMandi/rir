@@ -443,8 +443,8 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
 
                 // Save code to cache
                 if (CodeCache::serializer) {
-                    bool readyForSerialization = Hast::sPoolHastMap.count(c->rirSrc()->src) > 0;
-                    if (readyForSerialization) {
+                    auto hastInfo = Hast::getHastInfo(c->rirSrc()->src, true);
+                    if (hastInfo.isValid()) {
                         //
                         // === Serializer Start ===
                         //
@@ -476,8 +476,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
 
                         // Serialize Metadata if lowering was successful
                         if (!serializerError) {
-                            auto data = Hast::sPoolHastMap[c->rirSrc()->src];
-                            serializeClosure(data.hast, data.offsetIndex, c->name(), cDataContainer, serializerError);
+                            serializeClosure(hastInfo.hast, hastInfo.offsetIndex, c->name(), cDataContainer, serializerError);
                         }
 
                         // Restore compilation behaviour

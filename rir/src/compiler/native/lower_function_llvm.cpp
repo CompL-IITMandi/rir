@@ -35,6 +35,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "utils/SerializerDebug.h"
+#include "utils/Hast.h"
+
 namespace rir {
 namespace pir {
 
@@ -45,6 +48,48 @@ extern "C" size_t R_NodesInUse;
 
 static_assert(sizeof(unsigned long) == sizeof(uint64_t),
               "sizeof(unsigned long) and sizeof(uint64_t) should match");
+
+// Serializer start
+
+llvm::Value* LowerFunctionLLVM::convertToExternalSymbol(std::string name, llvm::Type* ty, bool constant) {
+
+    return getModule().getOrInsertGlobal(name, ty, [&]() {
+        if (globalSymbolPatchCache.find(name) != globalSymbolPatchCache.end()) {
+            return globalSymbolPatchCache[name];
+        } else {
+            auto res = new llvm::GlobalVariable(
+                getModule(), ty, constant,
+                llvm::GlobalValue::LinkageTypes::AvailableExternallyLinkage,
+                nullptr, name, nullptr,
+                llvm::GlobalValue::ThreadLocalMode::NotThreadLocal, 0, true);
+            globalSymbolPatchCache[name] = res;
+            return res;
+        }
+    });
+}
+
+llvm::Value* LowerFunctionLLVM::srcIdxPatch(const unsigned int & srcIdx, const bool & sourcePool) {
+
+    // Serializer is disabled
+    if (reqMap == nullptr || serializerError == nullptr) return c(srcIdx);
+
+    // Try patching with hast
+    auto hastInfo = Hast::getHastInfo(srcIdx, sourcePool);
+    if (hastInfo.isValid()) {
+        reqMap->insert(hastInfo.hast);
+        std::stringstream ss;
+        ss << "srcIdx_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << hastInfo.offsetIndex;
+
+        return builder.CreateLoad(convertToExternalSymbol(ss.str(), t::Int));
+    }
+
+    // Failed to apply the patch
+    SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] srcIdx patch failed", 2);
+    SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
+    return c(srcIdx);
+}
+
+// Serializer end
 
 void LowerFunctionLLVM::PhiBuilder::addInput(llvm::Value* v) {
     addInput(v, builder.GetInsertBlock());
@@ -349,7 +394,7 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
                             /*
                                 SER-TODO: cpool
                             */
-                            c(srcIdx),
+                            srcIdxPatch(srcIdx, false),
                             constant(builtin, t::SEXP),
                             env,
                             c(args.size()),
@@ -386,7 +431,7 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
 
 
     /*
-        SER-TODO: cpool
+        SER-TODO
     */
     auto ast = constant(cp_pool_at(srcIdx), t::SEXP);
     // TODO: ensure that we cover all the fast builtin cases
@@ -1637,7 +1682,7 @@ void LowerFunctionLLVM::compileRelop(
                        /*
                             SER-TODO: spool
                         */
-                       c(i->srcIdx),
+                       srcIdxPatch(i->srcIdx, true),
                        c((uint8_t)i->tag, 8)});
         } else {
             res = call(NativeBuiltins::get(NativeBuiltins::Id::binop),
@@ -1710,7 +1755,7 @@ void LowerFunctionLLVM::compileBinop(
                        /*
                             SER-TODO: spool
                         */
-                       c(i->srcIdx),
+                       srcIdxPatch(i->srcIdx, true),
                        c((uint8_t)i->tag, 8)});
         } else {
             res = call(NativeBuiltins::get(NativeBuiltins::Id::binop),
@@ -1800,7 +1845,7 @@ void LowerFunctionLLVM::compileUnop(
                        /*
                             SER-TODO: spool
                         */
-                       c(i->srcIdx),
+                       srcIdxPatch(i->srcIdx, true),
                        c((uint8_t)i->tag, 8)});
         } else {
             res = call(NativeBuiltins::get(NativeBuiltins::Id::unop),
@@ -1940,7 +1985,7 @@ bool LowerFunctionLLVM::compileDotcall(
                                 /*
                                     SER-TODO: cpool
                                 */
-                              c(i->srcIdx),
+                              srcIdxPatch(i->srcIdx, false),
                               callee(),
                               i->hasEnv() ? loadSxp(i->env())
                                           : constant(R_BaseEnv, t::SEXP),
@@ -3433,7 +3478,7 @@ void LowerFunctionLLVM::compile() {
                                 /*
                                     SER-TODO: cpool
                                 */
-                               c(b->srcIdx),
+                               srcIdxPatch(b->srcIdx, false),
                                 loadSxp(b->cls()), loadSxp(b->env()),
                                 c(b->nCallArgs()), c(asmpt.toI())});
                        }));
@@ -3471,7 +3516,7 @@ void LowerFunctionLLVM::compile() {
                                 /*
                                     SER-TODO: cpool
                                 */
-                                c(b->srcIdx),
+                                srcIdxPatch(b->srcIdx, false),
                                 loadSxp(b->cls()),
                                 loadSxp(b->env()),
                                 c(b->nCallArgs()),
@@ -3504,7 +3549,7 @@ void LowerFunctionLLVM::compile() {
                                 /*
                                     SER-TODO: cpool
                                 */
-                                c(calli->srcIdx),
+                                srcIdxPatch(calli->srcIdx, false),
                                  loadSxp(calli->runtimeClosure()),
                                  loadSxp(calli->env()), c(calli->nCallArgs()),
                                  c(asmpt.toI())});
@@ -3566,7 +3611,7 @@ void LowerFunctionLLVM::compile() {
                                     /*
                                         SER-TODO: cpool
                                     */
-                                   c(calli->srcIdx),
+                                   srcIdxPatch(calli->srcIdx, false),
                                    /*
                                         SER-TODO
                                     */
@@ -3817,7 +3862,7 @@ void LowerFunctionLLVM::compile() {
                             /*
                                 SER-TODO: spool
                             */
-                            c(i->srcIdx)});
+                            srcIdxPatch(i->srcIdx, true)});
                     } else {
                         res =
                             call(NativeBuiltins::get(NativeBuiltins::Id::notOp),
@@ -4385,7 +4430,7 @@ void LowerFunctionLLVM::compile() {
                              /*
                                 SER-TODO: spool
                              */
-                             c(i->srcIdx),
+                             srcIdxPatch(i->srcIdx, true),
                               c((uint8_t)i->tag, 8)});
                 } else if (Rep::Of(a) == Rep::i32 && Rep::Of(b) == Rep::i32) {
                     res = call(NativeBuiltins::get(NativeBuiltins::Id::colon),
@@ -5123,7 +5168,7 @@ void LowerFunctionLLVM::compile() {
                          /*
                             SER-TODO: spool
                          */
-                         c(extract->srcIdx)});
+                         srcIdxPatch(extract->srcIdx, true)});
 
                 res.addInput(convert(res0, i->type));
                 if (fastcase) {
@@ -5214,7 +5259,7 @@ void LowerFunctionLLVM::compile() {
                           /*
                             SER-TODO: spool
                           */
-                          c(extract->srcIdx)});
+                          srcIdxPatch(extract->srcIdx, true)});
 
                 res.addInput(convert(res0, i->type));
                 if (fastcase) {
@@ -5286,7 +5331,7 @@ void LowerFunctionLLVM::compile() {
                                  /*
                                     SER-TODO: spool
                                  */
-                                 c(extract->srcIdx)});
+                                 srcIdxPatch(extract->srcIdx, true)});
                 } else {
                     auto vector = loadSxp(extract->vec());
                     auto idx = loadSxp(extract->idx());
@@ -5296,7 +5341,7 @@ void LowerFunctionLLVM::compile() {
                               /*
                                 SER-TODO: spool
                               */
-                              c(extract->srcIdx)});
+                              srcIdxPatch(extract->srcIdx, true)});
                 }
 
                 res.addInput(convert(res0, i->type));
@@ -5328,7 +5373,7 @@ void LowerFunctionLLVM::compile() {
                          /*
                             SER-TODO: spool
                          */
-                         c(extract->srcIdx)});
+                         srcIdxPatch(extract->srcIdx, true)});
                 setVal(i, res);
 
                 break;
@@ -5413,7 +5458,7 @@ void LowerFunctionLLVM::compile() {
                                  /*
                                     SER-TODO: spool
                                  */
-                                 c(extract->srcIdx)});
+                                 srcIdxPatch(extract->srcIdx, true)});
                 } else {
 
                     auto vector = loadSxp(extract->vec());
@@ -5425,7 +5470,7 @@ void LowerFunctionLLVM::compile() {
                               /*
                                 SER-TODO: spool
                               */
-                              c(extract->srcIdx)});
+                              srcIdxPatch(extract->srcIdx, true)});
                 }
 
                 res.addInput(convert(res0, i->type));
@@ -5455,7 +5500,7 @@ void LowerFunctionLLVM::compile() {
                           /*
                             SER-TODO: spool
                           */
-                          c(subAssign->srcIdx)});
+                          srcIdxPatch(subAssign->srcIdx, true)});
                 setVal(i, res);
                 break;
             }
@@ -5475,7 +5520,7 @@ void LowerFunctionLLVM::compile() {
                           /*
                             SER-TODO: spool
                           */
-                          c(subAssign->srcIdx)});
+                          srcIdxPatch(subAssign->srcIdx, true)});
                 setVal(i, res);
                 break;
             }
@@ -5585,7 +5630,7 @@ void LowerFunctionLLVM::compile() {
                          /*
                             SER-TODO: spool
                          */
-                         c(subAssign->srcIdx)});
+                         srcIdxPatch(subAssign->srcIdx, true)});
                 } else {
                     assign = call(
                         NativeBuiltins::get(NativeBuiltins::Id::subassign22),
@@ -5594,7 +5639,7 @@ void LowerFunctionLLVM::compile() {
                          /*
                             SER-TODO: spool
                          */
-                         c(subAssign->srcIdx)});
+                         srcIdxPatch(subAssign->srcIdx, true)});
                 }
 
                 res.addInput(assign);
@@ -5685,7 +5730,7 @@ void LowerFunctionLLVM::compile() {
                           /*
                             SER-TODO: spool
                           */
-                          c(subAssign->srcIdx)});
+                          srcIdxPatch(subAssign->srcIdx, true)});
 
                 res.addInput(convert(res0, i->type));
                 if (fastcase) {
@@ -5801,7 +5846,7 @@ void LowerFunctionLLVM::compile() {
                               /*
                                 SER-TODO: spool
                               */
-                              c(subAssign->srcIdx)});
+                              srcIdxPatch(subAssign->srcIdx, true)});
                 } else {
                     res0 = call(
                         NativeBuiltins::get(NativeBuiltins::Id::subassign21),
@@ -5810,7 +5855,7 @@ void LowerFunctionLLVM::compile() {
                          /*
                             SER-TODO: spool
                          */
-                         c(subAssign->srcIdx)});
+                         srcIdxPatch(subAssign->srcIdx, true)});
                 }
 
                 res.addInput(convert(res0, i->type));
@@ -6073,7 +6118,7 @@ void LowerFunctionLLVM::compile() {
                                     /*
                                         SER-TODO: spool
                                     */
-                                   c(i->srcIdx)}));
+                                   srcIdxPatch(i->srcIdx, true)}));
                     break;
                 }
 

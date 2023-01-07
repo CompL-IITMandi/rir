@@ -119,8 +119,27 @@ class LowerFunctionLLVM {
         return convertToPointer(what, t::SEXPREC, constant);
     }
 
+    // Serializer start
     std::set<SEXP>* reqMap = nullptr;
     bool* serializerError = nullptr;
+
+    std::unordered_map<std::string, llvm::Value*> symbolPatchCache;
+    std::unordered_map<std::string, llvm::GlobalVariable*> globalSymbolPatchCache;
+
+    llvm::Value* convertToExternalSymbol(std::string name, llvm::Type* ty, bool constant = false);
+    llvm::Value* convertToExternalSymbol(std::string name, bool constant = false) {
+        if (symbolPatchCache.find(name) != symbolPatchCache.end()) {
+            return symbolPatchCache[name];
+        } else {
+            auto res = convertToExternalSymbol(name, t::SEXPREC, constant);
+            symbolPatchCache[name] = res;
+            return res;
+        }
+    }
+
+    llvm::Value* srcIdxPatch(const unsigned int & srcIdx, const bool & sourcePool);
+
+    // Serializer end
 
     struct Variable {
         bool deadMove(const Variable& other) const;

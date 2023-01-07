@@ -598,13 +598,19 @@ void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPo
             if (Hast::cPoolInverseMap.count(obj) > 0) {
                 auto data = Hast::cPoolInverseMap[obj];
 
-                SEXP resVec;
-                protecc(resVec = Rf_allocVector(VECSXP, 2));
-                SET_VECTOR_ELT(resVec, 0, data.hast);
-                SET_VECTOR_ELT(resVec, 1, Rf_install(std::to_string(data.offsetIndex).c_str()));
+                if (Hast::blacklist.count(data.hast)) {
+                    *serializerError = true;
+                    SerializerDebug::infoMessage("(E) [pir_jit_llvm.cpp] serialized pool contains a leaked blacklisted LANGSXP", 2);
+                } else {
+                    SEXP resVec;
+                    protecc(resVec = Rf_allocVector(VECSXP, 2));
+                    SET_VECTOR_ELT(resVec, 0, data.hast);
+                    SET_VECTOR_ELT(resVec, 1, Rf_install(std::to_string(data.offsetIndex).c_str()));
 
-                obj = resVec;
-                rMap.insert(VECTOR_ELT(obj, 0));
+                    obj = resVec;
+                    rMap.insert(VECTOR_ELT(obj, 0));
+                }
+
             } else {
                 *serializerError = true;
                 SerializerDebug::infoMessage("(E) [pir_jit_llvm.cpp] serialized pool contains a leaked LANGSXP", 2);
@@ -799,6 +805,13 @@ void PirJitLLVM::compile(
 
 llvm::LLVMContext& PirJitLLVM::getContext() { return *TSC.getContext(); }
 
+inline unsigned int stoui(const std::string& s) {
+    unsigned long lresult = std::stoul(s, 0, 10);
+    unsigned int result = lresult;
+    if (result != lresult) Rf_error("stoui failed");
+    return result;
+};
+
 void PirJitLLVM::initializeLLVM() {
     if (initialized)
         return;
@@ -892,6 +905,8 @@ void PirJitLLVM::initializeLLVM() {
             [MainName = JIT->mangleAndIntern("main")](
                 const SymbolStringPtr& Name) { return Name != MainName; })));
 
+
+
     // TODO this is a bit of a hack but it works: the address is stored in the
     // name. symbols starting with "ept_" are external pointers, the ones
     // starting with "efn_" are external function pointers. these must exist in
@@ -908,7 +923,35 @@ void PirJitLLVM::initializeLLVM() {
                 auto ept = n.substr(0, 4) == "ept_";
                 auto efn = n.substr(0, 4) == "efn_";
 
-                if (ept || efn) {
+                auto srcIdx = n.substr(0, 7) == "srcIdx_"; // srcIdx patch
+
+                if (srcIdx) {
+                    Protect protecc;
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    SerializerDebug::infoMessage("(Rt) [pir_jit_llvm.cpp] Patching srcIdx", 2);
+                    SerializerDebug::infoMessage(n, 4);
+                    SerializerDebug::infoMessage(n.substr(firstDel + 1, secondDel - firstDel - 1), 6);
+                    SerializerDebug::infoMessage(n.substr(secondDel + 1), 6);
+
+                    SEXP hast = Rf_install(n.substr(firstDel + 1, secondDel - firstDel - 1).c_str());
+                    unsigned int offsetIndex = stoui(n.substr(secondDel + 1));
+
+                    unsigned idx = Hast::getSrcPoolIndexAtOffset(hast, offsetIndex);
+
+                    SEXP store;
+                    protecc(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx)));
+                    BC::PoolIdx * tmp = (BC::PoolIdx *) DATAPTR(store);
+                    *tmp = idx;
+                    Pool::patch(Pool::makeSpace(),store);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(tmp)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (ept || efn) {
                     auto addrStr = n.substr(4);
                     auto addr = std::strtoul(addrStr.c_str(), nullptr, 16);
                     NewSymbols[Name] = JITEvaluatedSymbol(
