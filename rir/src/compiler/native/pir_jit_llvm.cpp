@@ -813,6 +813,7 @@ inline unsigned int stoui(const std::string& s) {
 };
 
 void PirJitLLVM::initializeLLVM() {
+    static int opaqueTrue = 1;
     if (initialized)
         return;
 
@@ -925,7 +926,28 @@ void PirJitLLVM::initializeLLVM() {
 
                 auto srcIdx = n.substr(0, 7) == "srcIdx_"; // srcIdx patch
 
-                if (srcIdx) {
+                auto spe = n.substr(0, 4) == "spe_"; // Special symbols
+
+                if (spe) {
+                    auto constantName = n.substr(4);
+                    uintptr_t addr = 0;
+
+                    if (constantName.compare("BCNodeStackTop") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&R_BCNodeStackTop);
+                    } else if (constantName.compare("Visible") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&R_Visible);
+                    } else if (constantName.compare("returnedValue") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&R_ReturnedValue);
+                    } else if (constantName.compare("opaqueTrue") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&opaqueTrue);
+                    } else if (constantName.compare("GlobalContext") == 0) {
+                        addr = reinterpret_cast<uintptr_t>(&R_GlobalContext);
+                    }
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(addr),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (srcIdx) {
                     Protect protecc;
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);

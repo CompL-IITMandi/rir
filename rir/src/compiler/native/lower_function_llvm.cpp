@@ -89,6 +89,10 @@ llvm::Value* LowerFunctionLLVM::srcIdxPatch(const unsigned int & srcIdx, const b
     return c(srcIdx);
 }
 
+llvm::Value* LowerFunctionLLVM::ptrPatch(std::function<llvm::Value*()> normal, std::function<llvm::Value*()> patched) {
+    return (reqMap == nullptr || serializerError == nullptr) ? normal() : patched();
+}
+
 // Serializer end
 
 void LowerFunctionLLVM::PhiBuilder::addInput(llvm::Value* v) {
@@ -153,14 +157,14 @@ LowerFunctionLLVM::getBuiltin(const rir::pir::NativeBuiltin& b) {
 
 /*
     SER-TODO
-        1. setVisible: direct constant
-        2. insn_assert: message
+        1. setVisible: direct constant  -- DONE
+        2. insn_assert: message -- DONE
         3. constant(): ...
-        4. opaqueTrue
-        5. nodestackPtrAddr: direct constant
-        6. R_GlobalContext: direct constant (see more)
+        4. opaqueTrue -- DONE
+        5. nodestackPtrAddr: direct constant -- DONE
+        6. R_GlobalContext: direct constant (see more) -- DONE
         7. DeoptMetadata
-        8. NativeBuiltins::Id::checkType: message
+        8. NativeBuiltins::Id::checkType: message -- DONE
 */
 llvm::Value* LowerFunctionLLVM::convertToPointer(const void* what,
                                                  llvm::Type* ty,
@@ -187,7 +191,13 @@ LowerFunctionLLVM::convertToFunction(const void* what, llvm::FunctionType* ty) {
 }
 
 void LowerFunctionLLVM::setVisible(int i) {
-    builder.CreateStore(c(i), convertToPointer(&R_Visible, t::Int));
+    auto normal = [&]()->llvm::Value* {
+        return convertToPointer(&R_Visible, t::Int);
+    };
+    auto patched = [&]()->llvm::Value * {
+        return convertToExternalSymbol("spe_Visible", t::Int);
+    };
+    builder.CreateStore(c(i), ptrPatch(normal, patched));
 }
 
 llvm::Value* LowerFunctionLLVM::force(Instruction* i, llvm::Value* arg) {
@@ -247,8 +257,18 @@ void LowerFunctionLLVM::insn_assert(llvm::Value* v, const char* msg,
     builder.SetInsertPoint(nok);
     if (p)
         call(NativeBuiltins::get(NativeBuiltins::Id::printValue), {p});
+
+    auto normal = [&]()->llvm::Value* {
+        return convertToPointer((void*)msg, t::i8, true);
+    };
+    auto patched = [&]()->llvm::Value * {
+        auto msgGlobalVar =
+            builder.CreateGlobalString(msg);
+        return builder.CreateInBoundsGEP(msgGlobalVar, {c(0), c(0)});
+    };
+
     call(NativeBuiltins::get(NativeBuiltins::Id::assertFail),
-         {convertToPointer((void*)msg, t::i8, true)});
+         {ptrPatch(normal, patched)});
 
     builder.CreateUnreachable();
     builder.SetInsertPoint(ok);
@@ -505,8 +525,14 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         res = constant(val->asRValue(), needed);
     } else if (val == OpaqueTrue::instance()) {
         static int one = 1;
+        auto normal = [&]()->llvm::Value* {
+            return convertToPointer(&one, t::Int, true);
+        };
+        auto patched = [&]()->llvm::Value * {
+            return convertToExternalSymbol("spe_opaqueTrue", t::Int, true);
+        };
         // Something that is always true, but llvm does not know about
-        res = builder.CreateLoad(convertToPointer(&one, t::Int, true));
+        res = builder.CreateLoad(ptrPatch(normal, patched));
     } else if (auto ld = Const::Cast(val)) {
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
@@ -2219,8 +2245,14 @@ void LowerFunctionLLVM::compile() {
             arg++;
         }
     }
+    auto normal = [&]()->llvm::Value* {
+        return convertToPointer(&R_BCNodeStackTop, t::stackCellPtr);
+    };
+    auto patched = [&]()->llvm::Value * {
+        return convertToExternalSymbol("spe_BCNodeStackTop", t::stackCellPtr);
+    };
 
-    nodestackPtrAddr = convertToPointer(&R_BCNodeStackTop, t::stackCellPtr);
+    nodestackPtrAddr = ptrPatch(normal, patched);
     basepointer = nodestackPtr();
 
     size_t additionalStackSlots = 0;
@@ -2475,11 +2507,14 @@ void LowerFunctionLLVM::compile() {
             }
 
             case Tag::DropContext: {
-                /*
-                    SER-TODO
-                */
+                auto normal = [&]()->llvm::Value* {
+                    return convertToPointer(&R_GlobalContext, t::RCNTXT_ptr);
+                };
+                auto patched = [&]()->llvm::Value * {
+                    return convertToExternalSymbol("spe_GlobalContext", t::RCNTXT_ptr);
+                };
                 auto globalContextPtrAddr =
-                    convertToPointer(&R_GlobalContext, t::RCNTXT_ptr);
+                    ptrPatch(normal, patched);
                 auto globalContextPtr =
                     builder.CreateLoad(globalContextPtrAddr);
                 auto callflagAddr =
@@ -3587,9 +3622,18 @@ void LowerFunctionLLVM::compile() {
                                 {
                                     c(callId),
                                     paramCode(),
+                                    /*
+                                        SER-TODO
+                                    */
                                     constant(callee, t::SEXP),
+                                    /*
+                                        SER-TODO
+                                    */
                                     c(idx),
-                                    c(calli->srcIdx),
+                                    /*
+                                        SER-TODO: cpool
+                                    */
+                                    srcIdxPatch(calli->srcIdx, false),
                                     loadSxp(calli->env()),
                                     c(args.size()),
                                     c(asmpt.toI()),
@@ -6361,9 +6405,17 @@ void LowerFunctionLLVM::compile() {
                         } else {
                             msg = defaultMsg;
                         }
+                        auto normal = [&]()->llvm::Value* {
+                            return convertToPointer(msg, t::i8, true);
+                        };
+                        auto patched = [&]()->llvm::Value * {
+                            auto msgGlobalVar =
+                                builder.CreateGlobalString(msg);
+                            return builder.CreateInBoundsGEP(msgGlobalVar, {c(0), c(0)});
+                        };
                         call(NativeBuiltins::get(NativeBuiltins::Id::checkType),
                              {loadSxp(i), c((unsigned long)i->type.serialize()),
-                              convertToPointer(msg, t::i8, true)});
+                              ptrPatch(normal, patched)});
                     }
                 }
 #ifdef ENABLE_SLOWASSERT

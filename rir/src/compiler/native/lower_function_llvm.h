@@ -138,6 +138,7 @@ class LowerFunctionLLVM {
     }
 
     llvm::Value* srcIdxPatch(const unsigned int & srcIdx, const bool & sourcePool);
+    llvm::Value* ptrPatch(std::function<llvm::Value*()> normal, std::function<llvm::Value*()> patched);
 
     // Serializer end
 
