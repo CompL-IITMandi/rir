@@ -927,8 +927,92 @@ void PirJitLLVM::initializeLLVM() {
                 auto srcIdx = n.substr(0, 7) == "srcIdx_"; // srcIdx patch
 
                 auto spe = n.substr(0, 4) == "spe_"; // Special symbols
+                auto dcs = n.substr(0, 4) == "dcs_"; // Constant SEXPs from runtime
+                auto gcb = n.substr(0, 4) == "gcb_"; // BUILTINSXP
+                auto spe1 = n.substr(0, 5) == "spe1_"; // SPECIALSXP
+                auto sym = n.substr(0, 4) == "sym_"; // Symbols
 
-                if (spe) {
+                if (sym) {
+                    auto constantName = n.substr(4);
+                    SEXP con = Rf_install(constantName.c_str());
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(con)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (spe1) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto index = std::stoi(n.substr(firstDel + 1, secondDel - firstDel - 1));
+                    auto sym = Rf_install(R_FunTab[index].name);
+                    auto spe1 = Rf_findFun(sym,R_GlobalEnv);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(spe1)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (gcb) {
+                    auto id = std::stoi(n.substr(4));
+                    SEXP ptr;
+                    assert(R_FunTab[id].eval % 10 == 1 && "Only use for BUILTINSXP");
+                    if (R_FunTab[id].eval % 100 / 10 == 0)
+                        ptr = Rf_install(R_FunTab[id].name)->u.symsxp.value;
+                    else
+                        ptr = Rf_install(R_FunTab[id].name)->u.symsxp.internal;
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(ptr)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (dcs) {
+                    auto id = std::stoi(n.substr(4));
+                    SEXP ptr = R_NilValue;
+                    switch (id) {
+                        case 100:
+                            ptr = R_GlobalEnv;
+                            break;
+                        case 101:
+                            ptr = R_BaseEnv;
+                            break;
+                        case 102:
+                            ptr = R_BaseNamespace;
+                            break;
+                        case 103:
+                            ptr = R_TrueValue;
+                            break;
+                        case 104:
+                            ptr = R_NilValue;
+                            break;
+                        case 105:
+                            ptr = R_FalseValue;
+                            break;
+                        case 106:
+                            ptr = R_UnboundValue;
+                            break;
+                        case 107:
+                            ptr = R_MissingArg;
+                            break;
+                        case 108:
+                            ptr = R_LogicalNAValue;
+                            break;
+                        case 109:
+                            ptr = R_EmptyEnv;
+                            break;
+                        case 110:
+                            ptr = R_RestartToken;
+                            break;
+                        case 111:
+                            ptr = R_DimSymbol;
+                            break;
+                        case 112:
+                            ptr = R_DotsSymbol;
+                            break;
+                    }
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(ptr)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (spe) {
                     auto constantName = n.substr(4);
                     uintptr_t addr = 0;
 

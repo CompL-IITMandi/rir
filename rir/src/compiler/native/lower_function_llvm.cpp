@@ -159,7 +159,7 @@ LowerFunctionLLVM::getBuiltin(const rir::pir::NativeBuiltin& b) {
     SER-TODO
         1. setVisible: direct constant  -- DONE
         2. insn_assert: message -- DONE
-        3. constant(): ...
+        3. constant(): -- DONE
         4. opaqueTrue -- DONE
         5. nodestackPtrAddr: direct constant -- DONE
         6. R_GlobalContext: direct constant (see more) -- DONE
@@ -332,16 +332,116 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
 
     static std::unordered_set<SEXP> eternal = {R_GlobalEnv, R_BaseEnv,
                                                R_BaseNamespace};
-    if (TYPEOF(co) == SYMSXP || eternal.count(co))
-        return convertToPointer(co);
+
+    if (eternal.count(co)) {
+        auto normal = [&]()->llvm::Value* {
+            return convertToPointer(co);
+        };
+        auto patched = [&]()->llvm::Value * {
+            if (co == R_GlobalEnv) return convertToExternalSymbol("dcs_100");
+            if (co == R_BaseEnv) return convertToExternalSymbol("dcs_101");
+            if (co == R_BaseNamespace) return convertToExternalSymbol("dcs_102");
+            Rf_error("unreachable point, please check!");
+            // unreachable
+            return nullptr;
+        };
+
+        return ptrPatch(normal, patched);
+    }
+
+    if (co == R_RestartToken && reqMap != nullptr && serializerError != nullptr) {
+        return convertToExternalSymbol("dcs_110");
+    }
+
+    if (co == R_DimSymbol && reqMap != nullptr && serializerError != nullptr) {
+        return convertToExternalSymbol("dcs_111");
+    }
+
+    if (co == R_DotsSymbol && reqMap != nullptr && serializerError != nullptr) {
+        return convertToExternalSymbol("dcs_112");
+    }
+
 
     static std::unordered_set<SEXP> eternalConst = {
         R_TrueValue,  R_NilValue,       R_FalseValue, R_UnboundValue,
         R_MissingArg, R_LogicalNAValue, R_EmptyEnv};
-    if (TYPEOF(co) == BUILTINSXP || TYPEOF(co) == SPECIALSXP ||
-        eternalConst.count(co))
-        return convertToPointer(co, true);
 
+    if (eternalConst.count(co)) {
+        auto normal = [&]()->llvm::Value* {
+            return convertToPointer(co, true);
+        };
+        auto patched = [&]()->llvm::Value * {
+            if (co == R_TrueValue) return convertToExternalSymbol("dcs_103", true);
+            if (co == R_NilValue) return convertToExternalSymbol("dcs_104", true);
+            if (co == R_FalseValue) return convertToExternalSymbol("dcs_105", true);
+            if (co == R_UnboundValue) return convertToExternalSymbol("dcs_106", true);
+            if (co == R_MissingArg) return convertToExternalSymbol("dcs_107", true);
+            if (co == R_LogicalNAValue) return convertToExternalSymbol("dcs_108", true);
+            if (co == R_EmptyEnv) return convertToExternalSymbol("dcs_109", true);
+            Rf_error("unreachable point, please check!");
+            // unreachable
+            return nullptr;
+        };
+
+        return ptrPatch(normal, patched);
+    }
+
+    if (TYPEOF(co) == SYMSXP) {
+        auto normal = [&]()->llvm::Value* {
+            return convertToPointer(co);
+        };
+        auto patched = [&]()->llvm::Value * {
+            if (strlen(CHAR(PRINTNAME(co))) == 0) {
+                SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] unnamed symbols not handled!", 2);
+                *serializerError = true;
+                return convertToPointer(co);
+            } else {
+                std::stringstream ss;
+                ss << "sym_";
+                ss << CHAR(PRINTNAME(co));
+                return convertToExternalSymbol(ss.str());
+            }
+        };
+        return ptrPatch(normal, patched);
+    }
+
+    if (TYPEOF(co) == BUILTINSXP) {
+        auto normal = [&]()->llvm::Value* {
+            return convertToPointer(co, true);
+        };
+        auto patched = [&]()->llvm::Value * {
+            std::stringstream ss;
+            ss << "gcb_";
+            ss << getBuiltinNr(co);
+            return convertToExternalSymbol(ss.str(), true);
+        };
+
+        return ptrPatch(normal, patched);
+    }
+
+    if (TYPEOF(co) == SPECIALSXP) {
+        auto normal = [&]()->llvm::Value* {
+            return convertToPointer(co, true);
+        };
+        auto patched = [&]()->llvm::Value * {
+            auto sym = Rf_install(R_FunTab[co->u.primsxp.offset].name);
+            auto spe1 = Rf_findFun(sym,R_GlobalEnv);
+
+            if (spe1 == co) {
+                std::stringstream ss;
+                ss << "spe1_";
+                ss << co->u.primsxp.offset;
+                return convertToExternalSymbol(ss.str(), true);
+            } else {
+                *serializerError = true;
+                SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] PATCH_SPECIALSXP failed, non-function type, offset: " + std::to_string(co->u.primsxp.offset) + ", kind: " + std::to_string(R_FunTab[co->u.primsxp.offset].gram.kind), 2);
+                return convertToPointer(co, true);
+            }
+        };
+        return ptrPatch(normal, patched);
+    }
+
+    // SER-TODO
     auto i = Pool::insert(co);
     llvm::Value* pos = builder.CreateLoad(constantpool);
     pos = builder.CreateBitCast(dataPtr(pos, false),
