@@ -24,6 +24,7 @@
 #include <unordered_set>
 
 #include "runtime/RuntimeFlags.h"
+#include "utils/Hast.h"
 
 extern "C" {
 extern SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP);
@@ -2488,6 +2489,16 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             SET_FORMALS(res, formals);
             SET_BODY(res, body);
             SET_CLOENV(res, env);
+            // Can we patch non-zero indices like this?
+            // unsigned srcIdx = DispatchTable::unpack(body)->baseline()->body()->src;
+
+            // // Update the last closed closure into the patch map
+            // if (Hast::sPoolHastMap.count(srcIdx) > 0) {
+            //     SEXP hast = Hast::sPoolHastMap[srcIdx].hast;
+            //     assert(Hast::hastMap.count(hast) > 0);
+            //     Hast::hastMap[hast].clos = res;
+            // }
+
             Rf_setAttrib(res, symbol::srcref, srcref);
             ostack_popn(3);
             ostack_push(res);

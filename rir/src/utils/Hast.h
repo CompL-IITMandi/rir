@@ -29,6 +29,13 @@ class Hast {
     static std::unordered_map<unsigned, HastInfo> sPoolHastMap;
     static std::unordered_map<unsigned, HastInfo> cPoolHastMap;
 
+    static std::unordered_map<int, SEXP> debugMap;
+    static int debugIdx;
+
+    static int genDebugIdx() {
+        return debugIdx++;
+    }
+
     static HastInfo getHastInfo(const unsigned & srcIdx, const bool & sourcePool) {
         if (sourcePool) {
             if (sPoolHastMap.count(srcIdx) > 0) {

@@ -51,6 +51,25 @@ static_assert(sizeof(unsigned long) == sizeof(uint64_t),
 
 // Serializer start
 
+llvm::FunctionCallee LowerFunctionLLVM::convertToFunctionSymbol(SEXP what, llvm::FunctionType* ty) {
+    assert(what);
+    std::stringstream ss;
+    ss << "cod_";
+    ss << getBuiltinNr(what);
+
+    return getModule().getOrInsertFunction(ss.str(), ty);
+}
+
+llvm::Value* LowerFunctionLLVM::namedGlobalConst(std::string name, llvm::Constant* init, llvm::Type* ty) {
+    if (!ty)
+        ty = init->getType();
+
+    auto res = new llvm::GlobalVariable(getModule(), ty, true,
+                                    llvm::GlobalValue::PrivateLinkage, init, name);
+    res->setExternallyInitialized(true);
+    return res;
+}
+
 llvm::Value* LowerFunctionLLVM::convertToExternalSymbol(std::string name, llvm::Type* ty, bool constant) {
 
     return getModule().getOrInsertGlobal(name, ty, [&]() {
@@ -84,6 +103,7 @@ llvm::Value* LowerFunctionLLVM::srcIdxPatch(const unsigned int & srcIdx, const b
     }
 
     // Failed to apply the patch
+    *serializerError = true;
     SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] srcIdx patch failed", 2);
     SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
     return c(srcIdx);
@@ -114,7 +134,7 @@ llvm::Value* LowerFunctionLLVM::PhiBuilder::operator()(size_t numInputs) {
 }
 
 /*
-    SER-TODO
+    SER-DONE
         1. Deopt reason object
             Pool:
                 No pool is used, llvm::ConstantStruct
@@ -146,8 +166,19 @@ llvm::Value* LowerFunctionLLVM::globalConst(llvm::Constant* init,
                                             llvm::Type* ty) {
     if (!ty)
         ty = init->getType();
-    return new llvm::GlobalVariable(getModule(), ty, true,
-                                    llvm::GlobalValue::PrivateLinkage, init);
+
+    if (reqMap == nullptr || serializerError == nullptr) {
+        return new llvm::GlobalVariable(getModule(), ty, true,
+                                        llvm::GlobalValue::PrivateLinkage, init);
+    } else {
+        static int num = 0;
+        std::stringstream name;
+        name << "copool_" << num++;
+        auto res = new llvm::GlobalVariable(getModule(), ty, true,
+                                        llvm::GlobalValue::PrivateLinkage, init, name.str());
+        res->setExternallyInitialized(true);
+        return res;
+    }
 }
 
 llvm::FunctionCallee
@@ -157,9 +188,9 @@ LowerFunctionLLVM::getBuiltin(const rir::pir::NativeBuiltin& b) {
 
 /*
     SER-TODO
-        1. setVisible: direct constant  -- DONE
+        1. setVisible: direct constant -- DONE
         2. insn_assert: message -- DONE
-        3. constant(): -- DONE
+        3. constant() -- DONE
         4. opaqueTrue -- DONE
         5. nodestackPtrAddr: direct constant -- DONE
         6. R_GlobalContext: direct constant (see more) -- DONE
@@ -512,7 +543,7 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
                         {
                             paramCode(),
                             /*
-                                SER-TODO: cpool
+                                SER-DONE: cpool
                             */
                             srcIdxPatch(srcIdx, false),
                             constant(builtin, t::SEXP),
@@ -523,9 +554,9 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
     }
 
     /*
-        SER-TODO
+        SER-DONE
     */
-    auto f = convertToFunction((void*)builtinFun, t::builtinFunction);
+    auto f = (reqMap == nullptr || serializerError == nullptr) ? convertToFunction((void*)builtinFun, t::builtinFunction) : convertToFunctionSymbol(builtin, t::builtinFunction);
 
     std::stack<llvm::Value*> loadedArgs;
     auto n = numTemps;
@@ -889,13 +920,19 @@ void LowerFunctionLLVM::compilePushContext(Instruction* i) {
 
     // Handle incoming longjumps
     {
+        auto normal = [&]()->llvm::Value* {
+            return c((void*)&R_ReturnedValue);
+        };
+        auto patched = [&]()->llvm::Value * {
+            return convertToExternalSymbol("spe_returnedValue", t::i64);
+        };
         builder.SetInsertPoint(didLongjmp);
         llvm::Value* returned = builder.CreateLoad(
             builder.CreateIntToPtr(
                 /*
-                    SER-TODO
+                    SER-DONE
                 */
-                c((void*)&R_ReturnedValue)
+                ptrPatch(normal, patched)
                 , t::SEXP_ptr));
         auto restart =
             builder.CreateICmpEQ(returned, constant(R_RestartToken, t::SEXP));
@@ -1806,7 +1843,7 @@ void LowerFunctionLLVM::compileRelop(
             res = call(NativeBuiltins::get(NativeBuiltins::Id::binopEnv),
                        {a, b, e,
                        /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                         */
                        srcIdxPatch(i->srcIdx, true),
                        c((uint8_t)i->tag, 8)});
@@ -1879,7 +1916,7 @@ void LowerFunctionLLVM::compileBinop(
             res = call(NativeBuiltins::get(NativeBuiltins::Id::binopEnv),
                        {a, b, e,
                        /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                         */
                        srcIdxPatch(i->srcIdx, true),
                        c((uint8_t)i->tag, 8)});
@@ -1969,7 +2006,7 @@ void LowerFunctionLLVM::compileUnop(
             res = call(NativeBuiltins::get(NativeBuiltins::Id::unopEnv),
                        {a, e,
                        /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                         */
                        srcIdxPatch(i->srcIdx, true),
                        c((uint8_t)i->tag, 8)});
@@ -2109,7 +2146,7 @@ bool LowerFunctionLLVM::compileDotcall(
                               c(callId),
                               paramCode(),
                                 /*
-                                    SER-TODO: cpool
+                                    SER-DONE: cpool
                                 */
                               srcIdxPatch(i->srcIdx, false),
                               callee(),
@@ -2420,9 +2457,15 @@ void LowerFunctionLLVM::compile() {
         };
 
         /*
-            SER-TODO
+            SER-DONE
         */
-        constantpool = builder.CreateIntToPtr(c(globalContext()), t::SEXP_ptr);
+        if (reqMap == nullptr || serializerError == nullptr) {
+            constantpool = builder.CreateIntToPtr(c(globalContext()), t::SEXP_ptr);
+        } else {
+            auto speSym = namedGlobalConst("named_constantPool", c(globalContext()), t::i64);
+            auto iLoad = builder.CreateLoad(speSym);
+            constantpool = builder.CreateIntToPtr(iLoad, t::SEXP_ptr);
+        }
         constantpool = builder.CreateGEP(constantpool, c(1));
 
         Visitor::run(code->entry, [&](BB* bb) {
@@ -3611,7 +3654,7 @@ void LowerFunctionLLVM::compile() {
                                NativeBuiltins::get(NativeBuiltins::Id::call),
                                {c(callId), paramCode(),
                                 /*
-                                    SER-TODO: cpool
+                                    SER-DONE: cpool
                                 */
                                srcIdxPatch(b->srcIdx, false),
                                 loadSxp(b->cls()), loadSxp(b->env()),
@@ -3649,7 +3692,7 @@ void LowerFunctionLLVM::compile() {
                                 c(callId),
                                 paramCode(),
                                 /*
-                                    SER-TODO: cpool
+                                    SER-DONE: cpool
                                 */
                                 srcIdxPatch(b->srcIdx, false),
                                 loadSxp(b->cls()),
@@ -3671,6 +3714,8 @@ void LowerFunctionLLVM::compile() {
                 calli->eachCallArg([&](Value* v) { args.push_back(v); });
                 Context asmpt = calli->inferAvailableAssumptions();
 
+                static bool nativeCallTrampoline = getenv("NATIVE_CALL_TRAMPOLINE") ? getenv("NATIVE_CALL_TRAMPOLINE")[0] == '1' : true;
+
                 auto callId = ArglistOrder::NOT_REORDERED;
                 if (calli->isReordered())
                     callId = pushArgReordering(calli->getArgOrderOrig());
@@ -3682,7 +3727,7 @@ void LowerFunctionLLVM::compile() {
                                 NativeBuiltins::get(NativeBuiltins::Id::call),
                                 {c(callId), paramCode(),
                                 /*
-                                    SER-TODO: cpool
+                                    SER-DONE: cpool
                                 */
                                 srcIdxPatch(calli->srcIdx, false),
                                  loadSxp(calli->runtimeClosure()),
@@ -3692,7 +3737,7 @@ void LowerFunctionLLVM::compile() {
                     break;
                 }
 
-                if (target == bestTarget) {
+                if (nativeCallTrampoline && target == bestTarget) {
                     auto callee = target->owner()->rirClosure();
                     auto dt = DispatchTable::check(BODY(callee));
                     rir::Function* nativeTarget = nullptr;
@@ -3731,7 +3776,7 @@ void LowerFunctionLLVM::compile() {
                                     */
                                     c(idx),
                                     /*
-                                        SER-TODO: cpool
+                                        SER-DONE: cpool
                                     */
                                     srcIdxPatch(calli->srcIdx, false),
                                     loadSxp(calli->env()),
@@ -3746,6 +3791,42 @@ void LowerFunctionLLVM::compile() {
                 }
 
                 assert(asmpt.includes(Assumption::StaticallyArgmatched));
+
+                auto normal = [&]()->llvm::Value* {
+                    return builder.CreateIntToPtr(
+                                       c(calli->cls()->rirClosure()), t::SEXP);
+                };
+                auto patched = [&]()->llvm::Value * {
+                    SEXP body = BODY(calli->cls()->rirClosure());
+                    assert(DispatchTable::check(body));
+
+                    auto vtable = DispatchTable::unpack(body);
+                    auto srcIdx = vtable->baseline()->body()->src;
+
+
+                    auto hastInfo = Hast::getHastInfo(srcIdx, true);
+                    if (hastInfo.isValid() && hastInfo.offsetIndex == 0) {
+                        std::stringstream ss;
+                        auto debugIdx = Hast::genDebugIdx();
+                        ss << "clos_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << debugIdx;
+                        Hast::debugMap[debugIdx] = calli->cls()->rirClosure();
+                        assert(Hast::hastMap[hastInfo.hast].clos == calli->cls()->rirClosure());
+                        return convertToExternalSymbol(ss.str());
+                    }
+
+
+                    // Failed to apply the patch
+                    *serializerError = true;
+                    SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] rir code patch failed", 2);
+                    if (hastInfo.offsetIndex != 0) {
+                        SerializerDebug::infoMessage("non-zero offsetIndex!", 4);
+                        SerializerDebug::infoMessage("offsetIndex: " + std::to_string(hastInfo.offsetIndex), 6);
+                    }
+                    SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
+                    return builder.CreateIntToPtr(
+                                       c(calli->cls()->rirClosure()), t::SEXP);
+                };
+
                 setVal(i, withCallFrame(args, [&]() -> llvm::Value* {
                            return call(
                                NativeBuiltins::get(NativeBuiltins::Id::call),
@@ -3753,14 +3834,13 @@ void LowerFunctionLLVM::compile() {
                                    c(callId),
                                    paramCode(),
                                     /*
-                                        SER-TODO: cpool
+                                        SER-DONE: cpool
                                     */
                                    srcIdxPatch(calli->srcIdx, false),
                                    /*
-                                        SER-TODO
+                                        SER-DONE
                                     */
-                                   builder.CreateIntToPtr(
-                                       c(calli->cls()->rirClosure()), t::SEXP),
+                                   ptrPatch(normal, patched),
                                    loadSxp(calli->env()),
                                    c(calli->nCallArgs()),
                                    c(asmpt.toI()),
@@ -4004,7 +4084,7 @@ void LowerFunctionLLVM::compile() {
                             NativeBuiltins::get(NativeBuiltins::Id::notEnv),
                             {argumentNative, loadSxp(i->env()),
                             /*
-                                SER-TODO: spool
+                                SER-DONE: spool
                             */
                             srcIdxPatch(i->srcIdx, true)});
                     } else {
@@ -4572,7 +4652,7 @@ void LowerFunctionLLVM::compile() {
                         call(NativeBuiltins::get(NativeBuiltins::Id::binopEnv),
                              {loadSxp(a), loadSxp(b), e,
                              /*
-                                SER-TODO: spool
+                                SER-DONE: spool
                              */
                              srcIdxPatch(i->srcIdx, true),
                               c((uint8_t)i->tag, 8)});
@@ -5310,7 +5390,7 @@ void LowerFunctionLLVM::compile() {
                     call(NativeBuiltins::get(NativeBuiltins::Id::extract11),
                          {vector, idx, env,
                          /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                          */
                          srcIdxPatch(extract->srcIdx, true)});
 
@@ -5401,7 +5481,7 @@ void LowerFunctionLLVM::compile() {
                     call(NativeBuiltins::get(NativeBuiltins::Id::extract12),
                          {vector, idx1, idx2, loadSxp(extract->env()),
                           /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                           */
                           srcIdxPatch(extract->srcIdx, true)});
 
@@ -5473,7 +5553,7 @@ void LowerFunctionLLVM::compile() {
                                 {vector, load(extract->idx()),
                                  loadSxp(extract->env()),
                                  /*
-                                    SER-TODO: spool
+                                    SER-DONE: spool
                                  */
                                  srcIdxPatch(extract->srcIdx, true)});
                 } else {
@@ -5483,7 +5563,7 @@ void LowerFunctionLLVM::compile() {
                         call(NativeBuiltins::get(NativeBuiltins::Id::extract21),
                              {vector, idx, loadSxp(extract->env()),
                               /*
-                                SER-TODO: spool
+                                SER-DONE: spool
                               */
                               srcIdxPatch(extract->srcIdx, true)});
                 }
@@ -5515,7 +5595,7 @@ void LowerFunctionLLVM::compile() {
                     call(NativeBuiltins::get(NativeBuiltins::Id::extract13),
                          {vector, idx1, idx2, idx3, env,
                          /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                          */
                          srcIdxPatch(extract->srcIdx, true)});
                 setVal(i, res);
@@ -5600,7 +5680,7 @@ void LowerFunctionLLVM::compile() {
                                 {vector, load(extract->idx1()),
                                  load(extract->idx2()), loadSxp(extract->env()),
                                  /*
-                                    SER-TODO: spool
+                                    SER-DONE: spool
                                  */
                                  srcIdxPatch(extract->srcIdx, true)});
                 } else {
@@ -5612,7 +5692,7 @@ void LowerFunctionLLVM::compile() {
                         call(NativeBuiltins::get(NativeBuiltins::Id::extract22),
                              {vector, idx1, idx2, loadSxp(extract->env()),
                               /*
-                                SER-TODO: spool
+                                SER-DONE: spool
                               */
                               srcIdxPatch(extract->srcIdx, true)});
                 }
@@ -5642,7 +5722,7 @@ void LowerFunctionLLVM::compile() {
                          {vector, idx1, idx2, idx3, val,
                           loadSxp(subAssign->env()),
                           /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                           */
                           srcIdxPatch(subAssign->srcIdx, true)});
                 setVal(i, res);
@@ -5662,7 +5742,7 @@ void LowerFunctionLLVM::compile() {
                     call(NativeBuiltins::get(NativeBuiltins::Id::subassign12),
                          {vector, idx1, idx2, val, loadSxp(subAssign->env()),
                           /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                           */
                           srcIdxPatch(subAssign->srcIdx, true)});
                 setVal(i, res);
@@ -5772,7 +5852,7 @@ void LowerFunctionLLVM::compile() {
                          load(subAssign->idx2()), load(subAssign->val()),
                          loadSxp(subAssign->env()),
                          /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                          */
                          srcIdxPatch(subAssign->srcIdx, true)});
                 } else {
@@ -5781,7 +5861,7 @@ void LowerFunctionLLVM::compile() {
                         {loadSxp(subAssign->vec()), idx1, idx2,
                          loadSxp(subAssign->val()), loadSxp(subAssign->env()),
                          /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                          */
                          srcIdxPatch(subAssign->srcIdx, true)});
                 }
@@ -5872,7 +5952,7 @@ void LowerFunctionLLVM::compile() {
                          {loadSxp(subAssign->vec()), loadSxp(subAssign->idx()),
                           loadSxp(subAssign->val()), loadSxp(subAssign->env()),
                           /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                           */
                           srcIdxPatch(subAssign->srcIdx, true)});
 
@@ -5988,7 +6068,7 @@ void LowerFunctionLLVM::compile() {
                              {loadSxp(subAssign->vec()), load(subAssign->idx()),
                               load(subAssign->val()), loadSxp(subAssign->env()),
                               /*
-                                SER-TODO: spool
+                                SER-DONE: spool
                               */
                               srcIdxPatch(subAssign->srcIdx, true)});
                 } else {
@@ -5997,7 +6077,7 @@ void LowerFunctionLLVM::compile() {
                         {loadSxp(subAssign->vec()), loadSxp(subAssign->idx()),
                          loadSxp(subAssign->val()), loadSxp(subAssign->env()),
                          /*
-                            SER-TODO: spool
+                            SER-DONE: spool
                          */
                          srcIdxPatch(subAssign->srcIdx, true)});
                 }
@@ -6260,7 +6340,7 @@ void LowerFunctionLLVM::compile() {
                                        NativeBuiltins::Id::colonInputEffects),
                                    {loadSxp(a), loadSxp(b),
                                     /*
-                                        SER-TODO: spool
+                                        SER-DONE: spool
                                     */
                                    srcIdxPatch(i->srcIdx, true)}));
                     break;

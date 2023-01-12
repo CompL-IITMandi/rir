@@ -513,6 +513,9 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
     if (RuntimeFlags::contextualCompilationSkip && serializerError && contextDataContainer) {
         jit.reqMapForCompilation = &rMap;
         jit.serializerError = serializerError;
+    } else {
+        jit.reqMapForCompilation = nullptr;
+        jit.serializerError = nullptr;
     }
 
 

@@ -28,6 +28,7 @@
 #include "utils/FunctionWriter.h"
 #include "utils/Hast.h"
 #include "utils/SerializerDebug.h"
+#include "R/Funtab.h"
 
 namespace rir {
 namespace pir {
@@ -324,6 +325,15 @@ void PirJitLLVM::finalize() {
         // Should this happen before finalize or after?
         if (LLVMDebugInfo()) {
             DIB->finalize();
+        }
+        for (auto & global : M->getGlobalList()) {
+            auto globalName = global.getName().str();
+            auto pre = globalName.substr(0,6) == "copool";
+            auto namc = globalName.substr(0,6) == "named_";
+
+            if (namc || pre) {
+                global.setExternallyInitialized(false);
+            }
         }
         // TODO: maybe later have TSM from the start and use locking
         //       to allow concurrent compilation?
@@ -932,7 +942,49 @@ void PirJitLLVM::initializeLLVM() {
                 auto spe1 = n.substr(0, 5) == "spe1_"; // SPECIALSXP
                 auto sym = n.substr(0, 4) == "sym_"; // Symbols
 
-                if (sym) {
+                auto gcode = n.substr(0, 4) == "cod_"; // callable pointer to builtin
+
+                auto clos = n.substr(0, 5) == "clos_"; // Hast to container closure
+
+                if (clos) {
+                    Protect protecc;
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    SEXP hastSym = Rf_install(n.substr(firstDel + 1, secondDel - firstDel - 1).c_str());
+                    int debugIdx = std::stoi(n.substr(secondDel + 1));
+
+                    SerializerDebug::infoMessage("(Rt) [pir_jit_llvm.cpp] Patching clos", 2);
+                    SerializerDebug::infoMessage(n, 4);
+                    if (Hast::debugMap[debugIdx] == Hast::hastMap[hastSym].clos) {
+                        SerializerDebug::infoMessage("clos address match successful", 6);
+                    } else {
+                        SerializerDebug::infoMessage("clos address match failed", 6);
+                        SerializerDebug::infoMessage("expected: " + std::to_string((unsigned long long)Hast::debugMap[debugIdx]), 8);
+                        SerializerDebug::infoMessage("got: " + std::to_string((unsigned long long)Hast::hastMap[hastSym].clos), 8);
+                    }
+
+                    assert(Hast::hastMap.count(hastSym) > 0);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(Hast::hastMap[hastSym].clos)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (gcode) {
+                    auto id = std::stoi(n.substr(4));
+                    SEXP ptr;
+                    assert(R_FunTab[id].eval % 10 == 1 && "Only use for BUILTINSXP");
+                    if (R_FunTab[id].eval % 100 / 10 == 0)
+                        ptr = Rf_install(R_FunTab[id].name)->u.symsxp.value;
+                    else
+                        ptr = Rf_install(R_FunTab[id].name)->u.symsxp.internal;
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(getBuiltin(ptr))),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (sym) {
                     auto constantName = n.substr(4);
                     SEXP con = Rf_install(constantName.c_str());
                     NewSymbols[Name] = JITEvaluatedSymbol(
@@ -1036,10 +1088,10 @@ void PirJitLLVM::initializeLLVM() {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 
-                    SerializerDebug::infoMessage("(Rt) [pir_jit_llvm.cpp] Patching srcIdx", 2);
-                    SerializerDebug::infoMessage(n, 4);
-                    SerializerDebug::infoMessage(n.substr(firstDel + 1, secondDel - firstDel - 1), 6);
-                    SerializerDebug::infoMessage(n.substr(secondDel + 1), 6);
+                    // SerializerDebug::infoMessage("(Rt) [pir_jit_llvm.cpp] Patching srcIdx", 2);
+                    // SerializerDebug::infoMessage(n, 4);
+                    // SerializerDebug::infoMessage(n.substr(firstDel + 1, secondDel - firstDel - 1), 6);
+                    // SerializerDebug::infoMessage(n.substr(secondDel + 1), 6);
 
                     SEXP hast = Rf_install(n.substr(firstDel + 1, secondDel - firstDel - 1).c_str());
                     unsigned int offsetIndex = stoui(n.substr(secondDel + 1));

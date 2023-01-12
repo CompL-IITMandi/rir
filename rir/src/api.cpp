@@ -441,6 +441,8 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
             pir::Backend backend(m, logger, name);
             auto apply = [&](SEXP body, pir::ClosureVersion* c) {
 
+                backend.resetSerializer();
+
                 // Save code to cache
                 if (CodeCache::serializer) {
                     auto hastInfo = Hast::getHastInfo(c->rirSrc()->src, true);
@@ -449,7 +451,6 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                         // === Serializer Start ===
                         //
                         SerializerDebug::infoMessage("(>) Serializer Started", 0);
-                        backend.resetSerializer();
 
                         // Disable compilation temporarily? is this needed
                         bool oldVal = RuntimeFlags::contextualCompilationSkip;

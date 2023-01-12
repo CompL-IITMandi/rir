@@ -19,6 +19,9 @@ std::unordered_map<unsigned, HastInfo> Hast::cPoolHastMap;
 
 std::unordered_map<SEXP, HastInfo> Hast::cPoolInverseMap;
 
+std::unordered_map<int, SEXP> Hast::debugMap;
+int Hast::debugIdx;
+
 static size_t charToInt(const char* p, size_t & hast) {
     for (size_t i = 0; i < strlen(p); ++i) {
         hast = ((hast << 5) + hast) + p[i];
