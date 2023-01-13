@@ -945,8 +945,23 @@ void PirJitLLVM::initializeLLVM() {
                 auto gcode = n.substr(0, 4) == "cod_"; // callable pointer to builtin
 
                 auto clos = n.substr(0, 5) == "clos_"; // Hast to container closure
+                auto code = n.substr(0, 5) == "code_"; // code objs for DeoptReason
 
-                if (clos) {
+                if (code) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto hast = n.substr(firstDel + 1, secondDel - firstDel - 1);
+                    int offsetIndex = std::stoi(n.substr(secondDel + 1));
+
+                    rir::Code * resolvedCode = Hast::getCodeObjectAtOffset(Rf_install(hast.c_str()), offsetIndex);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(resolvedCode)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (clos) {
                     Protect protecc;
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);

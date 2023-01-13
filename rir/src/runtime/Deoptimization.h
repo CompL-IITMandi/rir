@@ -13,13 +13,22 @@ struct Code;
 
 struct FrameInfo {
     Opcode* pc;
+    uintptr_t offset;
     Code* code;
+    char hast[1000];
+    int index;
     size_t stackSize;
     bool inPromise;
 
     FrameInfo() {}
+    FrameInfo(uintptr_t offset, const char * hast1, int index, size_t stackSize, bool promise)
+        : offset(offset), hast(""), index(index), stackSize(stackSize), inPromise(promise) {
+            strcpy(hast, hast1);
+            code = 0;
+            pc = 0;
+        }
     FrameInfo(Opcode* pc, Code* code, size_t stackSize, bool promise)
-        : pc(pc), code(code), stackSize(stackSize), inPromise(promise) {}
+        : pc(pc), offset(0), code(code), hast(""), index(0), stackSize(stackSize), inPromise(promise) {}
 };
 
 struct DeoptMetadata {

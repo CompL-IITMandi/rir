@@ -187,14 +187,14 @@ LowerFunctionLLVM::getBuiltin(const rir::pir::NativeBuiltin& b) {
 }
 
 /*
-    SER-TODO
+    SER-DONE
         1. setVisible: direct constant -- DONE
         2. insn_assert: message -- DONE
         3. constant() -- DONE
         4. opaqueTrue -- DONE
         5. nodestackPtrAddr: direct constant -- DONE
         6. R_GlobalContext: direct constant (see more) -- DONE
-        7. DeoptMetadata
+        7. DeoptMetadata -- DONE
         8. NativeBuiltins::Id::checkType: message -- DONE
 */
 llvm::Value* LowerFunctionLLVM::convertToPointer(const void* what,
@@ -668,16 +668,47 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
         auto dr = (DeoptReasonWrapper*)val;
-        auto srcAddr = (Constant*)builder.CreateIntToPtr(
-            llvm::ConstantInt::get(
-                PirJitLLVM::getContext(),
-                llvm::APInt(64,
-                            reinterpret_cast<uint64_t>(dr->reason.srcCode()),
-                            false)),
-            t::voidPtr);
+
+        auto normal = [&]()->llvm::Value* {
+            return builder.CreateIntToPtr(
+                llvm::ConstantInt::get(
+                    PirJitLLVM::getContext(),
+                    llvm::APInt(64,
+                                reinterpret_cast<uint64_t>(dr->reason.srcCode()),
+                                false)),
+                t::voidPtr);
+        };
+
+        auto patched = [&]()->llvm::Value* {
+
+            auto srcIdx = dr->reason.srcCode()->src;
+            auto hastInfo = Hast::getHastInfo(srcIdx, true);
+
+            if (hastInfo.isValid()) {
+                reqMap->insert(hastInfo.hast);
+
+                std::stringstream ss;
+                ss << "code_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << hastInfo.offsetIndex;
+
+                assert(Hast::getCodeObjectAtOffset(hastInfo.hast, hastInfo.offsetIndex) == dr->reason.srcCode());
+                return convertToExternalSymbol(ss.str(), t::i8);
+            }
+
+            *serializerError = true;
+            SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] rir DeoptReason code patch failed", 2);
+            SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
+            return builder.CreateIntToPtr(
+                llvm::ConstantInt::get(
+                    PirJitLLVM::getContext(),
+                    llvm::APInt(64,
+                                reinterpret_cast<uint64_t>(dr->reason.srcCode()),
+                                false)),
+                t::voidPtr);
+        };
+
         auto drs = llvm::ConstantStruct::get(
             t::DeoptReason, {c(dr->reason.reason, 32),
-                             c(dr->reason.origin.offset(), 32), srcAddr});
+                             c(dr->reason.origin.offset(), 32), (Constant*)ptrPatch(normal, patched)});
         res = globalConst(drs);
     } else {
         val->printRef(std::cerr);
@@ -3806,6 +3837,7 @@ void LowerFunctionLLVM::compile() {
 
                     auto hastInfo = Hast::getHastInfo(srcIdx, true);
                     if (hastInfo.isValid() && hastInfo.offsetIndex == 0) {
+                        reqMap->insert(hastInfo.hast);
                         std::stringstream ss;
                         auto debugIdx = Hast::genDebugIdx();
                         ss << "clos_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << debugIdx;
@@ -3916,7 +3948,7 @@ void LowerFunctionLLVM::compile() {
 
             case Tag::Deopt: {
                 /*
-                    SER-TODO
+                    SER-DONE
                 */
                 // TODO, this is copied from pir2rir... rather ugly
                 DeoptMetadata* m = nullptr;
@@ -3931,34 +3963,78 @@ void LowerFunctionLLVM::compile() {
                         fs = fs->next();
                     }
 
+                    bool serializerEnabled = (reqMap != nullptr && serializerError != nullptr);
+                    bool patchPossible = true;
+                    if (serializerEnabled) {
+                        for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
+                            auto fs = *f;
+                            auto srcIdx = fs->code->src;
+                            auto hastInfo = Hast::getHastInfo(srcIdx, true);
+                            if (hastInfo.isValid()) {
+                                assert(Hast::getCodeObjectAtOffset(hastInfo.hast, hastInfo.offsetIndex) == fs->code);
+                            } else {
+                                patchPossible = false;
+                                *serializerError = true;
+                                SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] DeoptMetadata patch failed", 2);
+                                SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
+                                break;
+                            }
+                        }
+
+                    }
+
                     size_t nframes = frames.size();
-                    SEXP store =
-                        Rf_allocVector(RAWSXP, sizeof(DeoptMetadata) +
-                                                   nframes * sizeof(FrameInfo));
+                    SEXP store;
+                    Protect protecc;
+                    protecc(store = Rf_allocVector(RAWSXP, sizeof(DeoptMetadata) + nframes * sizeof(FrameInfo)));
                     m = new (DATAPTR(store)) DeoptMetadata;
                     m->numFrames = nframes;
 
                     int frameNr = nframes - 1;
-                    for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
-                        auto fs = *f;
-                        for (size_t pos = 0; pos < fs->stackSize; pos++)
-                            args.push_back(fs->arg(pos).val());
-                        args.push_back(fs->env());
-                        m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
-                                                fs->inPromise};
-                    }
 
-                    target->addExtraPoolEntry(store);
+                    if (serializerEnabled && patchPossible && *serializerError == false) {
+                        for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
+                            auto fs = *f;
+                            for (size_t pos = 0; pos < fs->stackSize; pos++)
+                                args.push_back(fs->arg(pos).val());
+                            args.push_back(fs->env());
+                            auto srcIdx = fs->code->src;
+                            auto hastInfo = Hast::getHastInfo(srcIdx, true);
+                            reqMap->insert(hastInfo.hast);
+                            uintptr_t offset = (uintptr_t)fs->pc - (uintptr_t)fs->code;
+                            m->frames[frameNr--] = {offset, CHAR(PRINTNAME(hastInfo.hast)), (int)hastInfo.offsetIndex, fs->stackSize,
+                                                    fs->inPromise};
+                        }
+                        Pool::insert(store);
+                        withCallFrame(args, [&]() {
+                            return call(NativeBuiltins::get(NativeBuiltins::Id::deoptPool),
+                                        {paramCode(), paramClosure(),
+                                        constant(store, Rep::SEXP), paramArgs(),
+                                        c(deopt->escapedEnv, 1),
+                                        load(deopt->deoptReason()),
+                                        loadSxp(deopt->deoptTrigger())});
+                        });
+                    } else {
+                        for (auto f = frames.rbegin(); f != frames.rend(); ++f) {
+                            auto fs = *f;
+                            for (size_t pos = 0; pos < fs->stackSize; pos++)
+                                args.push_back(fs->arg(pos).val());
+                            args.push_back(fs->env());
+                            m->frames[frameNr--] = {fs->pc, fs->code, fs->stackSize,
+                                                    fs->inPromise};
+                        }
+                        target->addExtraPoolEntry(store);
+                        withCallFrame(args, [&]() {
+                            return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
+                                        {paramCode(), paramClosure(),
+                                        convertToPointer(m, t::i8, true), paramArgs(),
+                                        c(deopt->escapedEnv, 1),
+                                        load(deopt->deoptReason()),
+                                        loadSxp(deopt->deoptTrigger())});
+                        });
+                    }
                 }
 
-                withCallFrame(args, [&]() {
-                    return call(NativeBuiltins::get(NativeBuiltins::Id::deopt),
-                                {paramCode(), paramClosure(),
-                                 convertToPointer(m, t::i8, true), paramArgs(),
-                                 c(deopt->escapedEnv, 1),
-                                 load(deopt->deoptReason()),
-                                 loadSxp(deopt->deoptTrigger())});
-                });
                 builder.CreateUnreachable();
                 break;
             }

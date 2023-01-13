@@ -24,6 +24,7 @@
 #include "llvm/IR/Attributes.h"
 
 #include <random>
+#include "utils/Hast.h"
 
 namespace rir {
 namespace pir {
@@ -952,6 +953,22 @@ void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
     deoptFramesWithContext(&call, m, R_NilValue, m->numFrames - 1, stackHeight,
                            (RCNTXT*)R_GlobalContext);
     assert(false);
+}
+
+void deoptPoolImpl(rir::Code* c, SEXP cls, SEXP metaDataStore, R_bcstack_t* args,
+               bool leakedEnv, DeoptReason* deoptReason, SEXP deoptTrigger) {
+    DeoptMetadata* m = (DeoptMetadata *)DATAPTR(metaDataStore);
+
+    for (size_t i = 0; i < m->numFrames; i++) {
+        if (m->frames[i].code == 0) {
+            auto hast = m->frames[i].hast;
+            int index = m->frames[i].index;
+            rir::Code * code = Hast::getCodeObjectAtOffset(Rf_install(hast), index);
+            m->frames[i].code = code;
+            m->frames[i].pc = (Opcode*)((uintptr_t)code + m->frames[i].offset);
+        }
+    }
+    deoptImpl(c, cls, m, args, leakedEnv, deoptReason, deoptTrigger);
 }
 
 void recordTypefeedbackImpl(Opcode* pos, rir::Code* code, SEXP value) {
@@ -2432,6 +2449,14 @@ void NativeBuiltins::initializeBuiltins() {
                        (void*)&deoptImpl,
                        llvm::FunctionType::get(t::t_void,
                                                {t::voidPtr, t::SEXP, t::voidPtr,
+                                                t::stackCellPtr, t::i1,
+                                                t::DeoptReasonPtr, t::SEXP},
+                                               false),
+                       {llvm::Attribute::NoReturn}};
+    get_(Id::deoptPool) = {"deoptPool",
+                       (void*)&deoptPoolImpl,
+                       llvm::FunctionType::get(t::t_void,
+                                               {t::voidPtr, t::SEXP, t::SEXP,
                                                 t::stackCellPtr, t::i1,
                                                 t::DeoptReasonPtr, t::SEXP},
                                                false),

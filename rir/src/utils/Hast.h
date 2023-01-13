@@ -62,6 +62,7 @@ class Hast {
     static void printHastSrcData(DispatchTable* vtable, SEXP hastSym);
 
     static unsigned getSrcPoolIndexAtOffset(SEXP hastSym, int offset);
+    static rir::Code * getCodeObjectAtOffset(SEXP hastSym, int offset);
 
     static bool isAnonEnv(SEXP env);
     static SEXP getHast(SEXP body, SEXP env);

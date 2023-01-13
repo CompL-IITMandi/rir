@@ -413,6 +413,20 @@ static inline TraversalResult getResultAtOffset(DispatchTable * vtab, const unsi
     return r;
 }
 
+rir::Code * Hast::getCodeObjectAtOffset(SEXP hastSym, int offset) {
+    SEXP vtabContainer = hastMap[hastSym].vtabContainer;
+    if (!vtabContainer) {
+        Rf_error("getSrcPoolIndexAtOffset failed!");
+    }
+    if (!DispatchTable::check(vtabContainer)) {
+        Rf_error("getSrcPoolIndexAtOffset vtable corrupted");
+    }
+    auto vtab = DispatchTable::unpack(vtabContainer);
+    auto r = getResultAtOffset(vtab, offset);
+
+    return r.code;
+}
+
 
 unsigned Hast::getSrcPoolIndexAtOffset(SEXP hastSym, int requiredOffset) {
     SEXP vtabContainer = hastMap[hastSym].vtabContainer;
