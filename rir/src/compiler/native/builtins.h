@@ -34,6 +34,7 @@ struct NativeBuiltins {
 
     enum class Id : uint8_t {
         forcePromise,
+        loadFromPool,
         consNr,
         createBindingCell,
         createMissingBindingCell,

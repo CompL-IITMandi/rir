@@ -51,6 +51,14 @@ static SEXP forcePromiseImpl(SEXP prom) {
     return res;
 }
 
+static SEXP loadFromPoolImpl(Immediate ast, int spool) {
+    if (spool == 1) {
+        return src_pool_at(ast);
+    } else {
+        return cp_pool_at(ast);
+    }
+}
+
 static SEXP createBindingCellImpl(SEXP val, SEXP name, SEXP rest) {
     if (val == R_UnboundValue)
         return rest;
@@ -2292,6 +2300,9 @@ NativeBuiltin NativeBuiltins::store[];
 void NativeBuiltins::initializeBuiltins() {
     get_(Id::forcePromise) = {"forcePromise", (void*)&forcePromiseImpl,
                               t::sexp_sexp};
+    get_(Id::loadFromPool) = {
+        "loadFromPool", (void*)&loadFromPoolImpl,
+        llvm::FunctionType::get(t::SEXP, {t::Int, t::Int}, false)};
     get_(Id::consNr) = {"consNr", (void*)&CONS_NR, t::sexp_sexpsexp};
     get_(Id::createBindingCell) = {"createBindingCellImpl",
                                    (void*)&createBindingCellImpl,

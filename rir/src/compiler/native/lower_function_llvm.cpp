@@ -392,6 +392,10 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
         return convertToExternalSymbol("dcs_112");
     }
 
+    if (co == R_NamesSymbol && reqMap != nullptr && serializerError != nullptr) {
+        return convertToExternalSymbol("dcs_113");
+    }
+
 
     static std::unordered_set<SEXP> eternalConst = {
         R_TrueValue,  R_NilValue,       R_FalseValue, R_UnboundValue,
@@ -472,13 +476,91 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
         return ptrPatch(normal, patched);
     }
 
+    auto normal = [&]()->llvm::Value* {
+        auto i = Pool::insert(co);
+        llvm::Value* pos = builder.CreateLoad(constantpool);
+        pos = builder.CreateBitCast(dataPtr(pos, false),
+                                    PointerType::get(t::SEXP, 0));
+        pos = builder.CreateGEP(pos, c(i));
+        return builder.CreateLoad(pos);
+    };
+
+    auto patched = [&]()->llvm::Value * {
+        if (TYPEOF(co) == EXTERNALSXP) {
+            if (DispatchTable::check(co)) {
+                DispatchTable * vtable = DispatchTable::unpack(co);
+                auto hastInfo = Hast::getHastInfo(vtable->baseline()->body()->src, true);
+                if (hastInfo.isValid()) {
+                    reqMap->insert(hastInfo.hast);
+                    Pool::insert(co);
+                    std::stringstream ss;
+                    ss << "vtab_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << hastInfo.offsetIndex;
+                    return convertToExternalSymbol(ss.str());
+                } else {
+                    *serializerError = true;
+                    SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] constant(EXTERNALSXP) serialization failed", 2);
+                    SerializerDebug::infoMessage("srcIdx: " + std::to_string(vtable->baseline()->body()->src), 4);
+                }
+            } else {
+                *serializerError = true;
+                SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] constant(EXTERNALSXP) not in BC", 2);
+            }
+        }
+
+        if (TYPEOF(co) == CLOSXP) {
+            if (TYPEOF(BODY(co)) == EXTERNALSXP) {
+                DispatchTable * vtable = DispatchTable::unpack(BODY(co));
+                auto hastInfo = Hast::getHastInfo(vtable->baseline()->body()->src, true);
+                if (hastInfo.isValid() && hastInfo.offsetIndex == 0) {
+                    reqMap->insert(hastInfo.hast);
+                    Pool::insert(co);
+                    std::stringstream ss;
+                    auto debugIdx = Hast::genDebugIdx();
+                    ss << "clos_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << debugIdx;
+                    Hast::debugMap[debugIdx] = co;
+                    assert(Hast::hastMap[hastInfo.hast].clos == co);
+                    return convertToExternalSymbol(ss.str());
+                } else {
+                    *serializerError = true;
+                    SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] constant(CLOSXP-EXTERNALSXP) serialization failed", 2);
+                    SerializerDebug::infoMessage("srcIdx: " + std::to_string(vtable->baseline()->body()->src), 4);
+                }
+
+            } else {
+                *serializerError = true;
+                SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] constant(CLOSXP) BODY is not EXTERNALSXP TYPEOF(" + std::to_string(TYPEOF(BODY(co))) + ")", 2);
+            }
+        }
+
+        if (TYPEOF(co) == LANGSXP) {
+            if (Hast::sPoolInverseMap.count(co) > 0) {
+                return call(NativeBuiltins::get(NativeBuiltins::Id::loadFromPool), {
+                        srcIdxPatch(Hast::sPoolInverseMap[co].src, true),
+                        llvm::ConstantInt::get(PirJitLLVM::getContext(),
+                                          llvm::APInt(32, 1))
+                    });
+            }
+            if (Hast::cPoolInverseMap.count(co) > 0) {
+                return call(NativeBuiltins::get(NativeBuiltins::Id::loadFromPool), {
+                        srcIdxPatch(Hast::cPoolInverseMap[co].src, false),
+                        llvm::ConstantInt::get(PirJitLLVM::getContext(),
+                                          llvm::APInt(32, 0))
+                    });
+            }
+        }
+
+        auto cpIndex = Pool::insert(co);
+        auto iVal = globalConst(c(cpIndex), t::i32);
+        auto iLoad = builder.CreateLoad(iVal);
+
+        llvm::Value* pos = builder.CreateLoad(constantpool);
+        pos = builder.CreateBitCast(dataPtr(pos, false),
+                                    PointerType::get(t::SEXP, 0));
+        pos = builder.CreateGEP(pos, iLoad);
+        return builder.CreateLoad(pos);
+    };
     // SER-TODO
-    auto i = Pool::insert(co);
-    llvm::Value* pos = builder.CreateLoad(constantpool);
-    pos = builder.CreateBitCast(dataPtr(pos, false),
-                                PointerType::get(t::SEXP, 0));
-    pos = builder.CreateGEP(pos, c(i));
-    return builder.CreateLoad(pos);
+    return ptrPatch(normal, patched);
 }
 
 llvm::Value* LowerFunctionLLVM::nodestackPtr() {
@@ -537,6 +619,8 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
                                              const std::vector<Value*>& args,
                                              int srcIdx, CCODE builtinFun,
                                              llvm::Value* env) {
+    // SerializerDebug::infoMessage("(***) callRBuiltin TYPEOF(" + std::to_string(TYPEOF(builtin)) + ")", 2);
+    // BUILTINSXP
     if (supportsFastBuiltinCall(builtin, args.size())) {
         return withCallFrame(args, [&]() -> llvm::Value* {
             return call(NativeBuiltins::get(NativeBuiltins::Id::callBuiltin),
@@ -582,13 +666,18 @@ llvm::Value* LowerFunctionLLVM::callRBuiltin(SEXP builtin,
 
 
     /*
-        SER-TODO
+        SER-DONE
     */
-    auto ast = constant(cp_pool_at(srcIdx), t::SEXP);
+    llvm::Value* ast = call(NativeBuiltins::get(NativeBuiltins::Id::loadFromPool), {
+                        srcIdxPatch(srcIdx, false),
+                        llvm::ConstantInt::get(PirJitLLVM::getContext(),
+                                          llvm::APInt(32, 0))
+                    });
     // TODO: ensure that we cover all the fast builtin cases
     int flag = getFlag(builtin);
     if (flag < 2)
         setVisible(flag != 1);
+
     auto res = builder.CreateCall(f, {
                                          ast,
                                          constant(builtin, t::SEXP),
@@ -648,11 +737,14 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         } else if (e == Env::nil()) {
             res = constant(R_NilValue, needed);
         } else if (Env::isStaticEnv(e)) {
+            // SerializerDebug::infoMessage("(***) Env::isStaticEnv TYPEOF(" + std::to_string(TYPEOF(e->rho)) + ")", 2);
+            // ENVSXP
             res = constant(e->rho, t::SEXP);
         } else {
             assert(false);
         }
     } else if (val->asRValue()) {
+        // SerializerDebug::infoMessage("(***) val->asRValue TYPEOF(" + std::to_string(TYPEOF(val->asRValue())) + ")", 2);
         res = constant(val->asRValue(), needed);
     } else if (val == OpaqueTrue::instance()) {
         static int one = 1;
@@ -665,6 +757,7 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         // Something that is always true, but llvm does not know about
         res = builder.CreateLoad(ptrPatch(normal, patched));
     } else if (auto ld = Const::Cast(val)) {
+        // SerializerDebug::infoMessage("(***) load Const TYPEOF(" + std::to_string(TYPEOF(ld->c())) + ")", 2);
         res = constant(ld->c(), needed);
     } else if (val->tag == Tag::DeoptReason) {
         auto dr = (DeoptReasonWrapper*)val;
@@ -2662,6 +2755,8 @@ void LowerFunctionLLVM::compile() {
                         arglist = call(
                             NativeBuiltins::get(NativeBuiltins::Id::consNr),
                             {val, arglist});
+                        // SerializerDebug::infoMessage("(***) Tag::DotsList TYPEOF(" + std::to_string(TYPEOF(name)) + ")", 2);
+                        // NILSXP | SYMSXP
                         setTag(arglist, constant(name, t::SEXP), false);
                     });
                     setSexptype(arglist, DOTSXP);
@@ -2794,6 +2889,9 @@ void LowerFunctionLLVM::compile() {
 
             case Tag::CallSafeBuiltin: {
                 auto b = CallSafeBuiltin::Cast(i);
+                // SerializerDebug::infoMessage("(***) Tag::CallSafeBuiltin TYPEOF(" + std::to_string(TYPEOF(b->builtinSexp)) + ")", 2);
+                // BUILTINSXP
+
                 if (compileDotcall(
                         b, [&]() { return constant(b->builtinSexp, t::SEXP); },
                         [&](size_t i) { return R_NilValue; })) {
@@ -3649,6 +3747,9 @@ void LowerFunctionLLVM::compile() {
                             builder.CreateGEP(bindingsCacheBase, c(v)));
                 }
 
+                // SerializerDebug::infoMessage("(***) Tag::CallBuiltin TYPEOF(" + std::to_string(TYPEOF(b->builtinSexp)) + ")", 2);
+                // BUILTINSXP
+
                 if (compileDotcall(
                         b, [&]() { return constant(b->builtinSexp, t::SEXP); },
                         [&](size_t i) { return R_NilValue; })) {
@@ -4006,6 +4107,9 @@ void LowerFunctionLLVM::compile() {
                                                     fs->inPromise};
                         }
                         Pool::insert(store);
+                        // SerializerDebug::infoMessage("(***) Tag::Deopt TYPEOF(" + std::to_string(TYPEOF(store)) + ")", 2);
+                        // RAWSXP
+
                         withCallFrame(args, [&]() {
                             return call(NativeBuiltins::get(NativeBuiltins::Id::deoptPool),
                                         {paramCode(), paramClosure(),
@@ -4099,6 +4203,9 @@ void LowerFunctionLLVM::compile() {
 
                 auto arglist = constant(R_NilValue, t::SEXP);
                 mkenv->eachLocalVarRev([&](SEXP name, Value* v, bool miss) {
+                    // SerializerDebug::infoMessage("(***) Tag::MkEnv TYPEOF(" + std::to_string(TYPEOF(name)) + ")", 2);
+                    // SYMSXP
+
                     if (miss) {
                         arglist = call(
                             NativeBuiltins::get(
@@ -4799,6 +4906,12 @@ void LowerFunctionLLVM::compile() {
 
             case Tag::MkCls: {
                 auto mkFunction = MkCls::Cast(i);
+                // SerializerDebug::infoMessage("(***) Tag::MkCls srcRef TYPEOF(" + std::to_string(TYPEOF(mkFunction->srcRef)) + ")", 2);
+                // SerializerDebug::infoMessage("(***) Tag::MkCls formals TYPEOF(" + std::to_string(TYPEOF(mkFunction->formals)) + ")", 2);
+                // SerializerDebug::infoMessage("(***) Tag::MkCls body TYPEOF(" + std::to_string(TYPEOF(mkFunction->originalBody->container())) + ")", 2);
+                // NILSXP
+                // LISTSXP
+                // EXTERNALSXP
                 auto srcRef = constant(mkFunction->srcRef, t::SEXP);
                 auto formals = constant(mkFunction->formals, t::SEXP);
                 auto body =
@@ -5215,6 +5328,9 @@ void LowerFunctionLLVM::compile() {
 
             case Tag::LdFun: {
                 auto ld = LdFun::Cast(i);
+                // SerializerDebug::infoMessage("(***) Tag::LdFun TYPEOF(" + std::to_string(TYPEOF(ld->varName)) + ")", 2);
+                // SYMSXP
+
                 auto res =
                     call(NativeBuiltins::get(NativeBuiltins::Id::ldfun),
                          {constant(ld->varName, t::SEXP), loadSxp(ld->env())});
@@ -5273,6 +5389,7 @@ void LowerFunctionLLVM::compile() {
                 else
                     env = envsxpEnclos(loadSxp(ld->env()));
 
+                // SerializerDebug::infoMessage("(***) Tag::LdVarSuper TYPEOF(" + std::to_string(TYPEOF(ld->varName)) + ")", 2);
                 auto res = call(NativeBuiltins::get(NativeBuiltins::Id::ldvar),
                                 {constant(ld->varName, t::SEXP), env});
                 res->setName(CHAR(PRINTNAME(ld->varName)));
@@ -5301,6 +5418,8 @@ void LowerFunctionLLVM::compile() {
                         UnboundValue::instance()) {
                         maybeUnbound = false;
                     } else {
+                        // SerializerDebug::infoMessage("(***) Tag::LdVar env && env->stub TYPEOF(" + std::to_string(TYPEOF(varName)) + ")", 2);
+                        // SYMSXP
                         res = createSelect2(
                             builder.CreateICmpEQ(
                                 res, constant(R_UnboundValue, t::SEXP)),
@@ -5347,7 +5466,8 @@ void LowerFunctionLLVM::compile() {
                     ensureNamed(val);
                     phi.addInput(val);
                     builder.CreateBr(done);
-
+                    // SerializerDebug::infoMessage("(***) Tag::LdVar bindingsCache.count TYPEOF(" + std::to_string(TYPEOF(varName)) + ")", 2);
+                    // SYMSXP
                     builder.SetInsertPoint(miss);
                     llvm::Value* res0 = call(
                         NativeBuiltins::get(NativeBuiltins::Id::ldvarCacheMiss),
@@ -5360,11 +5480,14 @@ void LowerFunctionLLVM::compile() {
                     builder.SetInsertPoint(done);
                     res = phi();
                 } else if (i->env() == Env::global()) {
+                    // SerializerDebug::infoMessage("(***) Tag::LdVar Env::global() TYPEOF(" + std::to_string(TYPEOF(varName)) + ")", 2);
+                    // SYMSXP
                     res = call(
                         NativeBuiltins::get(NativeBuiltins::Id::ldvarGlobal),
                         {constant(varName, t::SEXP)});
                 } else {
                     if (needsLdVarForUpdate.count(i)) {
+                        // SerializerDebug::infoMessage("(***) Tag::LdVar needsLdVarForUpdate TYPEOF(" + std::to_string(TYPEOF(varName)) + ")", 2);
                         res = call(
                             NativeBuiltins::get(
                                 NativeBuiltins::Id::ldvarForUpdate),
@@ -5374,6 +5497,7 @@ void LowerFunctionLLVM::compile() {
                         if (auto e = Env::Cast(i->env())) {
                             if (e->rho == R_BaseNamespace ||
                                 e->rho == R_BaseEnv) {
+                                // SerializerDebug::infoMessage("(***) Tag::LdVar res TYPEOF(" + std::to_string(TYPEOF(varName)) + ")", 2);
                                 auto sym = constant(varName, t::SEXP);
                                 res = symsxpValue(sym);
                                 res = createSelect2(
@@ -5390,6 +5514,8 @@ void LowerFunctionLLVM::compile() {
                             }
                         }
                         if (!res) {
+                            // SerializerDebug::infoMessage("(***) Tag::LdVar !res TYPEOF(" + std::to_string(TYPEOF(varName)) + ")", 2);
+                            // SYMSXP
                             res = call(
                                 NativeBuiltins::get(NativeBuiltins::Id::ldvar),
                                 {constant(varName, t::SEXP),
@@ -6250,6 +6376,8 @@ void LowerFunctionLLVM::compile() {
                 bool unboxed =
                     setter.llvmSignature->getFunctionParamType(1) != t::SEXP;
 
+                // SerializerDebug::infoMessage("(***) Tag::StVar TYPEOF(" + std::to_string(TYPEOF(st->varName)) + ")", 2);
+                // SYMSXP
                 if (bindingsCache.count(environment)) {
                     auto offset = bindingsCache.at(environment).at(st->varName);
                     auto cachePtr =
@@ -6361,6 +6489,8 @@ void LowerFunctionLLVM::compile() {
             case Tag::StVarSuper: {
                 auto st = StVarSuper::Cast(i);
                 auto environment = MkEnv::Cast(st->env());
+                // SerializerDebug::infoMessage("(***) Tag::StVarSuper TYPEOF(" + std::to_string(TYPEOF(st->varName)) + ")", 2);
+                // SYMSXP
                 if (environment) {
                     auto parent = MkEnv::Cast(environment->lexicalEnv());
                     if (environment->stub || (parent && parent->stub)) {
@@ -6371,7 +6501,6 @@ void LowerFunctionLLVM::compile() {
                         break;
                     }
                 }
-
                 // In case we statically knew the parent PIR already converted
                 // super assigns to standard stores
                 call(NativeBuiltins::get(NativeBuiltins::Id::defvar),
@@ -6383,6 +6512,8 @@ void LowerFunctionLLVM::compile() {
             case Tag::Missing: {
                 assert(Rep::Of(i) == Rep::i32);
                 auto missing = Missing::Cast(i);
+                // SerializerDebug::infoMessage("(***) Tag::Missing TYPEOF(" + std::to_string(TYPEOF(missing->varName)) + ")", 2);
+                // SYMSXP
                 setVal(i,
                        call(NativeBuiltins::get(NativeBuiltins::Id::isMissing),
                             {constant(missing->varName, t::SEXP),

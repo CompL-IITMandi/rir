@@ -16,6 +16,8 @@ struct HastInfo {
     SEXP hast;
     unsigned offsetIndex;
 
+    unsigned src;
+
     bool isValid() {
         return hast != R_NilValue;
     }
@@ -28,6 +30,9 @@ class Hast {
     static std::unordered_map<SEXP, HastData> hastMap;
     static std::unordered_map<unsigned, HastInfo> sPoolHastMap;
     static std::unordered_map<unsigned, HastInfo> cPoolHastMap;
+
+    static std::unordered_map<SEXP, HastInfo> cPoolInverseMap;
+    static std::unordered_map<SEXP, HastInfo> sPoolInverseMap;
 
     static std::unordered_map<int, SEXP> debugMap;
     static int debugIdx;
@@ -56,18 +61,18 @@ class Hast {
         return {R_NilValue, 0};
     }
 
-    static std::unordered_map<SEXP, HastInfo> cPoolInverseMap;
 
     static void populateHastSrcData(DispatchTable* vtable, SEXP hastSym);
     static void printHastSrcData(DispatchTable* vtable, SEXP hastSym);
 
     static unsigned getSrcPoolIndexAtOffset(SEXP hastSym, int offset);
     static rir::Code * getCodeObjectAtOffset(SEXP hastSym, int offset);
+    static rir::DispatchTable * getVtableObjectAtOffset(SEXP hastSym, int offset);
 
     static bool isAnonEnv(SEXP env);
     static SEXP getHast(SEXP body, SEXP env);
 
-    static void populateTypeFeedbackData(SEXP container, DispatchTable * vtab);
+    static void populateTypeFeedbackData(SEXP container, DispatchTable* vtab);
 
     static void populateOtherFeedbackData(SEXP container, DispatchTable* vtab);
 

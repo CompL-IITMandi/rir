@@ -18,6 +18,7 @@ std::unordered_map<unsigned, HastInfo> Hast::sPoolHastMap;
 std::unordered_map<unsigned, HastInfo> Hast::cPoolHastMap;
 
 std::unordered_map<SEXP, HastInfo> Hast::cPoolInverseMap;
+std::unordered_map<SEXP, HastInfo> Hast::sPoolInverseMap;
 
 std::unordered_map<int, SEXP> Hast::debugMap;
 int Hast::debugIdx;
@@ -114,9 +115,10 @@ void Hast::populateHastSrcData(DispatchTable* vtable, SEXP parentHast) {
 
     auto addSrcToMap = [&] (const unsigned & src, bool sourcePool = true) {
         if (sourcePool) {
-            sPoolHastMap[src] = {parentHast, indexOffset};
+            sPoolHastMap[src] = {parentHast, indexOffset, src};
+            sPoolInverseMap[src_pool_at(src)] = sPoolHastMap[src];
         } else {
-            cPoolHastMap[src] = {parentHast, indexOffset};
+            cPoolHastMap[src] = {parentHast, indexOffset, src};
             cPoolInverseMap[Pool::get(src)] = cPoolHastMap[src];
         }
     };
@@ -411,6 +413,20 @@ static inline TraversalResult getResultAtOffset(DispatchTable * vtab, const unsi
     r.vtable = currVtab;
     r.srcIdx = poolIdx;
     return r;
+}
+
+rir::DispatchTable * Hast::getVtableObjectAtOffset(SEXP hastSym, int offset) {
+    SEXP vtabContainer = hastMap[hastSym].vtabContainer;
+    if (!vtabContainer) {
+        Rf_error("getSrcPoolIndexAtOffset failed!");
+    }
+    if (!DispatchTable::check(vtabContainer)) {
+        Rf_error("getSrcPoolIndexAtOffset vtable corrupted");
+    }
+    auto vtab = DispatchTable::unpack(vtabContainer);
+    auto r = getResultAtOffset(vtab, offset);
+
+    return r.vtable;
 }
 
 rir::Code * Hast::getCodeObjectAtOffset(SEXP hastSym, int offset) {

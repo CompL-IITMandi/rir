@@ -946,8 +946,22 @@ void PirJitLLVM::initializeLLVM() {
 
                 auto clos = n.substr(0, 5) == "clos_"; // Hast to container closure
                 auto code = n.substr(0, 5) == "code_"; // code objs for DeoptReason
+                auto vtab = n.substr(0, 5) == "vtab_"; // Hast to dispatch table
 
-                if (code) {
+                if (vtab) {
+                    auto firstDel = n.find('_');
+                    auto secondDel = n.find('_', firstDel + 1);
+
+                    auto hast = n.substr(firstDel + 1, secondDel - firstDel - 1);
+                    int offsetIndex = std::stoi(n.substr(secondDel + 1));
+
+                    rir::DispatchTable * resTab = Hast::getVtableObjectAtOffset(Rf_install(hast.c_str()), offsetIndex);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(resTab->container())),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+                } else if (code) {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 
@@ -1073,6 +1087,9 @@ void PirJitLLVM::initializeLLVM() {
                             break;
                         case 112:
                             ptr = R_DotsSymbol;
+                            break;
+                        case 113:
+                            ptr = R_NamesSymbol;
                             break;
                     }
                     NewSymbols[Name] = JITEvaluatedSymbol(
