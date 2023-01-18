@@ -14,6 +14,9 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "utils/WorklistManager.h"
+#include "utils/BitcodeLinkUtility.h"
+
 #define DEBUG_TABLE_ENTRIES 0
 #define PRINT_SOURCE_ENTRIES 0
 
@@ -126,24 +129,27 @@ class Compiler {
             // Add the current object to map
             Hast::hastMap[hast] = {dt->container(), inClosure};
 
-            // vtable->hast = hast;
+            dt->hast = hast;
 
             // Hast Src data is not needed in pure deserializer run
             Hast::populateHastSrcData(dt, hast);
 
-            // if (GeneralWorklist::get(hast)) {
-            //     // Bitcode is available for this hast, do worklist
 
-            //     // Tries to link available bitcodes, if they are not unlocked then adds them to either worklist1 or worklist2
-            //     BitcodeLinkUtil::tryLinking(vtable, hast);
 
-            //     // Remove entry from general worklist after work is complete
-            //     GeneralWorklist::remove(hast);
-            // } else {
-            //     // Non serialized code can also have work to do
-            //     // Do work on worklist1 (if work exists).
-            //     BitcodeLinkUtil::tryUnlocking(hast);
-            // }
+            // DES-TODO
+            if (GeneralWorklist::get(hast)) {
+                // Bitcode is available for this hast, do worklist
+
+                // Tries to link available bitcodes, if they are not unlocked then adds them to either worklist1 or worklist2
+                BitcodeLinkUtil::tryLinking(dt, hast);
+
+                // Remove entry from general worklist after work is complete
+                GeneralWorklist::remove(hast);
+            } else {
+                // Non serialized code can also have work to do
+                // Do work on worklist1 (if work exists).
+                BitcodeLinkUtil::tryUnlocking(hast);
+            }
 
         } else {
             #if PRINT_SOURCE_ENTRIES == 1 || DEBUG_TABLE_ENTRIES == 1

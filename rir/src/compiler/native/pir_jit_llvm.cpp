@@ -30,6 +30,9 @@
 #include "utils/SerializerDebug.h"
 #include "R/Funtab.h"
 
+#include "utils/WorklistManager.h"
+#include "utils/DeserializerConsts.h"
+
 namespace rir {
 namespace pir {
 
@@ -346,6 +349,295 @@ void PirJitLLVM::finalize() {
     finalized = true;
 }
 
+void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
+    // int versioning = UnlockingElement::getVersioningInfo(uEleContainer);
+    unsigned long con = UnlockingElement::getContext(uEleContainer);
+
+
+    // Path to the pool
+    std::stringstream poolPath;
+    poolPath << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".pool";
+
+    // Deserialize the pools
+    FILE *reader;
+    reader = fopen(poolPath.str().c_str(),"r");
+
+    if (!reader) {
+        std::cerr << "deserializer quietly failing, unable to open pool file: " << poolPath.str() << std::endl;
+        return;
+    }
+    Protect protecc;
+
+    SEXP result;
+    protecc(result= R_LoadFromFile(reader, 0));
+
+    SEXP cPool = SerializedPool::getCpool(result);
+    SEXP sPool = SerializedPool::getSpool(result);
+
+    fclose(reader);
+
+    // load bitcode from file, patch and link to
+     // Constant Pool patches
+
+    std::unordered_map<int64_t, int64_t> poolPatch;
+    for (int i = 0; i < Rf_length(cPool); i++) {
+        auto ele = VECTOR_ELT(cPool, i);
+
+        // // If the entry is an inverse mapping, patch it with the correct runtime offset
+        // if (TYPEOF(ele) == VECSXP && Rf_length(ele) == 2) {
+        //     SEXP hast = VECTOR_ELT(ele, 0);
+        //     SEXP index = VECTOR_ELT(ele, 1);
+        //     if (TYPEOF(hast) == SYMSXP && TYPEOF(index) == SYMSXP) {
+        //         auto currIdx = Hast::getSrcPoolIndexAtOffset(hast, std::stoi(std::string(CHAR(PRINTNAME(index)))));
+
+        //         if (currIdx == 0) {
+        //             std::cerr << "deserializer quietly failing, inverse mapping might have failed for " << currIdx << std::endl;
+        //             return;
+        //         }
+        //         ele = Pool::get(currIdx);
+        //     }
+        // }
+
+        poolPatch[i] = Pool::insert(ele);
+        // Pool::patch(poolPatch[i], ele);
+    }
+    // Source Pool patches
+    std::unordered_map<int64_t, int64_t> sPoolPatch;
+    for (int i = 0; i < Rf_length(sPool); i++) {
+        auto ele = VECTOR_ELT(sPool, i);
+        sPoolPatch[i] = src_pool_add(ele);
+    }
+
+    std::stringstream bitcodePath;
+    bitcodePath << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".bc";
+
+    llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> mb = llvm::MemoryBuffer::getFile(bitcodePath.str());
+
+    if (!mb) {
+        std::cerr << "deserializer quietly failing, bitcode file does not exist: " << bitcodePath.str() << std::endl;
+        return;
+    }
+
+    // Load the memory buffer into a LLVM module
+    llvm::Expected<std::unique_ptr<llvm::Module>> llModuleHolder = llvm::parseBitcodeFile(mb->get()->getMemBufferRef(), this->getContext());
+
+    if (std::error_code ec = errorToErrorCode(llModuleHolder.takeError())) {
+        std::cerr << "deserializer quietly failing, error reading module from bitcode: " << bitcodePath.str() << std::endl;
+        return;
+    }
+
+    std::set<std::string> existingFunctionHandles;
+
+    for (auto & fun : llModuleHolder.get()->getFunctionList()) {
+        existingFunctionHandles.insert(fun.getName().str());
+    }
+
+    // Apply pool patches
+    for (auto & global : llModuleHolder.get()->getGlobalList()) {
+        auto globalName = global.getName().str();
+        auto pre = globalName.substr(0,6) == "copool";
+        auto srp = globalName.substr(0,6) == "srpool";
+        auto namc = globalName.substr(0,6) == "named_";
+
+        // if (namc || pre || srp) {
+        //     global.setExternallyInitialized(false);
+        //     global.setLinkage(llvm::GlobalValue::LinkOnceAnyLinkage);
+        // }
+
+
+        if (namc) {
+            uint64_t addr = (uint64_t)globalContext();
+
+            llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(64,addr));
+
+            global.setInitializer(replacementValue);
+        }
+
+        if (pre) {
+            auto con = global.getInitializer();
+
+            if (auto * v = llvm::dyn_cast<llvm::ConstantDataArray>(con)) {
+                std::vector<llvm::Constant*> patchedIndices;
+
+                auto arrSize = v->getNumElements();
+
+                for (unsigned int i = 0; i < arrSize; i++) {
+                    auto val = v->getElementAsAPInt(i).getSExtValue();
+
+                    // Offset relative to the serialized pool
+                    llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, poolPatch[val]));
+                    patchedIndices.push_back(replacementValue);
+
+                }
+
+                auto ty = llvm::ArrayType::get(rir::pir::t::Int, patchedIndices.size());
+                auto newInit = llvm::ConstantArray::get(ty, patchedIndices);
+
+                global.setInitializer(newInit);
+            } else if (auto * v = llvm::dyn_cast<llvm::ConstantInt>(con)) {
+                auto val = v->getSExtValue();
+                // Offset relative to the serialized pool
+                llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, poolPatch[val]));
+
+                global.setInitializer(replacementValue);
+            } else  if (auto * v = llvm::dyn_cast<llvm::ConstantAggregateZero>(con)) {
+                std::vector<llvm::Constant*> patchedIndices;
+
+                auto arrSize = v->getNumElements();
+
+                for (unsigned int i = 0; i < arrSize; i++) {
+
+                    // Offset relative to the serialized pool
+                    llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, poolPatch[0]));
+                    patchedIndices.push_back(replacementValue);
+
+                }
+
+                auto ty = llvm::ArrayType::get(rir::pir::t::Int, patchedIndices.size());
+                auto newInit = llvm::ConstantArray::get(ty, patchedIndices);
+
+                global.setInitializer(newInit);
+            } else {
+                if (!llvm::dyn_cast<llvm::ConstantStruct>(con)) {
+                    llvm::raw_os_ostream os(std::cout);
+                    global.getType()->print(os);
+                    std::cout << global.getName().str() << " -> Unknown Type " << std::endl;
+                }
+            }
+        }
+
+        // All src pool references have a srpool prefix
+        if (srp) {
+            auto con = global.getInitializer();
+            if (auto * v = llvm::dyn_cast<llvm::ConstantInt>(con)) {
+                auto val = v->getSExtValue();
+                // Offset relative to the serialized pool
+                llvm::Constant* replacementValue = llvm::ConstantInt::get(rir::pir::PirJitLLVM::getContext(), llvm::APInt(32, sPoolPatch[val]));
+                global.setInitializer(replacementValue);
+            }
+        }
+    }
+
+    // Insert native code into the JIT
+    auto TSM = llvm::orc::ThreadSafeModule(std::move(llModuleHolder.get()), TSC);
+    ExitOnErr(JIT->addIRModule(std::move(TSM)));
+
+    // Constructing code objects
+    auto fs = SerializedPool::getFS(result);
+
+    SEXP fNames = SerializedPool::getFNames(result);
+    SEXP fSrc = SerializedPool::getFSrc(result);
+    SEXP fArg = SerializedPool::getFArg(result);
+    SEXP fChildren = SerializedPool::getFChildren(result);
+
+    // Start function writer
+    FunctionWriter function;
+    Preserve preserve;
+    for (size_t i = 0; i < fs.numArguments; ++i) {
+        function.addArgWithoutDefault();
+    }
+
+    std::vector<rir::Code *> codeObjs;
+
+
+    for (int i = 0; i < Rf_length(fNames); i++) {
+        // AST Data
+        auto astData = VECTOR_ELT(fSrc, i);
+        rir::Code * p;
+        if (astData == R_NilValue) {
+            Rf_error("deserializer error, src mismatch!");
+        }
+        {
+            SEXP depHast = VECTOR_ELT(astData, 0);
+            int offsetIndex = *INTEGER(VECTOR_ELT(astData, 1));
+            unsigned calc = Hast::getSrcPoolIndexAtOffset(depHast, offsetIndex);
+            p = rir::Code::NewNative(calc);
+            protecc(p->container());
+        }
+
+        // ARG Data
+        auto argData = VECTOR_ELT(fArg, i);
+        if (TYPEOF(argData) != 0) {
+            SET_TYPEOF(argData, EXTERNALSXP);
+            p->arglistOrder(ArglistOrder::unpack(argData));
+        }
+
+        // Code handle
+        auto handle = std::string(CHAR(STRING_ELT(VECTOR_ELT(fNames, i), 0)));
+        p->lazyCodeHandle(handle);
+
+        codeObjs.push_back(p);
+    }
+
+    for (int i = 0; i < Rf_length(fChildren); i++) {
+        auto currCodeElement = codeObjs[i];
+
+        auto cVector = VECTOR_ELT(fChildren, i);
+        for (int j = 0; j < Rf_length(cVector); j++) {
+            auto d = VECTOR_ELT(cVector, j);
+            auto childCodeElement = codeObjs[Rf_asInteger(d)];
+            currCodeElement->addExtraPoolEntry(childCodeElement->container());
+        }
+    }
+
+
+
+
+    auto res = codeObjs[0];
+    function.finalize(res, fs, Context(con));
+
+    for (auto& item : codeObjs) {
+        item->function(function.function());
+    }
+
+    DispatchTable * vtab;
+
+    if (!DispatchTable::check(UnlockingElement::getVtableContainer(uEleContainer))) {
+        std::cerr << "deserializer quietly failing, vtab is corrupted! " << std::endl;
+        return;
+    }
+
+    SEXP vtabContainer = UnlockingElement::getVtableContainer(uEleContainer);
+
+    protecc(vtabContainer);
+
+    vtab = DispatchTable::unpack(vtabContainer);
+
+    function.function()->inheritFlags(vtab->baseline());
+
+    // std::cout << "Adding Context: " << Context(con) << std::endl;
+    // std::cout << "Adding native function(deserialized): " << function.function() << std::endl;
+    // UnlockingElement::print(uEleContainer, 4);
+
+    auto currFun = function.function();
+
+    protecc(currFun->container());
+
+    // std::cout << "Deserialization success, adding to dispatch table" << std::endl;
+    vtab->insert(currFun);
+    // DES-TODO
+    // generalUtil::printSpace(2);
+    // std::cout << "Versioning: " << versioning << std::endl;
+    // if (versioning == 0) {
+    //     vtab->insert(currFun);
+    //     // vtab->insertL2V1(currFun);
+    // }
+    // else if (versioning == 1) {
+    //     vtab->insertL2V1(currFun);
+    // }
+    // else if (versioning == 2) {
+    //     // generalUtil::printSpace(2);
+    //     // std::cout << "Versioning 2 Unlock Element STUB" << std::endl;
+    //     // UnlockingElement::print(uEleContainer, 4);
+    //     vtab->insertL2V2(currFun, uEleContainer);
+    // }
+
+    static bool eagerBC = getenv("EAGER_BITCODES") ? getenv("EAGER_BITCODES")[0] == '1' : false;
+    if (eagerBC) {
+        res->nativeCode();
+    }
+}
+
 void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName, std::set<SEXP> & rMap) {
     auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : "bitcodes";
 
@@ -598,34 +890,15 @@ void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPo
         // Dont serialize external code, we serialize the original AST
         if (TYPEOF(obj) == CLOSXP && TYPEOF(BODY(obj)) != BCODESXP) {
             *serializerError = true;
-            SerializerDebug::infoMessage("(E) [pir_jit_llvm.cpp] constant pool contains CLOSXP", 2);
+            SerializerDebug::infoMessage("(E) [pir_jit_llvm.cpp] serialized pool contains CLOSXP", 2);
         }
         if (TYPEOF(obj) == 26) {
             *serializerError = true;
-            SerializerDebug::infoMessage("(E) [pir_jit_llvm.cpp] constant pool contains EXTERNALSXP", 2);
+            SerializerDebug::infoMessage("(E) [pir_jit_llvm.cpp] serialized pool contains EXTERNALSXP", 2);
         }
         if (TYPEOF(obj) == LANGSXP) {
-            if (Hast::cPoolInverseMap.count(obj) > 0) {
-                auto data = Hast::cPoolInverseMap[obj];
-
-                if (Hast::blacklist.count(data.hast)) {
-                    *serializerError = true;
-                    SerializerDebug::infoMessage("(E) [pir_jit_llvm.cpp] serialized pool contains a leaked blacklisted LANGSXP", 2);
-                } else {
-                    SEXP resVec;
-                    protecc(resVec = Rf_allocVector(VECSXP, 2));
-                    SET_VECTOR_ELT(resVec, 0, data.hast);
-                    SET_VECTOR_ELT(resVec, 1, Rf_install(std::to_string(data.offsetIndex).c_str()));
-
-                    obj = resVec;
-                    rMap.insert(VECTOR_ELT(obj, 0));
-                }
-
-            } else {
-                *serializerError = true;
-                SerializerDebug::infoMessage("(E) [pir_jit_llvm.cpp] serialized pool contains a leaked LANGSXP", 2);
-            }
-
+            *serializerError = true;
+            SerializerDebug::infoMessage("(E) [pir_jit_llvm.cpp] serialized pool contains LANGSXP", 2);
         }
         SET_VECTOR_ELT(cPool, i, obj);
     }
@@ -948,7 +1221,22 @@ void PirJitLLVM::initializeLLVM() {
                 auto code = n.substr(0, 5) == "code_"; // code objs for DeoptReason
                 auto vtab = n.substr(0, 5) == "vtab_"; // Hast to dispatch table
 
-                if (vtab) {
+                auto envPatch = n.substr(0, 4) == "env_"; // resolution of static environments
+
+                if (envPatch) {
+                    auto constantName = n.substr(4);
+                    SEXP targetNamespace;
+                    PROTECT(targetNamespace = R_FindNamespace(Rf_ScalarString(Rf_mkChar(constantName.c_str()))));
+                    assert(R_IsNamespaceEnv(targetNamespace));
+                    Pool::insert(targetNamespace);
+                    UNPROTECT(1);
+
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(targetNamespace)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (vtab) {
                     auto firstDel = n.find('_');
                     auto secondDel = n.find('_', firstDel + 1);
 

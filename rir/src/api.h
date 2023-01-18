@@ -11,6 +11,11 @@
 
 extern int R_ENABLE_JIT;
 
+class RTConsts {
+    public:
+        static int * R_jit_enabled;
+};
+
 REXPORT SEXP rirInvocationCount(SEXP what);
 REXPORT SEXP pirCompileWrapper(SEXP closure, SEXP name, SEXP debugFlags,
                                SEXP debugStyle);
@@ -25,6 +30,8 @@ extern SEXP rirOptDefaultOptsDryrun(SEXP closure, const rir::Context&,
                                     SEXP name);
 REXPORT SEXP rirSerialize(SEXP data, SEXP file);
 REXPORT SEXP rirDeserialize(SEXP file);
+
+REXPORT SEXP loadBitcodes(SEXP path);
 
 REXPORT SEXP rirSetUserContext(SEXP f, SEXP udc);
 REXPORT SEXP rirCreateSimpleIntContext();

@@ -26,6 +26,13 @@
 #include "runtime/RuntimeFlags.h"
 #include "utils/serializerData.h"
 #include "utils/SerializerDebug.h"
+#include "utils/DeserializerDebug.h"
+#include "utils/DeserializerConsts.h"
+#include "utils/deserializerData.h"
+#include "utils/WorklistManager.h"
+
+#include "dirent.h"
+#include <unistd.h>
 
 using namespace rir;
 
@@ -71,7 +78,147 @@ REXPORT SEXP rirDisassemble(SEXP what, SEXP verbose) {
     return R_NilValue;
 }
 
+static void loadMetadata(std::string metaDataPath) {
+    Protect protecc;
+    // Disable contextual compilation during deserialization
+    // otherwise unnecessary evals can lead to a redundant compilations
+    bool oldVal = RuntimeFlags::contextualCompilationSkip;
+    RuntimeFlags::contextualCompilationSkip = true;
+
+    FILE *reader;
+    reader = fopen(metaDataPath.c_str(),"r");
+
+    if (!reader) {
+        DeserializerDebug::infoMessage("Unable to open meta for deserialization" + metaDataPath, 0);
+        return;
+    }
+
+    SEXP ddContainer;
+    protecc(ddContainer= R_LoadFromFile(reader, 0));
+
+    fclose(reader);
+
+    GeneralWorklist::insert(ddContainer);
+
+    DeserializerDebug::infoMessage("loaded bitcode metadata for : " + metaDataPath, 0);
+    if (DeserializerDebug::level > 1) {
+        deserializerData::print(ddContainer, 2);
+    }
+    // If the function already exists, then try linking it right now
+    auto currHast = deserializerData::getHast(ddContainer);
+
+    // DES-TODO
+    if (Hast::hastMap.count(currHast) > 0) {
+        auto hastData = Hast::hastMap[currHast];
+        assert(DispatchTable::check(hastData.vtabContainer) != nullptr);
+        BitcodeLinkUtil::tryLinking(DispatchTable::unpack(hastData.vtabContainer), currHast);
+    }
+
+    RuntimeFlags::contextualCompilationSkip = oldVal;
+}
+
+REXPORT SEXP compileStats(SEXP name, SEXP path) {
+    // assert(TYPEOF(path) == STRSXP);
+    // assert(TYPEOF(name) == STRSXP);
+    // std::ofstream ostrm(CHAR(STRING_ELT(path, 0)));
+    // ostrm << "============== RUN STATS ==============" << std::endl;
+    // ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
+    // ostrm << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
+    // ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
+    // ostrm << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << std::endl;
+    // ostrm << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
+    // ostrm << "Compiled Closures:       : " << compilerSuccesses << std::endl;
+    // ostrm << "Serialized Closures      : " << serializerSuccess << std::endl;
+    // ostrm << "Unlinked BC (Worklist1)  : " << Worklist1::worklist.size() << std::endl;
+    // ostrm << "Unlinked BC (Worklist2)  : " << Worklist2::worklist.size() << std::endl;
+    // ostrm << "Deoptimizations          : " << BitcodeLinkUtil::deoptCount << std::endl;
+
+    std::cout << "=== Worklist 1 ===" << std::endl;
+    if (Worklist1::worklist.size() > 0) {
+        for (auto & ele : Worklist1::worklist) {
+            std::cout << CHAR(PRINTNAME(ele.first)) << std::endl;
+            for(auto & uEleIdx : ele.second) {
+                std::cout << "[uEleIdx: " << uEleIdx << "]" << std::endl;
+                UnlockingElement::print(Pool::get(uEleIdx), 2);
+            }
+        }
+    }
+
+    std::cout << "=== Worklist 2 ===" << std::endl;
+    if (Worklist2::worklist.size() > 0) {
+        for (auto & ele : Worklist2::worklist) {
+            std::cout << CHAR(PRINTNAME(ele.first)) << " : [";
+            for(auto & uEleIdx : ele.second) {
+                std::cout << uEleIdx << ", ";
+                // OptUnlockingElement::print(Pool::get(uEleIdx), 2);
+            }
+            std::cout << "]" << std::endl;
+        }
+    }
+
+    return R_NilValue;
+}
+
+REXPORT SEXP loadBitcodes(SEXP pathToBc) {
+    bool success = true;
+    // auto start = high_resolution_clock::now();
+
+    if (DeserializerConsts::bitcodesLoaded) {
+        Rf_error("Bitcodes already loaded, only allowed to load from one location in a session!");
+    }
+
+    if (pathToBc != R_NilValue) {
+        assert(TYPEOF(pathToBc) == STRSXP);
+        DeserializerConsts::bitcodesPath = CHAR(STRING_ELT(pathToBc, 0));
+    }
+
+    Protect prot;
+    DIR *dir;
+    struct dirent *ent;
+
+    int metasFound = 0;
+
+    if ((dir = opendir (DeserializerConsts::bitcodesPath)) != NULL) {
+
+        while ((ent = readdir (dir)) != NULL) {
+            std::string fName = ent->d_name;
+            if (fName.find(".metad") != std::string::npos) {
+                metasFound++;
+                loadMetadata(std::string(DeserializerConsts::bitcodesPath) + "/" + fName);
+            }
+        }
+
+        closedir (dir);
+
+        if (metasFound > 0) {
+            DeserializerConsts::bitcodesLoaded = true;
+        }
+
+
+    } else {
+        DeserializerDebug::infoMessage("(E) [api.cpp] unable to open bitcodes directory", 0);
+        success = false;
+    }
+
+    // auto stop = high_resolution_clock::now();
+    // auto duration = duration_cast<milliseconds>(stop - start);
+    // metadataLoadTime = duration.count();
+    if (success) {
+        return Rf_mkString("Loading bitcode metadata successful");
+    } else {
+        return Rf_mkString("Loading bitcode metadata failed");
+    }
+}
+
 REXPORT SEXP rirCompile(SEXP what, SEXP env) {
+    //
+    // Is there a better place to do this? this is kind of a hack we have for now
+    //
+    static bool initializeBitcodes = false;
+    if (!initializeBitcodes && DeserializerConsts::earlyBitcodes) {
+        loadBitcodes(R_NilValue);
+        initializeBitcodes = true;
+    }
     if (TYPEOF(what) == CLOSXP) {
         SEXP body = BODY(what);
         if (TYPEOF(body) == EXTERNALSXP)
@@ -363,23 +510,6 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
     SerializerDebug::infoMessage("(*) Current epoch", 2);
     SerializerDebug::infoMessage(CHAR(PRINTNAME(epoch)), 4);
 
-
-    // 2. Write updated metadata
-    FILE *fptr;
-    fptr = fopen(fName.c_str(),"w");
-    if (!fptr) {
-        serializerError = true;
-        SerializerDebug::infoMessage("(E) unable to write metadata", 2);
-        return;
-    }
-
-    R_SaveToFile(sDataContainer, fptr, 0);
-    fclose(fptr);
-
-    if (SerializerDebug::level > 1) {
-        serializerData::print(sDataContainer, 2);
-    }
-
     // rename temp files
     {
         std::stringstream bcFName;
@@ -407,10 +537,28 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
         }
     }
 
+
+    // 2. Write updated metadata
+    FILE *fptr;
+    fptr = fopen(fName.c_str(),"w");
+    if (!fptr) {
+        serializerError = true;
+        SerializerDebug::infoMessage("(E) unable to write metadata", 2);
+        return;
+    }
+    R_SaveToFile(sDataContainer, fptr, 0);
+    fclose(fptr);
+    if (SerializerDebug::level > 1) {
+        serializerData::print(sDataContainer, 2);
+    }
 }
 
+bool serializerOnline = false;
+
+int i = 0;
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 const pir::DebugOptions& debug) {
+    if (*RTConsts::R_jit_enabled == 0) return what;
     if (!isValidClosureSEXP(what)) {
         Rf_error("not a compiled closure");
     }
@@ -450,6 +598,10 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                         //
                         // === Serializer Start ===
                         //
+                        if (serializerOnline == true) {
+                            Rf_error("Recursive serialization unsupported!");
+                        }
+                        serializerOnline = true;
                         SerializerDebug::infoMessage("(>) Serializer Started", 0);
 
                         // Disable compilation temporarily? is this needed
@@ -489,6 +641,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                         //
                         // === Serializer End ===
                         //
+                        serializerOnline = false;
 
                         std::stringstream msg;
 
@@ -546,11 +699,13 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                                std::cerr << "Compilation failed\n";
                        },
                        {});
-
+    logger.title("Compiled " + name);
     delete m;
     UNPROTECT(1);
     return what;
 }
+
+int * RTConsts::R_jit_enabled = nullptr;
 
 REXPORT SEXP rirInvocationCount(SEXP what) {
     if (!isValidClosureSEXP(what)) {

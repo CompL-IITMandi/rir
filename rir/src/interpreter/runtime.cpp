@@ -29,7 +29,7 @@ void initializeRuntime() {
     context_init();
     registerExternalCode(rirEval, rirApplyClosure, rirForcePromise, rirCompile,
                          rirDecompile, rirPrint, deserializeRir, serializeRir,
-                         materialize);
+                         materialize, &RTConsts::R_jit_enabled);
     RuntimeProfiler::initProfiler();
 }
 

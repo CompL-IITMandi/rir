@@ -418,10 +418,10 @@ static inline TraversalResult getResultAtOffset(DispatchTable * vtab, const unsi
 rir::DispatchTable * Hast::getVtableObjectAtOffset(SEXP hastSym, int offset) {
     SEXP vtabContainer = hastMap[hastSym].vtabContainer;
     if (!vtabContainer) {
-        Rf_error("getSrcPoolIndexAtOffset failed!");
+        Rf_error("getVtableObjectAtOffset failed!");
     }
     if (!DispatchTable::check(vtabContainer)) {
-        Rf_error("getSrcPoolIndexAtOffset vtable corrupted");
+        Rf_error("getVtableObjectAtOffset vtable corrupted");
     }
     auto vtab = DispatchTable::unpack(vtabContainer);
     auto r = getResultAtOffset(vtab, offset);
@@ -429,13 +429,18 @@ rir::DispatchTable * Hast::getVtableObjectAtOffset(SEXP hastSym, int offset) {
     return r.vtable;
 }
 
+rir::DispatchTable * Hast::getVtableObjectAtOffset(rir::DispatchTable * vtab, int offset) {
+    auto r = getResultAtOffset(vtab, offset);
+    return r.vtable;
+}
+
 rir::Code * Hast::getCodeObjectAtOffset(SEXP hastSym, int offset) {
     SEXP vtabContainer = hastMap[hastSym].vtabContainer;
     if (!vtabContainer) {
-        Rf_error("getSrcPoolIndexAtOffset failed!");
+        Rf_error("getCodeObjectAtOffset failed!");
     }
     if (!DispatchTable::check(vtabContainer)) {
-        Rf_error("getSrcPoolIndexAtOffset vtable corrupted");
+        Rf_error("getCodeObjectAtOffset vtable corrupted");
     }
     auto vtab = DispatchTable::unpack(vtabContainer);
     auto r = getResultAtOffset(vtab, offset);

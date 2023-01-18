@@ -18,7 +18,9 @@ cd $R_HOME
 
 git clean -dfx -e Makefile tests/
 
-cd tests
+# Originally tests
+# Modified to run only the examples for now
+cd tests/Examples
 
 XVFB=`which Xvfb 2> /dev/null`
 

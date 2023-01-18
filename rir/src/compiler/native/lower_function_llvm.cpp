@@ -549,6 +549,11 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
             }
         }
 
+        if (TYPEOF(co) == ENVSXP) {
+            *serializerError = true;
+            SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] constant type ENVSXP unhandled", 2);
+        }
+
         auto cpIndex = Pool::insert(co);
         auto iVal = globalConst(c(cpIndex), t::i32);
         auto iLoad = builder.CreateLoad(iVal);
@@ -737,9 +742,31 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
         } else if (e == Env::nil()) {
             res = constant(R_NilValue, needed);
         } else if (Env::isStaticEnv(e)) {
-            // SerializerDebug::infoMessage("(***) Env::isStaticEnv TYPEOF(" + std::to_string(TYPEOF(e->rho)) + ")", 2);
-            // ENVSXP
-            res = constant(e->rho, t::SEXP);
+            SEXP staticEnv = e->rho;
+
+            auto normal = [&]()->llvm::Value* {
+                return constant(staticEnv, t::SEXP);
+            };
+            auto patched = [&]()->llvm::Value * {
+                if (R_IsNamespaceEnv(staticEnv)) {
+                    const char * ns = Rf_translateChar(STRING_ELT(R_NamespaceEnvSpec(staticEnv), 0));
+                    std::stringstream ss;
+                    ss << "env_" << ns;
+
+                    auto constantName = ss.str().substr(4);
+
+                    SEXP targetNamespace;
+                    PROTECT(targetNamespace = R_FindNamespace(Rf_ScalarString(Rf_mkChar(constantName.c_str()))));
+                    assert(targetNamespace == staticEnv);
+                    UNPROTECT(1);
+                    return convertToExternalSymbol(ss.str());
+                }
+
+                *serializerError = true;
+                SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] Unknown static environment target!", 2);
+                return constant(staticEnv, t::SEXP);
+            };
+            res = ptrPatch(normal, patched);
         } else {
             assert(false);
         }

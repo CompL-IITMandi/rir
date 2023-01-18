@@ -1,5 +1,16 @@
 # the following functions are intended for the API
 
+#
+# serializer and deserializer
+#
+f.loadBitcodes <- function(path = NULL) {
+    invisible(.Call("loadBitcodes", path))
+}
+
+f.compileStats <- function(name, path) {
+    invisible(.Call("compileStats", name, path))
+}
+
 rir.markFunction <- function(what, which,
                              Reopt=NA,
                              ForceInline=NA,

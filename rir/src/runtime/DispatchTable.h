@@ -235,6 +235,8 @@ struct DispatchTable
         return userDefinedContext_ | anotherContext;
     }
 
+    SEXP hast = nullptr;
+    Context mask = Context(0ul);
   private:
     DispatchTable() = delete;
     explicit DispatchTable(size_t cap)
