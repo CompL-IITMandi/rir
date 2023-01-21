@@ -33,6 +33,8 @@
 #include "utils/WorklistManager.h"
 #include "utils/DeserializerConsts.h"
 
+#include "utils/BitcodeLinkUtility.h"
+
 namespace rir {
 namespace pir {
 
@@ -350,7 +352,7 @@ void PirJitLLVM::finalize() {
 }
 
 void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
-    // int versioning = UnlockingElement::getVersioningInfo(uEleContainer);
+    int versioning = UnlockingElement::getVersioningInfo(uEleContainer);
     unsigned long con = UnlockingElement::getContext(uEleContainer);
 
 
@@ -553,6 +555,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
             unsigned calc = Hast::getSrcPoolIndexAtOffset(depHast, offsetIndex);
             p = rir::Code::NewNative(calc);
             protecc(p->container());
+            p->usesSerializedBinary = true;
         }
 
         // ARG Data
@@ -613,24 +616,28 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
     protecc(currFun->container());
 
+    static bool naiveL2 = getenv("NAIVE_L2") ? getenv("NAIVE_L2")[0] == '1' : false;
+
     // std::cout << "Deserialization success, adding to dispatch table" << std::endl;
-    vtab->insert(currFun);
+    // vtab->insert(currFun);
     // DES-TODO
     // generalUtil::printSpace(2);
     // std::cout << "Versioning: " << versioning << std::endl;
-    // if (versioning == 0) {
-    //     vtab->insert(currFun);
-    //     // vtab->insertL2V1(currFun);
-    // }
-    // else if (versioning == 1) {
-    //     vtab->insertL2V1(currFun);
-    // }
-    // else if (versioning == 2) {
-    //     // generalUtil::printSpace(2);
-    //     // std::cout << "Versioning 2 Unlock Element STUB" << std::endl;
-    //     // UnlockingElement::print(uEleContainer, 4);
-    //     vtab->insertL2V2(currFun, uEleContainer);
-    // }
+    if (naiveL2) {
+        vtab->insert(currFun);
+    } else if (versioning == 0) {
+        vtab->insert(currFun);
+        // vtab->insertL2V1(currFun);
+    }
+    else if (versioning == 1) {
+        vtab->insertL2V1(currFun);
+    }
+    else if (versioning == 2) {
+        // generalUtil::printSpace(2);
+        // std::cout << "Versioning 2 Unlock Element STUB" << std::endl;
+        // UnlockingElement::print(uEleContainer, 4);
+        vtab->insertL2V2(currFun, uEleContainer);
+    }
 
     static bool eagerBC = getenv("EAGER_BITCODES") ? getenv("EAGER_BITCODES")[0] == '1' : false;
     if (eagerBC) {
@@ -1201,6 +1208,9 @@ void PirJitLLVM::initializeLLVM() {
                             JITDylibLookupFlags JDLookupFlags,
                             const SymbolLookupSet& LookupSet) override {
             orc::SymbolMap NewSymbols;
+            using namespace std::chrono;
+            auto pirOptStart = high_resolution_clock::now();
+
             for (auto s : LookupSet) {
                 auto& Name = s.first;
                 auto n = (*Name).str();
@@ -1222,14 +1232,36 @@ void PirJitLLVM::initializeLLVM() {
                 auto vtab = n.substr(0, 5) == "vtab_"; // Hast to dispatch table
 
                 auto envPatch = n.substr(0, 4) == "env_"; // resolution of static environments
+                auto env1 = n.substr(0, 4) == "env1"; // resolution of static environments
+                auto env2 = n.substr(0, 4) == "env2"; // resolution of static environments
+                auto env3 = n.substr(0, 4) == "env3"; // resolution of static environments
 
-                if (envPatch) {
+                if (env3) {
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(R_EmptyEnv)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (env2) {
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(R_BaseEnv)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (env1) {
+                    NewSymbols[Name] = JITEvaluatedSymbol(
+                        static_cast<JITTargetAddress>(
+                            reinterpret_cast<uintptr_t>(R_GlobalEnv)),
+                        JITSymbolFlags::Exported | (JITSymbolFlags::None));
+
+                } else if (envPatch) {
                     auto constantName = n.substr(4);
                     SEXP targetNamespace;
-                    PROTECT(targetNamespace = R_FindNamespace(Rf_ScalarString(Rf_mkChar(constantName.c_str()))));
+                    // PROTECT(targetNamespace = R_FindNamespace(Rf_ScalarString(Rf_mkChar(constantName.c_str()))));
+                    targetNamespace = Rf_findVarInFrame(R_NamespaceRegistry, Rf_install(constantName.c_str())); // this may be free from random eval
                     assert(R_IsNamespaceEnv(targetNamespace));
                     Pool::insert(targetNamespace);
-                    UNPROTECT(1);
+                    // UNPROTECT(1);
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
@@ -1442,6 +1474,11 @@ void PirJitLLVM::initializeLLVM() {
                     std::cout << "unknown symbol " << n << "\n";
                 }
             }
+
+            auto pirOptEnd = high_resolution_clock::now();
+            auto duration = duration_cast<milliseconds>(pirOptEnd - pirOptStart);
+            BitcodeLinkUtil::llvmSymbolsTime+=duration.count();
+
             if (NewSymbols.empty())
                 return Error::success();
 

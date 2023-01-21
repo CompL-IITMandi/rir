@@ -5,6 +5,7 @@
 #include "R/Serialize.h"
 #include "RirRuntimeObject.h"
 #include "utils/random.h"
+#include "runtime/L2Dispatch.h"
 
 namespace rir {
 
@@ -25,6 +26,14 @@ struct DispatchTable
 
     Function* get(size_t i) const {
         assert(i < capacity());
+        // If there exists a L2 dispatch table at this index,
+        // then check if there is a possible dispatch available
+        SEXP funContainer = getEntry(i);
+
+        if (L2Dispatch::check(funContainer)) {
+            L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+            return l2vt->dispatch();
+        }
         return Function::unpack(getEntry(i));
     }
 
@@ -116,73 +125,83 @@ struct DispatchTable
         size_--;
     }
 
+
+    void insert(Function* fun);
+
+    void insertL2V2(Function* fun, SEXP uEleContainer);
+
+    void insertL2V1(Function* fun);
+
+    // Function slot negotiation
+    int negotiateSlot(const Context& assumptions);
+
     // insert function ordered by increasing number of assumptions
-    void insert(Function* fun) {
-        // TODO: we might need to grow the DT here!
-        assert(size() > 0);
-        assert(fun->signature().optimization !=
-               FunctionSignature::OptimizationLevel::Baseline);
-        auto assumptions = fun->context();
-        size_t i;
-        for (i = size() - 1; i > 0; --i) {
-            auto old = get(i);
-            if (old->context() == assumptions) {
-                if (i != 0) {
-                    // Remember deopt counts across recompilation to avoid
-                    // deopt loops
-                    fun->addDeoptCount(old->deoptCount());
-                    setEntry(i, fun->container());
-                    assert(get(i) == fun);
-                }
-                return;
-            }
-            if (!(assumptions < get(i)->context())) {
-                break;
-            }
-        }
-        i++;
-        assert(!contains(fun->context()));
-        if (size() == capacity()) {
-#ifdef DEBUG_DISPATCH
-            std::cout << "Tried to insert into a full Dispatch table. Have: \n";
-            for (size_t i = 0; i < size(); ++i) {
-                auto e = getEntry(i);
-                std::cout << "* " << Function::unpack(e)->context() << "\n";
-            }
-            std::cout << "\n";
-            std::cout << "Tried to insert: " << assumptions << "\n";
-            Rf_error("dispatch table overflow");
-#endif
-            // Evict one element and retry
-            auto pos = 1 + (Random::singleton()() % (size() - 1));
-            size_--;
-            while (pos < size()) {
-                setEntry(pos, getEntry(pos + 1));
-                pos++;
-            }
-            return insert(fun);
-        }
+//     void insert(Function* fun) {
+//         // TODO: we might need to grow the DT here!
+//         assert(size() > 0);
+//         assert(fun->signature().optimization !=
+//                FunctionSignature::OptimizationLevel::Baseline);
+//         auto assumptions = fun->context();
+//         size_t i;
+//         for (i = size() - 1; i > 0; --i) {
+//             auto old = get(i);
+//             if (old->context() == assumptions) {
+//                 if (i != 0) {
+//                     // Remember deopt counts across recompilation to avoid
+//                     // deopt loops
+//                     fun->addDeoptCount(old->deoptCount());
+//                     setEntry(i, fun->container());
+//                     assert(get(i) == fun);
+//                 }
+//                 return;
+//             }
+//             if (!(assumptions < get(i)->context())) {
+//                 break;
+//             }
+//         }
+//         i++;
+//         assert(!contains(fun->context()));
+//         if (size() == capacity()) {
+// #ifdef DEBUG_DISPATCH
+//             std::cout << "Tried to insert into a full Dispatch table. Have: \n";
+//             for (size_t i = 0; i < size(); ++i) {
+//                 auto e = getEntry(i);
+//                 std::cout << "* " << Function::unpack(e)->context() << "\n";
+//             }
+//             std::cout << "\n";
+//             std::cout << "Tried to insert: " << assumptions << "\n";
+//             Rf_error("dispatch table overflow");
+// #endif
+//             // Evict one element and retry
+//             auto pos = 1 + (Random::singleton()() % (size() - 1));
+//             size_--;
+//             while (pos < size()) {
+//                 setEntry(pos, getEntry(pos + 1));
+//                 pos++;
+//             }
+//             return insert(fun);
+//         }
 
-        for (size_t j = size(); j > i; --j)
-            setEntry(j, getEntry(j - 1));
-        size_++;
-        setEntry(i, fun->container());
+//         for (size_t j = size(); j > i; --j)
+//             setEntry(j, getEntry(j - 1));
+//         size_++;
+//         setEntry(i, fun->container());
 
-#ifdef DEBUG_DISPATCH
-        std::cout << "Added version to DT, new order is: \n";
-        for (size_t i = 0; i < size(); ++i) {
-            auto e = getEntry(i);
-            std::cout << "* " << Function::unpack(e)->context() << "\n";
-        }
-        std::cout << "\n";
-        for (size_t i = 1; i < size() - 1; ++i) {
-            assert(get(i)->context() < get(i + 1)->context());
-            assert(get(i)->context() != get(i + 1)->context());
-            assert(!(get(i + 1)->context() < get(i)->context()));
-        }
-        assert(contains(fun->context()));
-#endif
-    }
+// #ifdef DEBUG_DISPATCH
+//         std::cout << "Added version to DT, new order is: \n";
+//         for (size_t i = 0; i < size(); ++i) {
+//             auto e = getEntry(i);
+//             std::cout << "* " << Function::unpack(e)->context() << "\n";
+//         }
+//         std::cout << "\n";
+//         for (size_t i = 1; i < size() - 1; ++i) {
+//             assert(get(i)->context() < get(i + 1)->context());
+//             assert(get(i)->context() != get(i + 1)->context());
+//             assert(!(get(i + 1)->context() < get(i)->context()));
+//         }
+//         assert(contains(fun->context()));
+// #endif
+//     }
 
     static DispatchTable* create(size_t capacity = 20) {
         size_t sz =

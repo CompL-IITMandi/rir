@@ -44,6 +44,8 @@ namespace rir {
 size_t BitcodeLinkUtil::linkTime = 0;
 size_t BitcodeLinkUtil::deoptCount = 0;
 size_t BitcodeLinkUtil::llvmLoweringTime = 0;
+size_t BitcodeLinkUtil::llvmSymbolsTime = 0;
+
 
 static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime);
 
@@ -227,6 +229,9 @@ static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime) {
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     linkTime += duration.count();
+    #if DEBUG_DESERIALIZER_CHECKPOINTS == 1
+    std::cerr << "(c) DESERIALIZING DONE " << UnlockingElement::getPathPrefix(uEleContainer) << std::endl;
+    #endif
 }
 
 //

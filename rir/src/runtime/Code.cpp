@@ -11,6 +11,9 @@
 
 #include <iomanip>
 #include <sstream>
+#include "utils/DeserializerConsts.h"
+#include "utils/BitcodeLinkUtility.h"
+#include <chrono>
 
 namespace rir {
 
@@ -341,8 +344,16 @@ llvm::ExitOnError ExitOnErr;
 NativeCode Code::lazyCompile() {
     assert(kind == Kind::Native);
     assert(*lazyCodeHandle_ != '\0');
+    using namespace std::chrono;
+    auto startCompileTimeCounter = high_resolution_clock::now();
+    if (usesSerializedBinary) DeserializerConsts::skipLLVMPasses = true;
     auto symbol = ExitOnErr(pir::PirJitLLVM::JIT->lookup(lazyCodeHandle_));
     nativeCode_ = (NativeCode)symbol.getAddress();
+    if (usesSerializedBinary) DeserializerConsts::skipLLVMPasses = false;
+    auto stopCompileTimeCounter = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stopCompileTimeCounter - startCompileTimeCounter);
+    BitcodeLinkUtil::llvmLoweringTime += duration.count();
+
     return nativeCode_;
 }
 

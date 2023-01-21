@@ -34,11 +34,16 @@
 #include "dirent.h"
 #include <unistd.h>
 
+#include "R/Funtab.h"
+
+#include <chrono>
+
 using namespace rir;
 
 extern "C" Rboolean R_Visible;
 
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
+static size_t timeInPirCompiler = 0;
 
 static size_t oldMaxInput = 0;
 static size_t oldInlinerMax = 0;
@@ -57,6 +62,19 @@ bool parseDebugStyle(const char* str, pir::DebugStyle& s) {
     {
         return false;
     }
+}
+
+REXPORT SEXP clearFeedbackAtOffset(SEXP what, SEXP offset) {
+    assert(TYPEOF(what) == CLOSXP && TYPEOF(BODY(what)) == EXTERNALSXP);
+    assert(DispatchTable::check(BODY(what)));
+    assert(TYPEOF(offset) == REALSXP);
+    auto vtab = DispatchTable::unpack(BODY(what));
+    int intOffset = *REAL(offset);
+    Opcode* pc = (vtab->baseline()->body()->code() + intOffset) ;
+    assert(*pc == Opcode::record_call_);
+    ObservedCallees* feedback = (ObservedCallees*)(pc + 1);
+    memset(feedback, 0, sizeof(ObservedCallees));
+    return R_NilValue;
 }
 
 REXPORT SEXP rirDisassemble(SEXP what, SEXP verbose) {
@@ -121,40 +139,41 @@ REXPORT SEXP compileStats(SEXP name, SEXP path) {
     // assert(TYPEOF(path) == STRSXP);
     // assert(TYPEOF(name) == STRSXP);
     // std::ofstream ostrm(CHAR(STRING_ELT(path, 0)));
-    // ostrm << "============== RUN STATS ==============" << std::endl;
+    std::cout << "============== RUN STATS ==============" << std::endl;
     // ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
     // ostrm << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
     // ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
-    // ostrm << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << std::endl;
-    // ostrm << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
+    std::cout << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << "ms" << std::endl;
+    std::cout << "llvm symbol patching     : " << BitcodeLinkUtil::llvmSymbolsTime << "ms" << std::endl;
+    std::cout << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
     // ostrm << "Compiled Closures:       : " << compilerSuccesses << std::endl;
     // ostrm << "Serialized Closures      : " << serializerSuccess << std::endl;
     // ostrm << "Unlinked BC (Worklist1)  : " << Worklist1::worklist.size() << std::endl;
     // ostrm << "Unlinked BC (Worklist2)  : " << Worklist2::worklist.size() << std::endl;
     // ostrm << "Deoptimizations          : " << BitcodeLinkUtil::deoptCount << std::endl;
 
-    std::cout << "=== Worklist 1 ===" << std::endl;
-    if (Worklist1::worklist.size() > 0) {
-        for (auto & ele : Worklist1::worklist) {
-            std::cout << CHAR(PRINTNAME(ele.first)) << std::endl;
-            for(auto & uEleIdx : ele.second) {
-                std::cout << "[uEleIdx: " << uEleIdx << "]" << std::endl;
-                UnlockingElement::print(Pool::get(uEleIdx), 2);
-            }
-        }
-    }
+    // std::cout << "=== Worklist 1 ===" << std::endl;
+    // if (Worklist1::worklist.size() > 0) {
+    //     for (auto & ele : Worklist1::worklist) {
+    //         std::cout << CHAR(PRINTNAME(ele.first)) << std::endl;
+    //         for(auto & uEleIdx : ele.second) {
+    //             std::cout << "[uEleIdx: " << uEleIdx << "]" << std::endl;
+    //             UnlockingElement::print(Pool::get(uEleIdx), 2);
+    //         }
+    //     }
+    // }
 
-    std::cout << "=== Worklist 2 ===" << std::endl;
-    if (Worklist2::worklist.size() > 0) {
-        for (auto & ele : Worklist2::worklist) {
-            std::cout << CHAR(PRINTNAME(ele.first)) << " : [";
-            for(auto & uEleIdx : ele.second) {
-                std::cout << uEleIdx << ", ";
-                // OptUnlockingElement::print(Pool::get(uEleIdx), 2);
-            }
-            std::cout << "]" << std::endl;
-        }
-    }
+    // std::cout << "=== Worklist 2 ===" << std::endl;
+    // if (Worklist2::worklist.size() > 0) {
+    //     for (auto & ele : Worklist2::worklist) {
+    //         std::cout << CHAR(PRINTNAME(ele.first)) << " : [";
+    //         for(auto & uEleIdx : ele.second) {
+    //             std::cout << uEleIdx << ", ";
+    //             // OptUnlockingElement::print(Pool::get(uEleIdx), 2);
+    //         }
+    //         std::cout << "]" << std::endl;
+    //     }
+    // }
 
     return R_NilValue;
 }
@@ -210,6 +229,19 @@ REXPORT SEXP loadBitcodes(SEXP pathToBc) {
     }
 }
 
+// static bool usesUseMethod(SEXP ast) {
+//     int type = TYPEOF(ast);
+//     static SEXP useMethodSym = Rf_install("UseMethod");
+//     if (ast == useMethodSym) {
+//         return true;
+//     } else if (type == BCODESXP) {
+//         return usesUseMethod(VECTOR_ELT(CDR(ast),0));
+//     } else if (type == LISTSXP || type == LANGSXP) {
+//         return (usesUseMethod(CAR(ast)) || usesUseMethod(CDR(ast)));
+//     }
+//     return false;
+// }
+
 REXPORT SEXP rirCompile(SEXP what, SEXP env) {
     //
     // Is there a better place to do this? this is kind of a hack we have for now
@@ -219,6 +251,7 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
         loadBitcodes(R_NilValue);
         initializeBitcodes = true;
     }
+    // if (usesUseMethod(BODY(what))) return what;
     if (TYPEOF(what) == CLOSXP) {
         SEXP body = BODY(what);
         if (TYPEOF(body) == EXTERNALSXP)
@@ -555,7 +588,222 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
 
 bool serializerOnline = false;
 
-int i = 0;
+// PRINT AST, small debugging utility
+void printSpace(int & lim) {
+    int i = 0;
+    for(i = 0; i < lim; i++ ) {
+        std::cout << " ";
+    }
+}
+
+void printHeader(int & space, const char * title) {
+    std::cout << " » " << title << "}" << std::endl;
+    space++;
+}
+
+void printType(int & space, const char * attr, SEXP ptr) {
+    printSpace(space);
+    std::cout << "└■ " << attr << " {" << TYPEOF(ptr);
+}
+
+void printType(int & space, const char * attr, int val) {
+    printSpace(space);
+    std::cout << "└■ " << attr << " {" << val;
+}
+
+void printSPECIALSXP(int space, SEXP specialsxp) {
+    printHeader(space, "SPECIALSXP");
+}
+
+void printLangSXP(int space, SEXP langsxp) {
+    printHeader(space, "LANGSXP");
+
+    auto tag = TAG(langsxp);
+    auto car = CAR(langsxp);
+    auto cdr = CDR(langsxp);
+
+    printType(space, "TAG", tag);
+    printAST(space, tag);
+
+    printType(space, "CAR", car);
+    printAST(space, car);
+
+    printType(space, "CDR", cdr);
+    printAST(space, cdr);
+}
+
+void printSYMSXP(int space, SEXP symsxp) {
+    printHeader(space, "SYMSXP");
+
+    auto pname = PRINTNAME(symsxp);
+    auto value = SYMVALUE(symsxp);
+    auto internal = INTERNAL(symsxp);
+
+    printType(space, "PNAME", pname);
+    printAST(space, pname);
+
+    printType(space, "VALUE", value);
+    if (symsxp != value) {
+        printAST(space, value);
+        // std::cout << "}" << std::endl;
+    } else {
+        std::cout << "}" << std::endl;
+    }
+
+    // std::cout << "}" << std::endl;
+
+    printType(space, "INTERNAL", internal);
+    printAST(space, internal);
+}
+
+void printCHARSXP(int space, SEXP charSXP) {
+    printHeader(space, "CHARSXP");
+
+    printSpace(space);
+    std::cout << CHAR(charSXP) << std::endl;
+}
+
+void printSTRSXP(int space, SEXP strSXP) {
+    printHeader(space, "STRSXP");
+
+    printSpace(space);
+    std::cout << CHAR(STRING_ELT(strSXP, 0)) << std::endl;
+}
+
+void printREALSXP(int space, SEXP realSXP) {
+    printHeader(space, "REALSXP");
+
+    printSpace(space);
+    std::cout << *REAL(realSXP) << std::endl;
+}
+
+void printLISTSXP(int space, SEXP listsxp) {
+    printHeader(space, "LISTSXP");
+
+    auto tag = TAG(listsxp);
+    auto car = CAR(listsxp);
+    auto cdr = CDR(listsxp);
+
+    printType(space, "TAG", tag);
+    printAST(space, tag);
+
+    printType(space, "CAR", car);
+    printAST(space, car);
+
+    printType(space, "CDR", cdr);
+    printAST(space, cdr);
+
+}
+
+void printCLOSXP(int space, SEXP closxp) {
+    printHeader(space, "CLOSXP");
+
+    auto formals = FORMALS(closxp);
+    auto body = BODY(closxp);
+    auto cloenv = CLOENV(closxp);
+
+    printType(space, "FORMALS", formals);
+    printAST(space, formals);
+
+    printType(space, "BODY", body);
+    printAST(space, body);
+
+    printType(space, "CLOENV", cloenv);
+    printAST(space, cloenv);
+
+}
+
+void printExternalCodeEntry(int space, SEXP externalsxp) {
+    printHeader(space, "EXTERNALSXP");
+    if (Code::check(externalsxp)) {
+        Code * code = Code::unpack(externalsxp);
+        code->print(std::cout);
+    }
+}
+
+void printBCODESXP(int space, SEXP bcodeSXP) {
+    printHeader(space, "BCODESXP");
+    printType(space, "VECTOR_ELT(CDR(BCODESXP),0)", bcodeSXP);
+    printAST(space, VECTOR_ELT(CDR(bcodeSXP),0));
+}
+
+void printPROMSXP(int space, SEXP promSXP) {
+    printHeader(space, "PROMSXP");
+
+    auto seen = PRSEEN(promSXP);
+    auto code = PRCODE(promSXP);
+    auto env = PRENV(promSXP);
+    auto value = PRVALUE(promSXP);
+
+    printType(space, "SEEN", seen);
+    printAST(space, seen);
+
+    printType(space, "CODE", code);
+    printAST(space, code);
+
+    printType(space, "ENV", env);
+    printAST(space, env);
+
+    printType(space, "VALUE", value);
+    printAST(space, value);
+}
+
+void printENVSXP(int space, SEXP envSXP) {
+    printHeader(space, "ENVSXP");
+    // REnvHandler envObj(envSXP);
+    // space += 2;
+    // envObj.iterate([&] (SEXP key, SEXP val){
+    //     printSpace(space);
+    //     std::cout << CHAR(PRINTNAME(key)) << " : " << TYPEOF(val) << std::endl;
+    // });
+}
+
+void printRAWSXP(int space, SEXP rawSXP) {
+    printHeader(space, "ENVSXP");
+
+    Rbyte * rawData = RAW(rawSXP);
+
+    printSpace(space);
+    std::cout << *rawData << std::endl;
+
+}
+
+void printAST(int space, int val) {
+    std::cout << val << "}" << std::endl;
+}
+
+std::vector<SEXP> currentStack;
+long unsigned int maxStackSize = 10;
+
+void printAST(int space, SEXP ast) {
+    if (currentStack.size() >= maxStackSize) {
+        std::cout << "}(LIMIT " << maxStackSize << ")" << std::endl;
+        return;
+    }
+    if (std::find(currentStack.begin(), currentStack.end(), ast) != currentStack.end()) {
+        std::cout << "REC...}" << std::endl;
+        return;
+    }
+    currentStack.push_back(ast);
+    switch(TYPEOF(ast)) {
+        case CLOSXP: printCLOSXP(++space, ast); break;
+        case LANGSXP: printLangSXP(++space, ast); break;
+        case SYMSXP: printSYMSXP(++space, ast); break;
+        case LISTSXP: printLISTSXP(++space, ast); break;
+        case CHARSXP: printCHARSXP(++space, ast); break;
+        case STRSXP: printSTRSXP(++space, ast); break;
+        case REALSXP: printREALSXP(++space, ast); break;
+        case BCODESXP: printBCODESXP(++space, ast); break;
+        case PROMSXP: printPROMSXP(++space, ast); break;
+        case ENVSXP: printENVSXP(++space, ast); break;
+        case RAWSXP: printRAWSXP(++space, ast); break;
+        case SPECIALSXP: printSPECIALSXP(++space, ast); break;
+        case EXTERNALSXP: printExternalCodeEntry(++space, ast); break;
+        default: std::cout << "}" << std::endl; break;
+    }
+    currentStack.pop_back();
+}
+
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 const pir::DebugOptions& debug) {
     if (*RTConsts::R_jit_enabled == 0) return what;
@@ -575,8 +823,13 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
     logger.title("Compiling " + name);
     pir::Compiler cmp(m, logger);
     auto compile = [&](pir::ClosureVersion* c) {
+        using namespace std::chrono;
         logger.flushAll();
+        auto pirOptStart = high_resolution_clock::now();
         cmp.optimizeModule();
+        auto pirOptEnd = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(pirOptEnd - pirOptStart);
+        timeInPirCompiler+=duration.count();
 
         if (dryRun)
             return;

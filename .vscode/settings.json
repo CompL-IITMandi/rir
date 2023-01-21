@@ -18,6 +18,15 @@
   },
   "cmake.buildDirectory" : "${workspaceRoot}/build/${buildType}",
   "files.associations": {
+    "compilationSummary": "plaintext",
+    "stage4_OBAP_tmp": "plaintext",
+    "test1": "plaintext",
+    "test-s1": "plaintext",
+    "reg-tests-1d": "plaintext",
+    "test-reg-packages": "plaintext",
+    "test2": "plaintext",
+    "gnur-make-tests": "plaintext",
+    "black": "plaintext",
     "*.ml": "ocaml",
     "*.mli": "ocaml",
     "iosfwd": "cpp",
@@ -115,7 +124,11 @@
     "__memory": "cpp",
     "__bits": "cpp",
     "typeindex": "cpp",
-    "variant": "cpp"
-
+    "variant": "cpp",
+    "any": "cpp",
+    "charconv": "cpp",
+    "scoped_allocator": "cpp",
+    "valarray": "cpp",
+    "cuchar": "cpp"
   }
 }

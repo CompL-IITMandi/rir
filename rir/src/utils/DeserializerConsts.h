@@ -6,5 +6,6 @@ namespace rir {
         const static char *bitcodesPath;
         static bool earlyBitcodes;
         static bool bitcodesLoaded;
+        static bool skipLLVMPasses;
     };
 }

@@ -20,12 +20,19 @@
 #include "llvm/Support/raw_os_ostream.h"
 #include <iostream>
 
+#include "utils/DeserializerConsts.h"
+
 namespace rir {
 namespace pir {
 
 llvm::Expected<llvm::orc::ThreadSafeModule> PassScheduleLLVM::
 operator()(llvm::orc::ThreadSafeModule TSM,
            llvm::orc::MaterializationResponsibility& R) {
+
+
+    // if (DeserializerConsts::skipLLVMPasses) {
+    //     return std::move(TSM);
+    // }
 
     TSM.withModuleDo([&](llvm::Module& M) {
 
@@ -39,8 +46,11 @@ operator()(llvm::orc::ThreadSafeModule TSM,
 
         verify();
 #endif
-
-        PM->run(M);
+        if (DeserializerConsts::skipLLVMPasses) {
+            PMQuick->run(M);
+        } else {
+            PM->run(M);
+        }
 
 #ifdef ENABLE_SLOWASSERT
         verify();
@@ -54,15 +64,24 @@ operator()(llvm::orc::ThreadSafeModule TSM,
 PassScheduleLLVM::PassScheduleLLVM() {
     using namespace llvm;
 
-    if (PM.get())
+    if (PM.get() && PMQuick.get())
         return;
 
     PM.reset(new llvm::legacy::PassManager);
+
+    PMQuick.reset(new llvm::legacy::PassManager);
 
     PM->add(createHotColdSplittingPass());
 
     PM->add(createFunctionInliningPass());
 
+    PMQuick->add(createHotColdSplittingPass());
+    PMQuick->add(createFunctionInliningPass());
+    PMQuick->add(createCFGSimplificationPass());
+    PMQuick->add(createDeadCodeEliminationPass());
+    PMQuick->add(createConstantHoistingPass());
+    PMQuick->add(createFloat2IntPass());
+    PMQuick->add(createAggressiveDCEPass());
     // See
     // https://github.com/JuliaLang/julia/blob/235784a49b6ed8ab5677f42887e08c84fdc12c5c/src/aotcompile.cpp#L607
     // for inspiration
@@ -158,6 +177,7 @@ PassScheduleLLVM::PassScheduleLLVM() {
 }
 
 std::unique_ptr<llvm::legacy::PassManager> PassScheduleLLVM::PM = nullptr;
+std::unique_ptr<llvm::legacy::PassManager> PassScheduleLLVM::PMQuick = nullptr;
 
 unsigned Parameter::PIR_LLVM_OPT_LEVEL =
     getenv("PIR_LLVM_OPT_LEVEL") ? atoi(getenv("PIR_LLVM_OPT_LEVEL")) : 2;

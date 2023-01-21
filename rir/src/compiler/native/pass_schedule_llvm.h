@@ -22,6 +22,7 @@ class PassScheduleLLVM {
 
   private:
     static std::unique_ptr<llvm::legacy::PassManager> PM;
+    static std::unique_ptr<llvm::legacy::PassManager> PMQuick;
 };
 
 } // namespace pir

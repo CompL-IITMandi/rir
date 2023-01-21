@@ -106,6 +106,9 @@ llvm::Value* LowerFunctionLLVM::srcIdxPatch(const unsigned int & srcIdx, const b
     *serializerError = true;
     SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] srcIdx patch failed", 2);
     SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
+    if (Hast::sPoolHastMap.count(srcIdx) > 0) {
+        SerializerDebug::infoMessage("Blacklisted", 6);
+    }
     return c(srcIdx);
 }
 
@@ -500,6 +503,9 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
                     *serializerError = true;
                     SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] constant(EXTERNALSXP) serialization failed", 2);
                     SerializerDebug::infoMessage("srcIdx: " + std::to_string(vtable->baseline()->body()->src), 4);
+                    if (Hast::sPoolHastMap.count(vtable->baseline()->body()->src) > 0) {
+                        SerializerDebug::infoMessage("Blacklisted", 6);
+                    }
                 }
             } else {
                 *serializerError = true;
@@ -524,6 +530,9 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
                     *serializerError = true;
                     SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] constant(CLOSXP-EXTERNALSXP) serialization failed", 2);
                     SerializerDebug::infoMessage("srcIdx: " + std::to_string(vtable->baseline()->body()->src), 4);
+                    if (Hast::sPoolHastMap.count(vtable->baseline()->body()->src) > 0) {
+                        SerializerDebug::infoMessage("Blacklisted", 6);
+                    }
                 }
 
             } else {
@@ -547,6 +556,9 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
                                           llvm::APInt(32, 0))
                     });
             }
+            *serializerError = true;
+            SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] Leaked LANGSXP in the pool.", 2);
+
         }
 
         if (TYPEOF(co) == ENVSXP) {
@@ -756,14 +768,29 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
                     auto constantName = ss.str().substr(4);
 
                     SEXP targetNamespace;
-                    PROTECT(targetNamespace = R_FindNamespace(Rf_ScalarString(Rf_mkChar(constantName.c_str()))));
+                    targetNamespace = Rf_findVarInFrame(R_NamespaceRegistry, Rf_install(constantName.c_str())); // this may be free from random eval
+                    // PROTECT(targetNamespace = R_FindNamespace(Rf_ScalarString(Rf_mkChar(constantName.c_str()))));
                     assert(targetNamespace == staticEnv);
-                    UNPROTECT(1);
+                    // UNPROTECT(1);
                     return convertToExternalSymbol(ss.str());
+                } else if (staticEnv == R_GlobalEnv) {
+                    return convertToExternalSymbol("env1");
+                } else if (staticEnv == R_BaseEnv) {
+                    return convertToExternalSymbol("env2");
+                } else if (staticEnv == R_EmptyEnv) {
+                    return convertToExternalSymbol("env3");
                 }
 
                 *serializerError = true;
                 SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] Unknown static environment target!", 2);
+                if (R_IsPackageEnv(staticEnv)) {
+                    std::stringstream ss;
+                    ss << "ENV: PE:" << Rf_translateChar(STRING_ELT(R_PackageEnvName(staticEnv), 0)) << ":";
+                    SerializerDebug::infoMessage(ss.str(), 4);
+                } else {
+                    SerializerDebug::infoMessage("ENV: ANON ENV", 4);
+                }
+
                 return constant(staticEnv, t::SEXP);
             };
             res = ptrPatch(normal, patched);
@@ -817,6 +844,9 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             *serializerError = true;
             SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] rir DeoptReason code patch failed", 2);
             SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
+            if (Hast::sPoolHastMap.count(srcIdx) > 0) {
+                SerializerDebug::infoMessage("Blacklisted", 6);
+            }
             return builder.CreateIntToPtr(
                 llvm::ConstantInt::get(
                     PirJitLLVM::getContext(),
@@ -3983,6 +4013,9 @@ void LowerFunctionLLVM::compile() {
                         SerializerDebug::infoMessage("offsetIndex: " + std::to_string(hastInfo.offsetIndex), 6);
                     }
                     SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
+                    if (Hast::sPoolHastMap.count(srcIdx) > 0) {
+                        SerializerDebug::infoMessage("Blacklisted", 6);
+                    }
                     return builder.CreateIntToPtr(
                                        c(calli->cls()->rirClosure()), t::SEXP);
                 };
@@ -4105,6 +4138,9 @@ void LowerFunctionLLVM::compile() {
                                 *serializerError = true;
                                 SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] DeoptMetadata patch failed", 2);
                                 SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
+                                if (Hast::sPoolHastMap.count(srcIdx) > 0) {
+                                    SerializerDebug::infoMessage("Blacklisted", 6);
+                                }
                                 break;
                             }
                         }

@@ -8,6 +8,8 @@
 #include "utils/SerializerDebug.h"
 #include "dirent.h"
 
+#include <bits/stdc++.h>
+
 #define PRINT_HAST_SRC_ENTRIES 0
 
 namespace rir {
@@ -668,6 +670,155 @@ void Hast::serializerCleanup() {
     }
 }
 
+void Hast::getGeneralFeedbackPtrsAtIndices(
+    std::vector<int>& indices, std::vector<GenFeedbackHolder>& res,
+    DispatchTable* vtab) {
+    // Indices must be sorted for this to work
+    DispatchTable* currVtab = vtab;
 
+    int idx = 0;
+
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                    }
+                }
+            }
+
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
+
+                // call sites
+                switch (bc.bc) {
+                case Opcode::record_call_: {
+                    if (std::count(indices.begin(), indices.end(), idx)) {
+                        res.push_back({c, pc + 1});
+                    }
+                    idx++;
+                    break;
+                }
+                case Opcode::record_test_: {
+                    if (std::count(indices.begin(), indices.end(), idx)) {
+                        res.push_back({c, pc + 1});
+                    }
+                    idx++;
+                    break;
+                }
+                default: {
+                }
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                    }
+                }
+
+                pc = BC::next(pc);
+            }
+
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+            }
+        };
+
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
+
+void Hast::getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<ObservedValues*> & res, DispatchTable * vtab) {
+    // Indices must be sorted for this to work
+    DispatchTable * currVtab = vtab;
+
+    int reqIdx = 0;
+
+    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
+        // Default args
+        if (funn) {
+            auto nargs = funn->nargs();
+            for (unsigned i = 0; i < nargs; i++) {
+                auto code = funn->defaultArg(i);
+                if (code != nullptr) {
+                    iterateOverCodeObjs(code, nullptr);
+                }
+            }
+        }
+
+        Opcode* pc = c->code();
+        std::vector<BC::FunIdx> promises;
+        Protect p;
+        while (pc < c->endCode()) {
+            BC bc = BC::decode(pc, c);
+            bc.addMyPromArgsTo(promises);
+
+            // call sites
+            switch (bc.bc) {
+                case Opcode::record_type_: {
+                    // switch (*pos) {
+                    // case Opcode::record_type_: {
+                    // assert(*pos == Opcode::record_type_);
+                    if (std::count(indices.begin(), indices.end(), reqIdx)) {
+                        // std::cout << "FOR CODE:  " << c << std::endl;
+                        ObservedValues* feedback = (ObservedValues*)(pc + 1);
+                        // std::cout << "[I]PERCIEVED AT: " << feedback << std::endl;
+                        // feedback->print(std::cout);
+                        // std::cout << std::endl;
+
+                        // std::cout << "[I]ACTUAL: " << std::endl;
+                        // bc.immediate.typeFeedback.print(std::cout);
+                        // std::cout << std::endl;
+                        res.push_back(feedback);
+                    }
+                    reqIdx++;
+                }
+                default: {}
+            }
+
+            // inner functions
+            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                SEXP iConst = bc.immediateConst();
+                if (DispatchTable::check(iConst)) {
+                    currVtab = DispatchTable::unpack(iConst);
+                    auto c = currVtab->baseline()->body();
+                    auto f = c->function();
+                    iterateOverCodeObjs(c, f);
+                }
+            }
+
+            pc = BC::next(pc);
+        }
+
+        // Iterate over promises code objects recursively
+        for (auto i : promises) {
+            auto prom = c->getPromise(i);
+            iterateOverCodeObjs(prom, nullptr);
+        }
+    };
+
+    Code * genesisCodeObj = currVtab->baseline()->body();
+    Function * genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
 
 } // namespace rir

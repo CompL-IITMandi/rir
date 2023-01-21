@@ -82,8 +82,8 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
 
     constexpr static size_t MAX_CODE_HANDLE_LENGTH = 64;
 
-  private:
     char lazyCodeHandle_[MAX_CODE_HANDLE_LENGTH] = "\0";
+  private:
     NativeCode nativeCode_;
     NativeCode lazyCompile();
 
@@ -150,6 +150,8 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
     std::string mName = ""; /// name of the function in JIT
 
     SEXP argOrderingVec = nullptr; /// callArglist order, raw
+
+    bool usesSerializedBinary = false; /// If we are using a serialized binary, we skip the expensive LLVM opt passes.
 
     uint8_t data[]; /// the instructions
 

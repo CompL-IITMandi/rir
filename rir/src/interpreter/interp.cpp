@@ -987,9 +987,12 @@ SEXP doCall(CallContext& call, bool popArgs) {
         auto fun =
             table->dispatchConsideringDisabled(call.givenContext, &disabledFun);
 
+        bool firstInterpCall = table->baseline()->invocationCount() == 0;
+        if (firstInterpCall) {
+            fun = table->baseline();
+        }
         fun->registerInvocation();
-
-        if (RuntimeFlags::contextualCompilationSkip == false && !isDeoptimizing() && RecompileHeuristic(fun, disabledFun)) {
+        if (!firstInterpCall && RuntimeFlags::contextualCompilationSkip == false && !isDeoptimizing() && RecompileHeuristic(fun, disabledFun)) {
             Context given = call.givenContext;
             // addDynamicAssumptionForOneTarget compares arguments with the
             // signature of the current dispatch target. There the number of

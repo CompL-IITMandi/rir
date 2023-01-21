@@ -11,6 +11,10 @@ f.compileStats <- function(name, path) {
     invisible(.Call("compileStats", name, path))
 }
 
+rir.clearFeedbackAtOffset <- function(what, offset) {
+    invisible(.Call("clearFeedbackAtOffset", what, offset))
+}
+
 rir.markFunction <- function(what, which,
                              Reopt=NA,
                              ForceInline=NA,

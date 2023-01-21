@@ -29,6 +29,7 @@ namespace rir {
         static size_t deoptCount;
         static size_t linkTime;
         static size_t llvmLoweringTime;
+        static size_t llvmSymbolsTime;
 
         static void tryLinking(DispatchTable * vtab, SEXP hSym);
         static void tryUnlocking(SEXP currHastSym);

@@ -36,4 +36,7 @@ REXPORT SEXP loadBitcodes(SEXP path);
 REXPORT SEXP rirSetUserContext(SEXP f, SEXP udc);
 REXPORT SEXP rirCreateSimpleIntContext();
 
+void printAST(int space, SEXP ast);
+void printAST(int space, int val);
+
 #endif // API_H_
