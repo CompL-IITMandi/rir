@@ -25,7 +25,7 @@
 
 #include "runtime/RuntimeFlags.h"
 #include "utils/Hast.h"
-
+// #include <csignal>
 extern "C" {
 extern SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP);
 extern Rboolean R_Visible;
@@ -1925,8 +1925,13 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
     auto native = c->nativeCode();
     assert((!initialPC || !native) && "Cannot jump into native code");
     if (native) {
-        return native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
+        // std::cout << "exec start: " << c->lazyCodeHandle_ << std::endl;
+        // if (std::string(c->lazyCodeHandle_) == "f_244870NS:grid:4371793861582810105_10400F_142") std::raise(SIGINT);
+        SEXP res = native(c, callCtxt ? (void*)callCtxt->stackArgs : nullptr, env,
                       callCtxt ? callCtxt->callee : nullptr);
+        // std::cout << "exec end: " << c->lazyCodeHandle_ << std::endl;
+        return res;
+
     }
 
 #ifdef THREADED_CODE
@@ -3956,8 +3961,10 @@ SEXP rirApplyClosure(SEXP ast, SEXP op, SEXP arglist, SEXP rho,
                      Context());
     call.arglist = arglist;
     call.safeForceArgs();
-
+    // std::cout << "site5 start" << std::endl;
     auto res = doCall(call);
+    // std::cout << "site5 end" << std::endl;
+
     ostack_popn(call.passedArgs);
     if (names)
         UNPROTECT(1);

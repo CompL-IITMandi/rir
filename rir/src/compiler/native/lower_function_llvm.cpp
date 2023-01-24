@@ -170,18 +170,88 @@ llvm::Value* LowerFunctionLLVM::globalConst(llvm::Constant* init,
     if (!ty)
         ty = init->getType();
 
-    if (reqMap == nullptr || serializerError == nullptr) {
-        return new llvm::GlobalVariable(getModule(), ty, true,
-                                        llvm::GlobalValue::PrivateLinkage, init);
-    } else {
-        static int num = 0;
-        std::stringstream name;
-        name << "copool_" << num++;
-        auto res = new llvm::GlobalVariable(getModule(), ty, true,
-                                        llvm::GlobalValue::PrivateLinkage, init, name.str());
-        res->setExternallyInitialized(true);
-        return res;
-    }
+    // TODO
+    // Runtime is broken to work normally, can only work with the patches for the time being!!!
+
+    // if (reqMap == nullptr || serializerError == nullptr) {
+    //     return new llvm::GlobalVariable(getModule(), ty, true,
+    //                                     llvm::GlobalValue::PrivateLinkage, init);
+    // } else {
+        if (auto *v = llvm::dyn_cast<llvm::ConstantDataArray>(init)) {
+            auto arrSize = v->getNumElements();
+
+            Protect protecc;
+            SEXP store;
+            protecc(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx) * arrSize));
+            assert(Rf_length(store)/sizeof(BC::PoolIdx) == arrSize);
+
+            BC::PoolIdx * tmp = (BC::PoolIdx *) DATAPTR(store);
+
+            for (unsigned int i = 0; i < arrSize; i++) {
+                auto val = v->getElementAsAPInt(i).getSExtValue();
+                *(tmp + i) = val;
+            }
+
+            auto containerAt = Pool::insert(store);
+
+            std::stringstream name;
+            name << "poolp_RT_" << containerAt;
+
+            return convertToExternalSymbol(name.str(), ty, true);
+        } else if (auto * v = llvm::dyn_cast<llvm::ConstantInt>(init)) {
+            auto val = v->getSExtValue();
+            Protect protecc;
+            SEXP store;
+            protecc(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx)));
+            assert(Rf_length(store)/sizeof(BC::PoolIdx) == 1);
+            BC::PoolIdx * tmp = (BC::PoolIdx *) DATAPTR(store);
+            *tmp = val;
+
+            auto containerAt = Pool::insert(store);
+
+            std::stringstream name;
+            name << "poolp_RT_" << containerAt;
+
+            return convertToExternalSymbol(name.str(), ty, true);
+
+        } else if (auto * v = llvm::dyn_cast<llvm::ConstantAggregateZero>(init)) {
+            auto arrSize = v->getNumElements();
+            Protect protecc;
+            SEXP store;
+            protecc(store = Rf_allocVector(RAWSXP, sizeof(BC::PoolIdx) * arrSize));
+            assert(Rf_length(store)/sizeof(BC::PoolIdx) == arrSize);
+
+            BC::PoolIdx * tmp = (BC::PoolIdx *) DATAPTR(store);
+
+            for (unsigned int i = 0; i < arrSize; i++) {
+                // The runtime pool stores R_Nilvalue at index 0
+                *(tmp + i) = 0;
+            }
+
+            auto containerAt = Pool::insert(store);
+
+            std::stringstream name;
+            name << "poolp_RT_" << containerAt;
+
+            return convertToExternalSymbol(name.str(), ty, true);
+
+        } else if (llvm::dyn_cast<llvm::ConstantStruct>(init)) {
+            // This is the deopt reason, already patched
+            return new llvm::GlobalVariable(getModule(), ty, true,
+                                            llvm::GlobalValue::PrivateLinkage, init);
+        } else {
+            Rf_error("cant serialize unknown globalConst");
+            return new llvm::GlobalVariable(getModule(), ty, true,
+                                            llvm::GlobalValue::PrivateLinkage, init);
+        }
+        // static int num = 0;
+        // std::stringstream name;
+        // name << "copool_" << num++;
+        // auto res = new llvm::GlobalVariable(getModule(), ty, true,
+        //                                 llvm::GlobalValue::PrivateLinkage, init, name.str());
+        // res->setExternallyInitialized(true);
+        // return res;
+    // }
 }
 
 llvm::FunctionCallee
@@ -521,9 +591,9 @@ llvm::Value* LowerFunctionLLVM::constant(SEXP co, const Rep& needed) {
                     reqMap->insert(hastInfo.hast);
                     Pool::insert(co);
                     std::stringstream ss;
-                    auto debugIdx = Hast::genDebugIdx();
-                    ss << "clos_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << debugIdx;
-                    Hast::debugMap[debugIdx] = co;
+                    // auto debugIdx = Hast::genDebugIdx();
+                    ss << "clos_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << 0;
+                    // Hast::debugMap[debugIdx] = co;
                     assert(Hast::hastMap[hastInfo.hast].clos == co);
                     return convertToExternalSymbol(ss.str());
                 } else {
@@ -816,6 +886,55 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
     } else if (val->tag == Tag::DeoptReason) {
         auto dr = (DeoptReasonWrapper*)val;
 
+        // Protect protecc;
+        // SEXP store;
+        // protecc(store = Rf_allocVector(RAWSXP, sizeof(DeoptReason)));
+
+        // DeoptReason * tmp = (DeoptReason *) DATAPTR(store);
+        // tmp->reason = dr->reason.reason;
+        // tmp->origin.offset_ = dr->reason.origin.offset();
+        // tmp->origin.srcCode_ = dr->reason.srcCode();
+
+        // Pool::insert(store);
+
+        // auto normal = [&]()->llvm::Value* {
+        //     return builder.CreateIntToPtr(
+        //         llvm::ConstantInt::get(
+        //             PirJitLLVM::getContext(),
+        //             llvm::APInt(64,
+        //                         reinterpret_cast<uint64_t>(tmp),
+        //                         false)),
+        //         t::DeoptReasonPtr);
+        // };
+
+        // auto patched = [&]()->llvm::Value* {
+
+        //     auto srcIdx = dr->reason.srcCode()->src;
+        //     auto hastInfo = Hast::getHastInfo(srcIdx, true);
+
+        //     if (hastInfo.isValid()) {
+        //         reqMap->insert(hastInfo.hast);
+
+        //         std::stringstream ss;
+        //         ss << "deooo_" << dr->reason.reason << "_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << hastInfo.offsetIndex << "_" << tmp->origin.offset_;
+
+        //         assert(Hast::getCodeObjectAtOffset(hastInfo.hast, hastInfo.offsetIndex) == dr->reason.srcCode());
+        //         return convertToExternalSymbol(ss.str(), t::DeoptReason, true);
+        //     }
+
+        //     *serializerError = true;
+        //     SerializerDebug::infoMessage("(E) [lower_function_llvm.cpp] rir DeoptReason code patch failed", 2);
+        //     SerializerDebug::infoMessage("srcIdx: " + std::to_string(srcIdx), 4);
+        //     if (Hast::sPoolHastMap.count(srcIdx) > 0) {
+        //         SerializerDebug::infoMessage("Blacklisted", 6);
+        //     }
+        //     return normal();
+        // };
+        // // auto drs = llvm::ConstantStruct::get(
+        // //     t::DeoptReason, {c(dr->reason.reason, 32),
+        // //                      c(dr->reason.origin.offset(), 32), (Constant*)ptrPatch(normal, patched)});
+        // // res = globalConst(drs);
+        // res = ptrPatch(normal, patched);
         auto normal = [&]()->llvm::Value* {
             return builder.CreateIntToPtr(
                 llvm::ConstantInt::get(
@@ -2312,7 +2431,7 @@ bool LowerFunctionLLVM::compileDotcall(
         return false;
     Context asmpt = calli->inferAvailableAssumptions();
     auto namesConst = c(newNames);
-    auto namesStore = globalConst(namesConst);
+    auto namesStore = globalConst(namesConst, t::i32);
 
     auto callId = ArglistOrder::NOT_REORDERED;
     if (calli->isReordered())
@@ -2334,7 +2453,8 @@ bool LowerFunctionLLVM::compileDotcall(
                               i->hasEnv() ? loadSxp(i->env())
                                           : constant(R_BaseEnv, t::SEXP),
                               c(calli->nCallArgs()),
-                              builder.CreateBitCast(namesStore, t::IntPtr),
+                              namesStore,
+                            //   builder.CreateBitCast(namesStore, t::IntPtr),
                               c(asmpt.toI()),
                           });
                   },
@@ -2643,7 +2763,7 @@ void LowerFunctionLLVM::compile() {
         if (reqMap == nullptr || serializerError == nullptr) {
             constantpool = builder.CreateIntToPtr(c(globalContext()), t::SEXP_ptr);
         } else {
-            auto speSym = namedGlobalConst("named_constantPool", c(globalContext()), t::i64);
+            auto speSym = convertToExternalSymbol("conspool", t::i64, true);
             auto iLoad = builder.CreateLoad(speSym);
             constantpool = builder.CreateIntToPtr(iLoad, t::SEXP_ptr);
         }
@@ -3867,7 +3987,7 @@ void LowerFunctionLLVM::compile() {
                 for (size_t i = 0; i < b->names.size(); ++i)
                     names.push_back(Pool::insert((b->names[i])));
                 auto namesConst = c(names);
-                auto namesStore = globalConst(namesConst);
+                auto namesStore = globalConst(namesConst, t::i32);
 
                 auto callId = ArglistOrder::NOT_REORDERED;
                 if (b->isReordered())
@@ -3887,7 +4007,8 @@ void LowerFunctionLLVM::compile() {
                                 loadSxp(b->cls()),
                                 loadSxp(b->env()),
                                 c(b->nCallArgs()),
-                                builder.CreateBitCast(namesStore, t::IntPtr),
+                                namesStore,
+                                // builder.CreateBitCast(namesStore, t::IntPtr),
                                 c(asmpt.toI()),
                             });
                     }));
@@ -4218,14 +4339,15 @@ void LowerFunctionLLVM::compile() {
                     names.push_back(Pool::insert(n));
                 }
                 auto namesConst = c(names);
-                auto namesStore = globalConst(namesConst);
+                auto namesStore = globalConst(namesConst, t::i32);
 
                 if (mkenv->stub) {
                     auto env =
                         call(NativeBuiltins::get(
                                  NativeBuiltins::Id::createStubEnvironment),
                              {parent, c((int)mkenv->nLocals()),
-                              builder.CreateBitCast(namesStore, t::IntPtr),
+                                namesStore,
+                                // builder.CreateBitCast(namesStore, t::IntPtr),
                               c(mkenv->context)});
                     protectTemp(env);
                     size_t pos = 0;

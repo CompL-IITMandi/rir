@@ -20,12 +20,13 @@ namespace rir {
         // 4 (SEXP) Children Data,
         // 5 (SEXP) cPool
         // 6 (SEXP) sPool
+        // 7 (SEXP) poolEpoch
 
     public:
 
         // Misc functions
         static unsigned getStorageSize() {
-            return 7;
+            return 8;
         }
 
         static void addSEXP(SEXP container, SEXP data, const int & index) {
@@ -147,6 +148,15 @@ namespace rir {
             return VECTOR_ELT(container, 6);
         }
 
+        // ENTRY 7: Source Pool
+        static void addEpoch(SEXP container, SEXP data) {
+            addSEXP(container, data, 7);
+        }
+
+        static SEXP getEpoch(SEXP container) {
+            return VECTOR_ELT(container, 7);
+        }
+
         static void print(SEXP container, int space) {
             printSpace(space);
             std::cout << "== serializedPool ==" << std::endl;
@@ -266,6 +276,8 @@ namespace rir {
                 std::cout << TYPEOF(c) << " ";
             }
             std::cout << "]" << std::endl;
+            printSpace(space);
+            std::cout << "ENTRY(7)[Epoch]: " << *((size_t *) DATAPTR(getEpoch(container))) << std::endl;
         }
     };
 

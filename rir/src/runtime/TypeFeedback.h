@@ -158,10 +158,10 @@ enum class Opcode : uint8_t;
 
 struct FeedbackOrigin {
   private:
-    uint32_t offset_ = 0;
-    Code* srcCode_ = nullptr;
 
   public:
+    uint32_t offset_ = 0;
+    Code* srcCode_ = nullptr;
     FeedbackOrigin() {}
     FeedbackOrigin(rir::Code* src, Opcode* pc);
 
