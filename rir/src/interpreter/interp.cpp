@@ -38,6 +38,8 @@ extern SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP);
 extern Rboolean R_Visible;
 }
 
+// std::set<std::string> ctxt;
+
 namespace rir {
 
 static SEXP evalRirCode(Code* c, SEXP env, const CallContext* callContext,
@@ -881,11 +883,17 @@ public:
 		static const SEXP double_colons = Rf_install("::");
 		static const SEXP triple_colons = Rf_install(":::");
 		fun_id = reinterpret_cast<size_t>(BODY(call.callee));
+        // std::stringstream ss;
+        // ss << call.givenContext;
+        // mtoc[fun_id].insert(ss.str());
+        std::string str;
         logg << "=,\"" << fun_id << "\"," << hast << ",";
+        str = "=,\"" + std::to_string(fun_id) + "\"," + std::to_string(hast) + ",";
         // Function Header
         if (TYPEOF(lhs) == SYMSXP) {
 			// case 1: function call of the form f(x,y,z)
 			logg << "\"" << CHAR(PRINTNAME(lhs)) << "\"";
+            str += "\"" + (std::string)CHAR(PRINTNAME(lhs)) + "\"";
 		} else if (TYPEOF(lhs) == LANGSXP && ((CAR(lhs) == double_colons) || (CAR(lhs) == triple_colons))) {
 			// case 2: function call of the form pkg::f(x,y,z) or pkg:::f(x,y,z)
 			SEXP const fun1 = CAR(lhs);
@@ -893,17 +901,24 @@ public:
 			SEXP const fun2 = CADDR(lhs);
 			assert(TYPEOF(pkg) == SYMSXP && TYPEOF(fun2) == SYMSXP);
 			logg << "\"" << CHAR(PRINTNAME(pkg)) << CHAR(PRINTNAME(fun1)) << CHAR(PRINTNAME(fun2)) << "\"";
+            str += "\"" + (std::string)CHAR(PRINTNAME(pkg)) + (std::string)CHAR(PRINTNAME(fun1)) + (std::string)CHAR(PRINTNAME(fun2)) + "\"";
 		} else {
 			logg << "\"AN_" << fun_id << "\"";
+            str += "\"AN_" + std::to_string(fun_id) + "\"";
         }
         logg << "\n";
+        parser.processLine(str);
     }
 
     void end(const Context & context) {
 		std::ofstream & logg = Measuring::getLogStream();
         tock = std::chrono::steady_clock::now();
         runtime = tock - tick;
+        std::stringstream str;
 		logg << "!," << "\"" << context << "\"," << context.toI() << "," << runtime.count() << "," << fun_id << "\n";
+		str << "!," << "\"" << context << "\"," << context.toI() << "," << runtime.count() << "," << fun_id;
+        std::string s = str.str();
+        parser.processLine(s);
     }
 private:
     void* operator new(size_t);
@@ -1074,6 +1089,32 @@ SEXP doCall(CallContext& call, bool popArgs) {
                 }
             }
         }
+        size_t fun_id = reinterpret_cast<size_t>(BODY(call.callee));
+        // for(auto i : mtoc[fun_id])std::cout<<i<<std::endl;
+        std::cout << call.callee << std::endl;
+        for (size_t i = 1; i < table->size(); ++i) {
+            std::stringstream ss;
+            ss << table->get(i)->context();
+            mtoc[fun_id].insert(ss.str());
+        }
+        if(mtoc[fun_id].size() == 0) mtoc[fun_id].insert("<empty Context>");
+        std::cout << "Contexts for " << fun_id << " in docall -" << std::endl;
+        for(auto i : mtoc[fun_id]){
+            std::cout << i << std::endl;
+        }
+
+        //std::cout<<"fid in docall: "<<fun_id<<'\n';
+        // Stop and tell the viz about contexts
+        // std::cout << "Dispatch table entries" << std::endl;
+        // std::cout << "Call Site Context: " << call.givenContext << std::endl;
+
+        // for (size_t i = 1; i < table->size(); ++i) {
+        //     // table->get(i)
+        //     std::cout << "At index (" << i << "): " << table->get(i)->context() << std::endl;
+        // }
+        // std::cout << "Selected Function: " << fun->context() << std::endl;
+
+
         bool needsEnv = fun->signature().envCreation ==
                         FunctionSignature::Environment::CallerProvided;
 
@@ -1999,7 +2040,6 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
     }
 
 
-
     auto pauseForViz = [&] {
         if (RshViz::getConnectionStatus()) {
             std::stringstream synPacket;
@@ -2068,7 +2108,36 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
 
                     ss << "\"\"]";
                     someData = ss.str();
-                } else {
+                } else if(requestId == "context"){
+                    // if(callCtxt != nullptr){
+                    //     size_t fid = reinterpret_cast<size_t>(BODY(callCtxt->callee));
+                    //     std::cout<<"fid in evalrir: "<<fid<<'\n';
+                    //     std::cout << parser.getName(fid) << '\n';
+                    // }
+                    // if(callCtxt != nullptr){
+                    //     std::cout << "Enclosing closure : " << reinterpret_cast<size_t>(BODY(callCtxt->callee)) << std::endl;
+                    //     std::cout<<"fid in evalrir: "<<reinterpret_cast<size_t>(c->function())<<'\n';
+                    // }
+
+                    if(callCtxt != nullptr){
+                        size_t fid = reinterpret_cast<size_t>(BODY(callCtxt->callee));
+                        ss << "[";
+                        std::cout << "Contexts for " << fid << " in evalRir -" << std::endl;
+                        for(auto i : mtoc[fid]){
+                            ss << "\"" << i << "\"," << '\n';
+                            std::cout << i << std::endl;
+                        }
+                        ss << "\"\"]";
+                        someData = ss.str();
+                    }
+                    else{
+                        ss << "[";
+                        ss << "\"\"]";
+                        someData = ss.str();
+                    }
+
+                }
+                else {
                     ss << "[\"" << requestId << "\", null]";
                 }
                 ss << "}";

@@ -2,6 +2,15 @@
 #define MEASURING_H
 #define LOGG 1
 #include <string>
+#include "../rtCompressorCpp/src/RshMethod.h"
+#include "../rtCompressorCpp/src/RshJsonParser.h"
+
+
+#if LOGG > 0
+extern std::string del;
+extern RshJsonParser parser;
+extern std::unordered_map<size_t,std::set<std::string>> mtoc;
+#endif
 
 namespace rir {
 
