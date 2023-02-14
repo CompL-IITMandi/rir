@@ -11,6 +11,22 @@ f.compileStats <- function(name, path) {
     invisible(.Call("compileStats", name, path))
 }
 
+f.startSerializer <- function() {
+    invisible(.Call("startSerializer"))
+}
+
+f.stopSerializer <- function() {
+    invisible(.Call("stopSerializer"))
+}
+
+# f.startCapturingStats <- function() {
+#     invisible(.Call("startCapturingStats"))
+# }
+
+# f.stopCapturingStats <- function() {
+#     invisible(.Call("stopCapturingStats"))
+# }
+
 rir.clearFeedbackAtOffset <- function(what, offset) {
     invisible(.Call("clearFeedbackAtOffset", what, offset))
 }

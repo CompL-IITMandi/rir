@@ -127,25 +127,48 @@ static void loadMetadata(std::string metaDataPath) {
 
     // DES-TODO
     if (Hast::hastMap.count(currHast) > 0) {
+        DeserializerDebug::infoMessage("Linking already seen function", 0);
         auto hastData = Hast::hastMap[currHast];
         assert(DispatchTable::check(hastData.vtabContainer) != nullptr);
         BitcodeLinkUtil::tryLinking(DispatchTable::unpack(hastData.vtabContainer), currHast);
+        DeserializerDebug::infoMessage("Linking done", 0);
     }
+    DeserializerDebug::infoMessage("Loading bitcode done", 0);
 
     RuntimeFlags::contextualCompilationSkip = oldVal;
 }
 
+REXPORT SEXP startSerializer() {
+    CodeCache::serializer = true;
+    return R_NilValue;
+}
+
+REXPORT SEXP stopSerializer() {
+    CodeCache::serializer = false;
+    return R_NilValue;
+}
+
+REXPORT SEXP startCapturingStats() {
+    // SerializerFlags::captureCompileStats = true;
+    return R_NilValue;
+}
+
+REXPORT SEXP stopCapturingStats() {
+    // SerializerFlags::captureCompileStats = false;
+    return R_NilValue;
+}
+
 REXPORT SEXP compileStats(SEXP name, SEXP path) {
-    // assert(TYPEOF(path) == STRSXP);
-    // assert(TYPEOF(name) == STRSXP);
-    // std::ofstream ostrm(CHAR(STRING_ELT(path, 0)));
-    std::cout << "============== RUN STATS ==============" << std::endl;
-    // ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
+    assert(TYPEOF(path) == STRSXP);
+    assert(TYPEOF(name) == STRSXP);
+    std::ofstream ostrm(CHAR(STRING_ELT(path, 0)));
+    ostrm << "============== RUN STATS ==============" << std::endl;
+    ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
     // ostrm << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
-    // ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
-    std::cout << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << "ms" << std::endl;
-    std::cout << "llvm symbol patching     : " << BitcodeLinkUtil::llvmSymbolsTime << "ms" << std::endl;
-    std::cout << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
+    ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
+    ostrm << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << "ms" << std::endl;
+    ostrm << "llvm symbol patching     : " << BitcodeLinkUtil::llvmSymbolsTime << "ms" << std::endl;
+    ostrm << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
     // ostrm << "Compiled Closures:       : " << compilerSuccesses << std::endl;
     // ostrm << "Serialized Closures      : " << serializerSuccess << std::endl;
     // ostrm << "Unlinked BC (Worklist1)  : " << Worklist1::worklist.size() << std::endl;
@@ -218,6 +241,8 @@ REXPORT SEXP loadBitcodes(SEXP pathToBc) {
         DeserializerDebug::infoMessage("(E) [api.cpp] unable to open bitcodes directory", 0);
         success = false;
     }
+    DeserializerDebug::infoMessage("(*) Loading bitcodes from repo done!", 0);
+    DeserializerDebug::infoMessage((DeserializerConsts::bitcodesLoaded ? "success" : "failed"), 2);
 
     // auto stop = high_resolution_clock::now();
     // auto duration = duration_cast<milliseconds>(stop - start);
