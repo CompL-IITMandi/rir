@@ -1099,15 +1099,16 @@ SEXP doCall(CallContext& call, bool popArgs) {
         // }
         std::stringstream ss;
         ss << fun -> context();
+        std::cout << "Context in doCall " << ss.str() << std::endl;
         if(ss.str() == "<empty Context>"){
             mtoc[fun_id].insert("baseline");
         }
         else mtoc[fun_id].insert(ss.str());
         // if(mtoc[fun_id].size() == 0) mtoc[fun_id].insert("<empty Context>");
-        std::cout << "Contexts for " << fun_id << " in docall -" << std::endl;
-        for(auto i : mtoc[fun_id]){
-            std::cout << i << std::endl;
-        }
+        // std::cout << "Contexts for " << fun_id << " in docall -" << std::endl;
+        // for(auto i : mtoc[fun_id]){
+        //     std::cout << i << std::endl;
+        // }
 
         //std::cout<<"fid in docall: "<<fun_id<<'\n';
         // Stop and tell the viz about contexts
@@ -2054,11 +2055,31 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             if (!c->nativeCode()) {
                 synPacket << "\"BC\"" << ",";
                 auto currentOffset = ((uintptr_t)pc - (uintptr_t)c->code());
-                synPacket << "\"" << currentOffset << "\"";
+                synPacket << "\"" << currentOffset << "\"" << ",";
             } else {
                 synPacket << "\"NATIVE\"" << ",";
-                synPacket << "null";
+                synPacket << "null" << ",";
             }
+            std::string name = "\"N/A\"";
+            if(callCtxt !=  nullptr){
+                SEXP const lhs = CAR(callCtxt->ast);
+                static const SEXP double_colons = Rf_install("::");
+                static const SEXP triple_colons = Rf_install(":::");
+                if (TYPEOF(lhs) == SYMSXP) {
+                    // case 1: function call of the form f(x,y,z)
+                    name = "";
+                    name += "\"" + (std::string)CHAR(PRINTNAME(lhs)) + "\"";
+                } else if (TYPEOF(lhs) == LANGSXP && ((CAR(lhs) == double_colons) || (CAR(lhs) == triple_colons))) {
+                    // case 2: function call of the form pkg::f(x,y,z) or pkg:::f(x,y,z)
+                    SEXP const fun1 = CAR(lhs);
+                    SEXP const pkg = CADR(lhs);
+                    SEXP const fun2 = CADDR(lhs);
+                    assert(TYPEOF(pkg) == SYMSXP && TYPEOF(fun2) == SYMSXP);
+                    name = "";
+                    name += "\"" + (std::string)CHAR(PRINTNAME(pkg)) + (std::string)CHAR(PRINTNAME(fun1)) + (std::string)CHAR(PRINTNAME(fun2)) + "\"";
+                }
+            }
+            synPacket << name;
             synPacket << "]";
 
             // Send syn request, send current basic status
@@ -2128,10 +2149,10 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     if(callCtxt != nullptr){
                         size_t fid = reinterpret_cast<size_t>(BODY(callCtxt->callee));
                         ss << "[";
-                        std::cout << "Contexts for " << fid << " in evalRir -" << std::endl;
+                        //std::cout << "Contexts for " << fid << " in evalRir -" << std::endl;
                         for(auto i : mtoc[fid]){
                             ss << "\"" << i << "\"," << '\n';
-                            std::cout << i << std::endl;
+                            //std::cout << i << std::endl;
                         }
                         ss << "\"\"]";
                         someData = ss.str();
