@@ -1092,12 +1092,18 @@ SEXP doCall(CallContext& call, bool popArgs) {
         size_t fun_id = reinterpret_cast<size_t>(BODY(call.callee));
         // for(auto i : mtoc[fun_id])std::cout<<i<<std::endl;
         std::cout << call.callee << std::endl;
-        for (size_t i = 1; i < table->size(); ++i) {
-            std::stringstream ss;
-            ss << table->get(i)->context();
-            mtoc[fun_id].insert(ss.str());
+        // for (size_t i = 1; i < table->size(); ++i) {
+        //     std::stringstream ss;
+        //     ss << table->get(i)->context();
+        //     mtoc[fun_id].insert(ss.str());
+        // }
+        std::stringstream ss;
+        ss << fun -> context();
+        if(ss.str() == "<empty Context>"){
+            mtoc[fun_id].insert("baseline");
         }
-        if(mtoc[fun_id].size() == 0) mtoc[fun_id].insert("<empty Context>");
+        else mtoc[fun_id].insert(ss.str());
+        // if(mtoc[fun_id].size() == 0) mtoc[fun_id].insert("<empty Context>");
         std::cout << "Contexts for " << fun_id << " in docall -" << std::endl;
         for(auto i : mtoc[fun_id]){
             std::cout << i << std::endl;
