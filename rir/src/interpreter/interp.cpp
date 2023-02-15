@@ -1099,11 +1099,13 @@ SEXP doCall(CallContext& call, bool popArgs) {
         // }
         std::stringstream ss;
         ss << fun -> context();
-        std::cout << "Context in doCall " << ss.str() << std::endl;
-        if(ss.str() == "<empty Context>"){
-            mtoc[fun_id].insert("baseline");
+        std::string ctx = ss.str();
+        std::cout << "Context in doCall " << ctx << std::endl;
+        if(ctx == "<empty Context>"){
+            ctx = "baseline";
         }
-        else mtoc[fun_id].insert(ss.str());
+        mtoc[fun_id].insert(ctx);
+        mtocr[fun_id][ctx]++;
         // if(mtoc[fun_id].size() == 0) mtoc[fun_id].insert("<empty Context>");
         // std::cout << "Contexts for " << fun_id << " in docall -" << std::endl;
         // for(auto i : mtoc[fun_id]){
@@ -2163,6 +2165,23 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                         someData = ss.str();
                     }
 
+                }
+                else if(requestId == "context_runs"){
+                    if(callCtxt != nullptr){
+                        size_t fid = reinterpret_cast<size_t>(BODY(callCtxt->callee));
+                        ss << "[";
+                        //std::cout << "Contexts for " << fid << " in evalRir -" << std::endl;
+                        for(auto ctx : mtocr[fid]){
+                            ss << "{" << "\"" << ctx.first << "\":" << "\"" << ctx.second << "\"" << "}" << "," << '\n';
+                        }
+                        ss << "\"\"]";
+                        someData = ss.str();
+                    }
+                    else{
+                        ss << "[";
+                        ss << "\"\"]";
+                        someData = ss.str();
+                    }
                 }
                 else {
                     ss << "[\"" << requestId << "\", null]";
