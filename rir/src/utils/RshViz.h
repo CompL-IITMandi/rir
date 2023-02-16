@@ -16,8 +16,10 @@ class RshViz {
     static std::string VIZ_TO_APP_REQUEST;
     static std::string APP_TO_VIZ_DATA;
     static std::string APP_VIZ_SYNCED;
+    // static std::string END_OF_PROGRAM;
 
     static void init(const std::string & address);
+    static void helper();
 
     static bool getConnectionStatus() {
         return connection;
@@ -57,6 +59,7 @@ class RshViz {
     }
 
     static void onClose(sio::client::close_reason const& reason) {
+        // helper();
         std::cerr << "[viz] socket closed" << std::endl;
         connection = false;
     }

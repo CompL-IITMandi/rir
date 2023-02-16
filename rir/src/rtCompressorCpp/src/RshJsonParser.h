@@ -30,6 +30,7 @@ class RshJsonParser {
   std::unordered_map<std::string, MethodRuntimeSummary> methodRuntimeMap;                               // id -> { rir2pir, opt, runtime, effect; }
   std::unordered_map<std::string, std::set<std::string>> methodContextMap;                              // id -> set [ context ]
   std::unordered_map<std::string, std::set<std::string>> methodCallMap;                                 // id -> set [ ids ]
+  std::unordered_map<std::string, std::string> methodNameMap;                                           // id -> name
   std::vector<RshMethod> methodVersionCallMap;                                                          // vector [ RshMethod ]
 
   std::unordered_map<std::string, Meta> methodMeta;                                                     // id -> { name, runs }
@@ -56,6 +57,7 @@ class RshJsonParser {
       }
     };
     handleLine(line, ",", callback);
+    methodNameMap[method.id] = method.name;
     if (!hsm->empty()) {
       RshMethod parent = hsm->pop();
       updateMethodCallMap(parent.id, method.id);
@@ -469,4 +471,33 @@ class RshJsonParser {
     callgraph.close();
     callgraph_versions.close();
   }
+
+  std::vector<std::string> saveCG(){
+
+    std::vector<std::string> callgraph;
+    callgraph.push_back("digraph {");
+    callgraph.push_back("rankdir=BT");
+
+    std::set<std::string> cg_entries;
+
+    for (auto & id: methodCallMap) {
+      auto from = id.first;
+      for (auto & to: id.second) {
+        std::stringstream ss;
+        ss << "\\\"" << methodNameMap[from] <<  "\\\"";
+        ss << " -> ";
+        ss << "\\\"" << methodNameMap[to] <<  "\\\"";
+        ss << ";";
+        cg_entries.insert(ss.str());
+      }
+    }
+    for (auto & item : cg_entries) {
+      callgraph.push_back(item);
+    }
+    callgraph.push_back("}");
+
+    return callgraph;
+
+  }
+
 };

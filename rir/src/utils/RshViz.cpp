@@ -23,7 +23,12 @@ void RshViz::init(const std::string & address) {
     current_socket->on(APP_VIZ_SYNCED, onVizEventCompleted);
 }
 
-
+// void RshViz::helper(){
+//     _lock.lock();
+//     std::cout << "Completed" << std::endl;
+//     current_socket->emit(END_OF_PROGRAM);
+//     _lock.unlock();
+// }
 
 void RshViz::onVizEventRequest(sio::event & event) {
     std::cout << "[viz #--> app DATA-REQ]  : " << event.get_message().get()->get_string() << std::endl;
@@ -73,3 +78,4 @@ std::string RshViz::APP_EVENT_SYN_RES = "app-res-syn";
 std::string RshViz::VIZ_TO_APP_REQUEST = "viz-to-app-req";
 std::string RshViz::APP_TO_VIZ_DATA = "app-to-viz-data";
 std::string RshViz::APP_VIZ_SYNCED = "app-viz-ack";
+// std::string RshViz::END_OF_PROGRAM = "end-of-prog";

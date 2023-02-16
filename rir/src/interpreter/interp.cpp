@@ -2183,6 +2183,17 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                         someData = ss.str();
                     }
                 }
+                else if(requestId == "callgraph"){
+
+                    std::vector<std::string> cg = parser.saveCG();
+                    ss << "[";
+                    for(std::string line : cg){
+                        ss << "\"" << line << "\"," << '\n';
+                    }
+                    ss << "\"\"]";
+                    someData = ss.str();
+
+                }
                 else {
                     ss << "[\"" << requestId << "\", null]";
                 }
