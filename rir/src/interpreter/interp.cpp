@@ -18,6 +18,7 @@
 #include "utils/measuring.h"
 #include "utils/RshViz.h"
 #include "api.h"
+#include "utils/UMap.h"
 
 #include <assert.h>
 #include <deque>
@@ -2062,7 +2063,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                 synPacket << "\"NATIVE\"" << ",";
                 synPacket << "null" << ",";
             }
-            std::string name = "\"N/A\"";
+            std::string name = "\"Promise\"";
             if(callCtxt !=  nullptr){
                 SEXP const lhs = CAR(callCtxt->ast);
                 static const SEXP double_colons = Rf_install("::");
@@ -2192,6 +2193,39 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     }
                     ss << "\"\"]";
                     someData = ss.str();
+
+                }
+                else if(requestId == "environment"){
+
+                    //std::cout << TYPEOF(env) << std::endl;
+                    if(TYPEOF(env) == ENVSXP){
+                        REnvHandler env_h(env);
+                        std::unordered_map<std::string,std::string> mapp;
+                        env_h.iterate([&](std::string key,SEXP val){
+                            SEXP where = PROTECT(Rf_mkString("/home/aayush/viz_env.txt"));
+                            //if already evaluated promise
+                            if (TYPEOF(val) == PROMSXP && PRVALUE(val) && PRVALUE(val) != R_UnboundValue) {
+                                val = PRVALUE(val);
+                            }
+                            printASTToSink(val,where);
+                            UNPROTECT(1);
+                            std::string line;
+                            std::ifstream tmpFile("/home/aayush/viz_env.txt");
+                            if (tmpFile.is_open()) {
+                            if (std::getline(tmpFile,line)) {
+                                mapp[key] = line;
+                            }
+                            tmpFile.close();
+                            }
+
+                        });
+
+                        for(auto it : mapp){
+                            std::cout << it.first << " ---> " << it.second << std::endl;
+                        }
+                        std::cout << "-----------" << std::endl;
+                    }
+
 
                 }
                 else {
