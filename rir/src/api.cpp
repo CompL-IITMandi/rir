@@ -138,14 +138,14 @@ static void loadMetadata(std::string metaDataPath) {
 REXPORT SEXP compileStats(SEXP name, SEXP path) {
     // assert(TYPEOF(path) == STRSXP);
     // assert(TYPEOF(name) == STRSXP);
-    // std::ofstream ostrm(CHAR(STRING_ELT(path, 0)));
-    std::cout << "============== RUN STATS ==============" << std::endl;
-    // ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
+    std::ofstream ostrm(CHAR(STRING_ELT(path, 0)));
+    ostrm << "============== RUN STATS ==============" << std::endl;
+    ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
     // ostrm << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
     // ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
-    std::cout << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << "ms" << std::endl;
-    std::cout << "llvm symbol patching     : " << BitcodeLinkUtil::llvmSymbolsTime << "ms" << std::endl;
-    std::cout << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
+    ostrm << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << "ms" << std::endl;
+    ostrm << "llvm symbol patching     : " << BitcodeLinkUtil::llvmSymbolsTime << "ms" << std::endl;
+    ostrm << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
     // ostrm << "Compiled Closures:       : " << compilerSuccesses << std::endl;
     // ostrm << "Serialized Closures      : " << serializerSuccess << std::endl;
     // ostrm << "Unlinked BC (Worklist1)  : " << Worklist1::worklist.size() << std::endl;
