@@ -470,6 +470,11 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
     Code * mainFunCodeObj = nullptr;
     SEXP hast = R_NilValue;
 
+    std::vector<uintptr_t> tfPCS;
+    std::vector<uintptr_t> othPCS;
+    std::set<uintptr_t> seenTF;
+    std::set<uintptr_t> seenOTH;
+
     if (RuntimeFlags::contextualCompilationSkip && serializerError && contextDataContainer) {
         if (*serializerError == false) {
             // Find the head code object
@@ -485,8 +490,8 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
                 auto dt = DispatchTable::unpack(vtabContainer);
 
                 // Collect feedback data
-                Hast::populateTypeFeedbackData(contextDataContainer, dt);
-                Hast::populateOtherFeedbackData(contextDataContainer, dt);
+                Hast::populateTypeFeedbackData(contextDataContainer, dt, &tfPCS);
+                Hast::populateOtherFeedbackData(contextDataContainer, dt, &othPCS);
             } else {
                 *serializerError = true;
                 SerializerDebug::infoMessage("(E) [backend.cpp] hast for main code object missing", 2);
@@ -512,6 +517,10 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
 
     if (RuntimeFlags::contextualCompilationSkip && serializerError && contextDataContainer) {
         jit.reqMapForCompilation = &rMap;
+        jit.tfPCS = &tfPCS;
+        jit.othPCS = &othPCS;
+        jit.seenTF = &seenTF;
+        jit.seenOTH = &seenOTH;
         jit.serializerError = serializerError;
     } else {
         jit.reqMapForCompilation = nullptr;
@@ -553,6 +562,36 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
 
     if (RuntimeFlags::contextualCompilationSkip && serializerError && contextDataContainer) {
         if (*serializerError == false) {
+            // 0. Add guaranteed deopt point offsets to metadata
+            SEXP podStore;
+            Protect protecc;
+            protecc(podStore = Rf_allocVector(VECSXP, seenTF.size() + seenOTH.size()));
+            int i = 0;
+            for (auto & ele : seenTF) {
+                SEXP tmpStore, type, idx;
+                protecc(tmpStore = Rf_allocVector(VECSXP, 2));
+                protecc(type = Rf_ScalarInteger(0));
+                protecc(idx = Rf_ScalarInteger(ele));
+                SET_VECTOR_ELT(tmpStore, 0, type);
+                SET_VECTOR_ELT(tmpStore, 1, idx);
+
+                SET_VECTOR_ELT(podStore, i, tmpStore);
+                i++;
+            }
+
+            for (auto & ele : seenOTH) {
+                SEXP tmpStore, type, idx;
+                protecc(tmpStore = Rf_allocVector(VECSXP, 2));
+                protecc(type = Rf_ScalarInteger(1));
+                protecc(idx = Rf_ScalarInteger(ele));
+                SET_VECTOR_ELT(tmpStore, 0, type);
+                SET_VECTOR_ELT(tmpStore, 1, idx);
+
+                SET_VECTOR_ELT(podStore, i, tmpStore);
+                i++;
+            }
+            contextData::addPOD(contextDataContainer, podStore);
+            SerializerDebug::infoMessage("(*) Added certain deopt offsets.", 2);
             // 1: Generate a unique prefix [also makes it easy to keep track]
             // (to prevent collisions in the JIT when serializing and deserializing together)
             std::random_device rd;

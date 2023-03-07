@@ -953,6 +953,18 @@ llvm::Value* LowerFunctionLLVM::load(Value* val, PirType type, Rep needed) {
             if (hastInfo.isValid()) {
                 reqMap->insert(hastInfo.hast);
 
+                assert(tfPCS && othPCS && seenTF && seenOTH);
+                uintptr_t currMemOffset = ((uintptr_t)dr->reason.srcCode() + dr->reason.origin.offset());
+                for (size_t i = 0; i < tfPCS->size(); i++) {
+                    if (currMemOffset == tfPCS->at(i)) {
+                        seenTF->insert(i);
+                    }
+                }
+                for (size_t i = 0; i < othPCS->size(); i++) {
+                    if (currMemOffset == othPCS->at(i)) {
+                        seenOTH->insert(i);
+                    }
+                }
                 std::stringstream ss;
                 ss << "code_" << CHAR(PRINTNAME(hastInfo.hast)) << "_" << hastInfo.offsetIndex;
 

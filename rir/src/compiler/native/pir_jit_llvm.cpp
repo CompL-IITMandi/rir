@@ -519,22 +519,19 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     // vtab->insert(currFun);
     // DES-TODO
     // generalUtil::printSpace(2);
-    // std::cout << "Versioning: " << versioning << std::endl;
+    // std::cout << "Adding to vtable: " << versioning << std::endl;
     if (naiveL2) {
         vtab->insert(currFun);
     } else if (versioning == 0) {
         vtab->insert(currFun);
-        // vtab->insertL2V1(currFun);
     }
     else if (versioning == 1) {
         vtab->insertL2V1(currFun);
     }
     else if (versioning == 2) {
-        // generalUtil::printSpace(2);
-        // std::cout << "Versioning 2 Unlock Element STUB" << std::endl;
-        // UnlockingElement::print(uEleContainer, 4);
         vtab->insertL2V2(currFun, uEleContainer);
     }
+    // std::cout << "Added to vtable" << std::endl;
 
     static bool eagerBC = getenv("EAGER_BITCODES") ? getenv("EAGER_BITCODES")[0] == '1' : false;
     if (eagerBC) {
@@ -891,6 +888,10 @@ void PirJitLLVM::compile(
 
     funCompiler.serializerError = serializerError;
     funCompiler.reqMap = reqMapForCompilation;
+    funCompiler.tfPCS = tfPCS;
+    funCompiler.othPCS = othPCS;
+    funCompiler.seenTF = seenTF;
+    funCompiler.seenOTH = seenOTH;
 
     funCompiler.compile();
 

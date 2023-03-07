@@ -5,331 +5,259 @@
 #include "utils/Hast.h"
 #include "utils/deserializerData.h"
 
-#define DEBUG_L2_ENTRIES 0
-
 namespace rir {
-    // void DispatchTable::tryLinking(SEXP currHastSym, const unsigned long & con, const int & nargs) {
-    //     BitcodeLinkUtil::tryUnlockingOpt(hast, con, nargs);
-    // }
 
-    void DispatchTable::insertL2V2(Function* fun, SEXP uEleContainer) {
-        // fun->setVersioned(this->container());
-
-
-        SEXP FBData = UnlockingElement::getGFunTFInfo(uEleContainer);
-        #if DEBUG_L2_ENTRIES > 0
-        std::cout << "insertL2V2 Start: " << fun << std::endl;
-        #endif
-
-        std::vector<int> funGFBData;
-
-        for (int i = 0; i < Rf_length(FBData); i++) {
-            auto ele = VECTOR_ELT(FBData, i);
-            if (ele == R_NilValue) {
-                funGFBData.push_back(0);
-                // std::cerr << "NIL ";
-            } else if (ele == R_dot_defined) {
-                funGFBData.push_back(-1);
-                // std::cerr << "T ";
-            } else if (ele == R_dot_Method) {
-                funGFBData.push_back(-2);
-                // std::cerr << "F ";
-            } else if (TYPEOF(ele) == VECSXP) {
-                auto hast = VECTOR_ELT(ele, 0);
-                auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
-
-                auto c = Hast::getCodeObjectAtOffset(hast, index);
-                funGFBData.push_back(c->src);
-                // std::cout << "[L2 unlock adding](" << CHAR(PRINTNAME(hast)) << "," << index << ") -> " << c->src;
-            } else {
-                funGFBData.push_back(0);
-                // std::cout << "UN ";
-            }
-        }
-
-        // std::cout << std::endl;
-
-        #if DEBUG_L2_ENTRIES > 0
-        std::cout << "[FUN] GNRL FEEDBACK: [";
-        for (auto & ele : funGFBData) {
-            std::cout << ele << " ";
-        }
-        std::cout << "]" << std::endl;
-        #endif
-
-        std::vector<ObservedValues> TVals;
-        SEXP funTF = UnlockingElement::getFunTFInfo(uEleContainer);
-        for (int i = 0; i < Rf_length(funTF); i++) {
-            auto ele = generalUtil::getUint32t(funTF, i);
-            TVals.push_back( *((ObservedValues *) &ele) ); // Casting uint32_t to Observed Value
-        }
-
-        #if DEBUG_L2_ENTRIES > 0
-        std::cout << "[FUN] TYPE FEEDBACK: [";
-        for (auto & ele : TVals) {
-            std::cout << *((uint32_t*) &ele) << " ";
-        }
-        std::cout << "]" << std::endl;
-        #endif
-
-        // Populate general feedback
-        SEXP ssInfo = UnlockingElement::getGTFSlotInfo(uEleContainer);
-        std::vector<int> indices1;
-        std::vector<GenFeedbackHolder> GENSlots;
-
-        for (int i = 0; i < Rf_length(ssInfo); i++) {
-            indices1.push_back(Rf_asInteger(VECTOR_ELT(ssInfo, i)));
-        }
-
-        Hast::getGeneralFeedbackPtrsAtIndices(indices1, GENSlots, this);
-
-        #if DEBUG_L2_ENTRIES > 0
-        std::cout << "[CODE] GEN SLOTS: [";
-        for (auto & ele : GENSlots) {
-            std::cout << "(" << ele.pc << ")";
-            if (ele.tests) {
-                std::cout << "[T] ";
-            } else if (ele.pc) {
-                std::cout << "[C](";
-            } else {
-                std::cout << "[E] ";
-            }
-        }
-        std::cout << "]" << std::endl;
-        #endif
-
-        std::vector<int> indices;
-        std::vector<ObservedValues*> BCTFSlots;
-
-        SEXP slotsInfo = UnlockingElement::getTFSlotInfo(uEleContainer);
-        for (int i = 0; i < Rf_length(slotsInfo); i++) {
-            indices.push_back(Rf_asInteger(VECTOR_ELT(slotsInfo, i)));
-        }
-
-        Hast::getTypeFeedbackPtrsAtIndices(indices, BCTFSlots, this);
-
-        #if DEBUG_L2_ENTRIES > 0
-        std::cout << "[CODE] TF SLOTS: [";
-        for (auto & ele : BCTFSlots) {
-            std::cout << *((uint32_t *) &ele) << " ";
-        }
-        std::cout << "]" << std::endl;
-        #endif
-
-
-        // doFeedbackRun = true;
-
-
-        assert(fun->signature().optimization !=
-               FunctionSignature::OptimizationLevel::Baseline);
-
-        int idx = negotiateSlot(fun->context());
-
-
-        SEXP idxContainer = getEntry(idx);
-
-        if (idxContainer == R_NilValue) {
-            #if DEBUG_L2_ENTRIES > 0
-            std::cout << "[L2] CASE 0: Creating a new L2 dispatch table" << std::endl;
-            #endif
-
-            Protect p;
-            // Creation of a new L2V2 table takes place if slot is null
-
-
-
-            std::vector<SEXP> defaultArgs;
-            size_t functionSize = sizeof(Function);
-
-            SEXP store;
-            p(store = Rf_allocVector(EXTERNALSXP, functionSize));
-            void* payload = INTEGER(store);
-            Function* dummy = new (payload) Function(functionSize, baseline()->body()->container(),
-                                                defaultArgs, fun->signature(), fun->context());
-
-            dummy->registerDeopt();
-
-            L2Dispatch * l2vt = L2Dispatch::create(dummy, BCTFSlots, GENSlots, p);
-            l2vt->insert(fun, TVals, funGFBData);
-
-            setEntry(idx, l2vt->container());
+static std::vector<L2Feedback> getFunctionContext(SEXP container) {
+    std::vector<L2Feedback> res;
+    SEXP funTF = UnlockingElement::getFunTFInfo(container);
+    // Populate type feedback
+    for (int i = 0; i < Rf_length(funTF); i++) {
+        auto ele = generalUtil::getUint32t(funTF, i);
+        res.push_back(L2Feedback::create(ele, true));
+    }
+    // Populate other feedback
+    SEXP FBData = UnlockingElement::getGFunTFInfo(container);
+    for (int i = 0; i < Rf_length(FBData); i++) {
+        auto ele = VECTOR_ELT(FBData, i);
+        if (ele == R_NilValue) {
+            res.push_back(L2Feedback::create());
+        } else if (ele == R_dot_defined) {
+            ObservedTest r;
+            r.seen = ObservedTest::OnlyTrue;
+            res.push_back(L2Feedback::create(r));
+        } else if (ele == R_dot_Method) {
+            ObservedTest r;
+            r.seen = ObservedTest::OnlyFalse;
+            res.push_back(L2Feedback::create(r));
+        } else if (TYPEOF(ele) == VECSXP) {
+            auto hast = VECTOR_ELT(ele, 0);
+            auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
+            auto c = Hast::getCodeObjectAtOffset(hast, index);
+            res.push_back(L2Feedback::create(c->src, false));
         } else {
-            if (Function::check(idxContainer)) {
-                #if DEBUG_L2_ENTRIES > 0
-                std::cout << "[L2] CASE 1: Upgrading runtime to L2" << std::endl;
-                #endif
-
-                Protect p;
-                Function * old = Function::unpack(idxContainer);
-
-                L2Dispatch * l2vt = L2Dispatch::create(old, BCTFSlots, GENSlots, p);
-                l2vt->insert(fun, TVals, funGFBData);
-            } else if (L2Dispatch::check(idxContainer)) {
-                #if DEBUG_L2_ENTRIES > 0
-                std::cout << "[L2] CASE 2: Existing L2, adding to function list" << std::endl;
-                #endif
-                L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
-
-                l2vt->insert(fun, TVals, funGFBData);
-            } else {
-                Rf_error("Dispatch table L2insertion error, corrupted slot!!");
-            }
+            res.push_back(L2Feedback::create());
         }
+    }
+    std::cout << "getFunctionContext: { ";
 
-        #if DEBUG_L2_ENTRIES > 0
-        std::cout << "insertL2V2 End, will try linking next!";
-        #endif
-        // if (hast) {
-        //     tryLinking(hast, fun->context().toI(), fun->signature().numArguments);
-        // }
+    for (auto & ele : res) {
+        ele.print(std::cout);
+        std::cout << " ";
     }
 
-    void DispatchTable::insert(Function* fun) {
-        assert(fun->signature().optimization !=
-               FunctionSignature::OptimizationLevel::Baseline);
-        int idx = negotiateSlot(fun->context());
-        SEXP idxContainer = getEntry(idx);
+    std::cout << "}" << std::endl;
+    return res;
+}
 
-        if (idxContainer == R_NilValue) {
-            setEntry(idx, fun->container());
+static std::vector<L2Feedback> getRuntimeContext(SEXP container, DispatchTable * vtab) {
+    std::vector<L2Feedback> res;
+
+    // Populate type feedback
+    std::vector<int> indices;
+    SEXP slotsInfo = UnlockingElement::getTFSlotInfo(container);
+    for (int i = 0; i < Rf_length(slotsInfo); i++) {
+        indices.push_back(Rf_asInteger(VECTOR_ELT(slotsInfo, i)));
+    }
+    std::vector<ObservedValues*> BCTFSlots;
+    Hast::getTypeFeedbackPtrsAtIndices(indices, BCTFSlots, vtab);
+    for (auto & ele : BCTFSlots) {
+        res.push_back(L2Feedback::create(ele));
+    }
+
+    // Populate other feedback
+    SEXP ssInfo = UnlockingElement::getGTFSlotInfo(container);
+    std::vector<int> indices1;
+    std::vector<GenFeedbackHolder> GENSlots;
+
+    for (int i = 0; i < Rf_length(ssInfo); i++) {
+        indices1.push_back(Rf_asInteger(VECTOR_ELT(ssInfo, i)));
+    }
+
+    Hast::getGeneralFeedbackPtrsAtIndices(indices1, GENSlots, vtab);
+
+    for (auto & ele : GENSlots) {
+        if (ele.tag == 0) { // record_call_
+            res.push_back(L2Feedback::create(ele.code, ele.pc));
+        } else { // record_test_
+            res.push_back(L2Feedback::create(ele.pc));
+        }
+    }
+
+    std::cout << "getRuntimeContext: { ";
+
+    for (auto & ele : res) {
+        ele.print(std::cout);
+        std::cout << " ";
+    }
+
+    std::cout << "}" << std::endl;
+
+    return res;
+}
+
+void DispatchTable::insertL2V2(Function* fun, SEXP uEleContainer) {
+    assert(fun->signature().optimization !=
+           FunctionSignature::OptimizationLevel::Baseline);
+
+    int idx = negotiateSlot(fun->context());
+    SEXP idxContainer = getEntry(idx);
+
+    if (idxContainer == R_NilValue) {
+        Protect p;
+        std::vector<SEXP> defaultArgs;
+        size_t functionSize = sizeof(Function);
+        SEXP store;
+        p(store = Rf_allocVector(EXTERNALSXP, functionSize));
+        void* payload = INTEGER(store);
+        Function* dummy = new (payload) Function(functionSize, baseline()->body()->container(),
+                                            defaultArgs, fun->signature(), fun->context());
+        dummy->registerDeopt();
+        L2Dispatch * l2vt = L2Dispatch::create(dummy, getRuntimeContext(uEleContainer, this), p);
+        l2vt->insert(fun, getFunctionContext(uEleContainer));
+
+        setEntry(idx, l2vt->container());
+    } else {
+        if (Function::check(idxContainer)) {
+            Protect p;
+            Function * old = Function::unpack(idxContainer);
+            L2Dispatch * l2vt = L2Dispatch::create(old, getRuntimeContext(uEleContainer, this), p);
+            l2vt->insert(fun, getFunctionContext(uEleContainer));
+        } else if (L2Dispatch::check(idxContainer)) {
+            L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+            l2vt->insert(fun, getFunctionContext(uEleContainer));
         } else {
-            if (Function::check(idxContainer)) {
-                // Already existing container, do what is meant to be done
-                if (idx != 0) {
-                    // Remember deopt counts across recompilation to avoid
-                    // deopt loops
-                    Function * old = Function::unpack(idxContainer);
-                    fun->addDeoptCount(old->deoptCount());
-                    setEntry(idx, fun->container());
-                    assert(get(idx) == fun);
-                }
-            } else if (L2Dispatch::check(idxContainer)) {
-                L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
-                idxContainer = l2vt->getGenesisFunctionContainer();
+            Rf_error("Dispatch table L2insertion error, corrupted slot!!");
+        }
+    }
+}
 
+void DispatchTable::insert(Function* fun) {
+    assert(fun->signature().optimization !=
+            FunctionSignature::OptimizationLevel::Baseline);
+    int idx = negotiateSlot(fun->context());
+    SEXP idxContainer = getEntry(idx);
+
+    if (idxContainer == R_NilValue) {
+        setEntry(idx, fun->container());
+    } else {
+        if (Function::check(idxContainer)) {
+            // Already existing container, do what is meant to be done
+            if (idx != 0) {
+                // Remember deopt counts across recompilation to avoid
+                // deopt loops
                 Function * old = Function::unpack(idxContainer);
                 fun->addDeoptCount(old->deoptCount());
-
-                // Check if genesis already exists, if yes copy deopt counts
-                l2vt->insertGenesis(fun);
-            } else {
-                Rf_error("Dispatch table insertion error, corrupted slot!!");
+                setEntry(idx, fun->container());
+                assert(get(idx) == fun);
             }
-        }
-
-        // if (hast) {
-        //     tryLinking(hast, fun->context().toI(), fun->signature().numArguments);
-        // }
-    }
-
-    void DispatchTable::insertL2V1(Function* fun) {
-        // doFeedbackRun = true;
-        assert(fun->signature().optimization !=
-               FunctionSignature::OptimizationLevel::Baseline);
-        int idx = negotiateSlot(fun->context());
-
-        // fun->setVersioned(this->container());
-
-        SEXP idxContainer = getEntry(idx);
-
-        if (idxContainer == R_NilValue) {
-            Protect p;
-            // Create a dummy genesis function that cannot
-            // be called i.e. is disabled() since creation
-            std::vector<SEXP> defaultArgs;
-            size_t functionSize = sizeof(Function);
-
-            SEXP store;
-            p(store = Rf_allocVector(EXTERNALSXP, functionSize));
-            void* payload = INTEGER(store);
-            Function* dummy = new (payload) Function(functionSize, baseline()->body()->container(),
-                                                defaultArgs, fun->signature(), fun->context());
-
-            dummy->registerDeopt();
-
-            L2Dispatch * l2vt = L2Dispatch::create(dummy, p);
-            l2vt->insert(fun);
-
-            setEntry(idx, l2vt->container());
+        } else if (L2Dispatch::check(idxContainer)) {
+            L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+            Function * old = l2vt->getFallback();
+            fun->addDeoptCount(old->deoptCount());
+            l2vt->setFallback(fun);
         } else {
-            if (Function::check(idxContainer)) {
-                Protect p;
-                Function * old = Function::unpack(idxContainer);
-                L2Dispatch * l2vt = L2Dispatch::create(old, p);
-                setEntry(idx, l2vt->container());
-                l2vt->insert(fun);
-            } else if (L2Dispatch::check(idxContainer)) {
-                L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
-                l2vt->insert(fun);
-            } else {
-                Rf_error("Dispatch table L2insertion error, corrupted slot!!");
-            }
+            Rf_error("Dispatch table insertion error, corrupted slot!!");
         }
-
-        // if (hast) {
-        //     tryLinking(hast, fun->context().toI(), fun->signature().numArguments);
-        // }
     }
+}
 
-    int DispatchTable::negotiateSlot(const Context& assumptions) {
-        assert(size() > 0);
-        size_t i;
-        for (i = size() - 1; i > 0; --i) {
-            auto old = get(i);
-            if (old->context() == assumptions) {
-                // We already gave this context, dont delete it, just return the index
-                return i;
-            }
-            if (!(assumptions < get(i)->context())) {
-                break;
-            }
+void DispatchTable::insertL2V1(Function* fun) {
+    assert(fun->signature().optimization !=
+            FunctionSignature::OptimizationLevel::Baseline);
+    int idx = negotiateSlot(fun->context());
+    std::vector<L2Feedback> feedbackVals;
+    SEXP idxContainer = getEntry(idx);
+    if (idxContainer == R_NilValue) {
+        Protect p;
+        // Create a dummy genesis function that cannot
+        // be called i.e. is disabled() since creation
+        std::vector<SEXP> defaultArgs;
+        size_t functionSize = sizeof(Function);
+
+        SEXP store;
+        p(store = Rf_allocVector(EXTERNALSXP, functionSize));
+        void* payload = INTEGER(store);
+        Function* dummy = new (payload) Function(functionSize, baseline()->body()->container(),
+                                            defaultArgs, fun->signature(), fun->context());
+        dummy->registerDeopt();
+        L2Dispatch * l2vt = L2Dispatch::create(dummy, feedbackVals, p);
+        l2vt->insert(fun, feedbackVals);
+        setEntry(idx, l2vt->container());
+    } else {
+        if (Function::check(idxContainer)) {
+            Protect p;
+            Function * old = Function::unpack(idxContainer);
+            L2Dispatch * l2vt = L2Dispatch::create(old, feedbackVals, p);
+            setEntry(idx, l2vt->container());
+            l2vt->insert(fun, feedbackVals);
+        } else if (L2Dispatch::check(idxContainer)) {
+            L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
+            l2vt->insert(fun, feedbackVals);
+        } else {
+            Rf_error("Dispatch table L2insertion error, corrupted slot!!");
         }
-        i++;
-        assert(!contains(assumptions));
-        if (size() == capacity()) {
-#ifdef DEBUG_DISPATCH
-            std::cout << "Tried to insert into a full Dispatch table. Have: \n";
-            for (size_t i = 0; i < size(); ++i) {
-                auto e = getEntry(i);
-                std::cout << "* " << Function::unpack(e)->context() << "\n";
-            }
-            std::cout << "\n";
-            std::cout << "Tried to insert: " << assumptions << "\n";
-            Rf_error("dispatch table overflow");
-#endif
-            // Evict one element and retry
-            auto pos = 1 + (Random::singleton()() % (size() - 1));
-            size_--;
-            while (pos < size()) {
-                setEntry(pos, getEntry(pos + 1));
-                pos++;
-            }
-            return negotiateSlot(assumptions);
+    }
+}
+
+int DispatchTable::negotiateSlot(const Context& assumptions) {
+    assert(size() > 0);
+    size_t i;
+    for (i = size() - 1; i > 0; --i) {
+        auto old = get(i);
+        if (old->context() == assumptions) {
+            // We already gave this context, dont delete it, just return the index
+            return i;
         }
-
-
-        for (size_t j = size(); j > i; --j)
-            setEntry(j, getEntry(j - 1));
-        size_++;
-
-        // Slot i is now available for insertion of context now
-        setEntry(i, R_NilValue);
-        return i;
-
+        if (!(assumptions < get(i)->context())) {
+            break;
+        }
+    }
+    i++;
+    assert(!contains(assumptions));
+    if (size() == capacity()) {
 #ifdef DEBUG_DISPATCH
-        std::cout << "Added version to DT, new order is: \n";
+        std::cout << "Tried to insert into a full Dispatch table. Have: \n";
         for (size_t i = 0; i < size(); ++i) {
             auto e = getEntry(i);
             std::cout << "* " << Function::unpack(e)->context() << "\n";
         }
         std::cout << "\n";
-        for (size_t i = 0; i < size() - 1; ++i) {
-            assert(get(i)->context() < get(i + 1)->context());
-            assert(get(i)->context() != get(i + 1)->context());
-            assert(!(get(i + 1)->context() < get(i)->context()));
-        }
-        assert(contains(fun->context()));
+        std::cout << "Tried to insert: " << assumptions << "\n";
+        Rf_error("dispatch table overflow");
 #endif
+        // Evict one element and retry
+        auto pos = 1 + (Random::singleton()() % (size() - 1));
+        size_--;
+        while (pos < size()) {
+            setEntry(pos, getEntry(pos + 1));
+            pos++;
+        }
+        return negotiateSlot(assumptions);
     }
+
+
+    for (size_t j = size(); j > i; --j)
+        setEntry(j, getEntry(j - 1));
+    size_++;
+
+    // Slot i is now available for insertion of context now
+    setEntry(i, R_NilValue);
+    return i;
+
+#ifdef DEBUG_DISPATCH
+    std::cout << "Added version to DT, new order is: \n";
+    for (size_t i = 0; i < size(); ++i) {
+        auto e = getEntry(i);
+        std::cout << "* " << Function::unpack(e)->context() << "\n";
+    }
+    std::cout << "\n";
+    for (size_t i = 0; i < size() - 1; ++i) {
+        assert(get(i)->context() < get(i + 1)->context());
+        assert(get(i)->context() != get(i + 1)->context());
+        assert(!(get(i + 1)->context() < get(i)->context()));
+    }
+    assert(contains(fun->context()));
+#endif
+}
 
 } // namespace rir

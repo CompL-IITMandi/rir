@@ -294,10 +294,13 @@ namespace rir {
         // 4 (SEXP) otherFeedbackInfo
         // Stores the test info and other callee info
 
+        // 5 (SEXP) pointsOfDeopt
+        // Stores the slot information about the points of deopt
+
         public:
             // Misc functions
             static unsigned getStorageSize() {
-                return 5;
+                return 6;
             }
 
             static void addSEXP(SEXP container, SEXP data, const int & index) {
@@ -410,6 +413,15 @@ namespace rir {
                 return getSEXP(container, 4);
             }
 
+            // ENTRY 5: PointsOfDeopt
+            static void addPOD(SEXP container, SEXP data) {
+                addSEXP(container, data, 5);
+            }
+
+            static SEXP getPOD(SEXP container) {
+                return getSEXP(container, 5);
+            }
+
             static void print(SEXP container, unsigned int space) {
                 printSpace(space);
                 std::cout << "== contextData ==" << std::endl;
@@ -461,6 +473,40 @@ namespace rir {
                         std::cout << "(" << CHAR(PRINTNAME(hast)) << "," << index << ") ";
                     } else {
                         std::cout << "UN ";
+                    }
+                }
+                std::cout << ">" << std::endl;
+
+                printSpace(space);
+                SEXP podContainer = getPOD(container);
+                std::cout << "ENTRY(5)[Points Of Deopt](" << Rf_length(podContainer) << " Entries): < ";
+
+                for (int i = 0; i < Rf_length(podContainer); i++) {
+                    SEXP ele = VECTOR_ELT(podContainer, i);
+                    auto speculationType = Rf_asInteger(VECTOR_ELT(ele, 0));
+                    auto speculationIdx = Rf_asInteger(VECTOR_ELT(ele, 1));
+                    if (speculationType == 0) {
+                        ObservedValues * tmp = (ObservedValues *) DATAPTR(tfContainer);
+                        std::cout << "[";
+                        tmp[speculationIdx].print(std::cout);
+                        std::cout << "] ";
+                    } else {
+                        SEXP ele = VECTOR_ELT(fbdContainer, speculationIdx);
+                        std::cout << "[";
+                        if (ele == R_NilValue) {
+                            std::cout << "NIL ";
+                        } else if (ele == R_dot_defined) {
+                            std::cout << "T ";
+                        } else if (ele == R_dot_Method) {
+                            std::cout << "F ";
+                        } else if (TYPEOF(ele) == VECSXP){
+                            auto hast = VECTOR_ELT(ele, 0);
+                            auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
+                            std::cout << "(" << CHAR(PRINTNAME(hast)) << "," << index << ") ";
+                        } else {
+                            std::cout << "UN ";
+                        }
+                        std::cout << "] ";
                     }
                 }
                 std::cout << ">" << std::endl;

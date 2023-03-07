@@ -465,7 +465,8 @@ unsigned Hast::getSrcPoolIndexAtOffset(SEXP hastSym, int requiredOffset) {
     return r.srcIdx;
 }
 
-void Hast::populateTypeFeedbackData(SEXP container, DispatchTable * vtab) {
+void Hast::populateTypeFeedbackData(SEXP container, DispatchTable * vtab, std::vector<uintptr_t> * tfPCs) {
+    // int idx = 0;
     DispatchTable * currVtab = vtab;
 
     std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
@@ -489,7 +490,7 @@ void Hast::populateTypeFeedbackData(SEXP container, DispatchTable * vtab) {
 
             // call sites
             if (bc.bc == Opcode::record_type_) {
-                    // std::cout << "FOR CODE:  " << c << std::endl;
+                    if (tfPCs) tfPCs->push_back(((uintptr_t) pc));
                     // std::cout << "record_type " << feedback << " [" << *((uint32_t *) feedback) << "]" << std::endl;
                     // std::cout << "  ";
                     // feedback->print(std::cout);
@@ -529,7 +530,8 @@ void Hast::populateTypeFeedbackData(SEXP container, DispatchTable * vtab) {
 }
 
 // Handling call site information
-void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab) {
+void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfOth) {
+    // int idx = 0;
     DispatchTable* currVtab = vtab;
 
     std::function<void(Code*, Function*)> iterateOverCodeObjs =
@@ -553,6 +555,7 @@ void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab) {
                 bc.addMyPromArgsTo(promises);
 
                 if (bc.bc == Opcode::record_call_) {
+                    if (tfOth) tfOth->push_back(((uintptr_t) pc));
                     // ObservedCallees * v = (ObservedCallees *) (pc + 1);
                     // std::cout << "Decoded target from pointer: [";
                     // for (auto & ele : v->targets) {
@@ -572,6 +575,7 @@ void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab) {
                 }
 
                 if (bc.bc == Opcode::record_test_) {
+                    if (tfOth) tfOth->push_back(((uintptr_t) pc));
                     contextData::addObservedTestToVector(container, &bc.immediate.testFeedback);
                 }
 
@@ -702,14 +706,14 @@ void Hast::getGeneralFeedbackPtrsAtIndices(
                 switch (bc.bc) {
                 case Opcode::record_call_: {
                     if (std::count(indices.begin(), indices.end(), idx)) {
-                        res.push_back({c, pc + 1});
+                        res.push_back({0, c, pc + 1});
                     }
                     idx++;
                     break;
                 }
                 case Opcode::record_test_: {
                     if (std::count(indices.begin(), indices.end(), idx)) {
-                        res.push_back({c, pc + 1});
+                        res.push_back({1, c, pc + 1});
                     }
                     idx++;
                     break;

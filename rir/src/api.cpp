@@ -159,13 +159,13 @@ REXPORT SEXP stopCapturingStats() {
 }
 
 REXPORT SEXP compileStats(SEXP name, SEXP path) {
-    assert(TYPEOF(path) == STRSXP);
-    assert(TYPEOF(name) == STRSXP);
+    // assert(TYPEOF(path) == STRSXP);
+    // assert(TYPEOF(name) == STRSXP);
     std::ofstream ostrm(CHAR(STRING_ELT(path, 0)));
     ostrm << "============== RUN STATS ==============" << std::endl;
     ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
     // ostrm << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
-    ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
+    // ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
     ostrm << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << "ms" << std::endl;
     ostrm << "llvm symbol patching     : " << BitcodeLinkUtil::llvmSymbolsTime << "ms" << std::endl;
     ostrm << "Time in PIR Compiler     : " << timeInPirCompiler << "ms" << std::endl;
