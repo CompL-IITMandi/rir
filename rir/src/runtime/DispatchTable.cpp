@@ -38,14 +38,14 @@ static std::vector<L2Feedback> getFunctionContext(SEXP container) {
             res.push_back(L2Feedback::create());
         }
     }
-    std::cout << "getFunctionContext: { ";
+    // std::cout << "getFunctionContext: { ";
 
-    for (auto & ele : res) {
-        ele.print(std::cout);
-        std::cout << " ";
-    }
+    // for (auto & ele : res) {
+    //     ele.print(std::cout);
+    //     std::cout << " ";
+    // }
 
-    std::cout << "}" << std::endl;
+    // std::cout << "}" << std::endl;
     return res;
 }
 
@@ -83,14 +83,14 @@ static std::vector<L2Feedback> getRuntimeContext(SEXP container, DispatchTable *
         }
     }
 
-    std::cout << "getRuntimeContext: { ";
+    // std::cout << "getRuntimeContext: { ";
 
-    for (auto & ele : res) {
-        ele.print(std::cout);
-        std::cout << " ";
-    }
+    // for (auto & ele : res) {
+    //     ele.print(std::cout);
+    //     std::cout << " ";
+    // }
 
-    std::cout << "}" << std::endl;
+    // std::cout << "}" << std::endl;
 
     return res;
 }
