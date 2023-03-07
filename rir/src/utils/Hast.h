@@ -78,6 +78,7 @@ class Hast {
     static void populateOtherFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfOth = nullptr);
     static void getGeneralFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<GenFeedbackHolder> & res, DispatchTable * vtab);
     static void getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<ObservedValues*> & res, DispatchTable * vtab);
+    static void printRawFeedback(const DispatchTable* vtab, std::ostream& out, const int & space);
 
     static void serializerCleanup();
 };

@@ -7,6 +7,47 @@
 
 namespace rir {
 
+Function* DispatchTable::get(size_t i) const {
+    assert(i < capacity());
+    // If there exists a L2 dispatch table at this index,
+    // then check if there is a possible dispatch available
+    SEXP funContainer = getEntry(i);
+
+    if (L2Dispatch::check(funContainer)) {
+        L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+        // print(std::cout);
+        return l2vt->dispatch();
+    }
+    return Function::unpack(getEntry(i));
+}
+
+void DispatchTable::print(std::ostream& out, const int & space) const {
+    for (int i = 0; i < space; i++) {
+        out << " ";
+    }
+    out << "=== Printing Dispatch table (" << this << ") ===";
+    for (int i = 0; i < space; i++) {
+        out << " ";
+    }
+    out << std::endl;
+    out << "Full Runtime speculative context" << std::endl;
+    Hast::printRawFeedback(this, out, space);
+    out << std::endl;
+    for (size_t i = 1; i < size(); ++i) {
+        SEXP funContainer = getEntry(i);
+
+        if (L2Dispatch::check(funContainer)) {
+            L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+            auto fun = l2vt->dispatch();
+            out << "(" << i << ")[L2][" << (fun->disabled() ? "Disabled" : "") << "]: " << fun->context() << std::endl;
+            l2vt->print(out, 4);
+        } else {
+            auto fun = Function::unpack(funContainer);
+            out << "(" << i << ")[][" << (fun->disabled() ? "Disabled" : "") << "]: " << fun->context() << std::endl;
+        }
+    }
+}
+
 static std::vector<L2Feedback> getFunctionContext(SEXP container) {
     std::vector<L2Feedback> res;
     SEXP funTF = UnlockingElement::getFunTFInfo(container);

@@ -529,6 +529,76 @@ void Hast::populateTypeFeedbackData(SEXP container, DispatchTable * vtab, std::v
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
 }
 
+void Hast::printRawFeedback(const DispatchTable* vtab, std::ostream& out, const int & space) {
+    // int idx = 0;
+    const DispatchTable* currVtab = vtab;
+
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                    }
+                }
+            }
+
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
+
+                if (bc.bc == Opcode::record_call_) {
+                    out << "<";
+                    bc.print(out);
+                    out << "> ";
+                }
+
+                if (bc.bc == Opcode::record_test_) {
+                    out << "<";
+                    bc.print(out);
+                    out << "> ";
+                }
+
+                if (bc.bc == Opcode::record_type_) {
+                    out << "<";
+                    bc.print(out);
+                    out << "> ";
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                    }
+                }
+
+                pc = BC::next(pc);
+            }
+
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+            }
+        };
+
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
+
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+}
+
 // Handling call site information
 void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfOth) {
     // int idx = 0;

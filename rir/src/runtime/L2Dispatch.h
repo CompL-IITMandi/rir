@@ -126,84 +126,45 @@ struct L2Function {
 #pragma pack(1)
 struct L2Dispatch
     : public RirRuntimeObject<L2Dispatch, L2_DISPATCH_MAGIC> {
-		// Constructor
-		static L2Dispatch* create(Function* fallback, const std::vector<L2Feedback> & feedbackVals, Protect & p) {
-			size_t sz =
-				sizeof(L2Dispatch) + (ENTRIES_SIZE * sizeof(SEXP));
-			SEXP s;
-			p(s = Rf_allocVector(EXTERNALSXP, sz));
-			return new (INTEGER(s)) L2Dispatch(fallback, feedbackVals);
-    	}
+	// Constructor
+	static L2Dispatch* create(Function* fallback, const std::vector<L2Feedback> & feedbackVals, Protect & p) {
+		size_t sz =
+			sizeof(L2Dispatch) + (ENTRIES_SIZE * sizeof(SEXP));
+		SEXP s;
+		p(s = Rf_allocVector(EXTERNALSXP, sz));
+		return new (INTEGER(s)) L2Dispatch(fallback, feedbackVals);
+	}
 
-		// SLOT 0: FALLBACK_FN
-		void setFallback(Function * f) {
-			setEntry(FALLBACK_FN, f->container());
-		}
+	// SLOT 0: FALLBACK_FN
+	void setFallback(Function * f) {
+		setEntry(FALLBACK_FN, f->container());
+	}
 
-		Function * getFallback() {
-			SEXP fallbackContainer = getEntry(FALLBACK_FN);
-			assert(Function::check(fallbackContainer));
-			return Function::unpack(fallbackContainer);
-		}
+	Function * getFallback() {
+		SEXP fallbackContainer = getEntry(FALLBACK_FN);
+		assert(Function::check(fallbackContainer));
+		return Function::unpack(fallbackContainer);
+	}
 
-		// SLOT 1: FUNCTION_LIST
-		void insert(Function * f, const std::vector<L2Feedback> & feedbackVals) {
-			SEXP FunctionList = getEntry(FN_LIST);
-			// Replace disabled functions
-			int storageIdx = -1;
-			for (int i = _last; i >= 0; i--) {
-				L2Function res = getFunction(i);
-				if (res.fun->disabled()) {
-					if (lastDispatch == res.fun) {
-						lastDispatch = nullptr;
-					}
-					storageIdx = i;
-					break;
-				}
-			}
-			if (storageIdx == -1) {
-				if (_last + 1 == functionListContainerSize()) {
-					expandStorage();
-				}
-				assert(_last + 1 < functionListContainerSize());
-				_last++;
-				storageIdx = _last;
-			}
-			SEXP mainContainer, feedbackContainer;
-			Protect protecc;
-			protecc(mainContainer = Rf_allocVector(VECSXP, 2));
-			protecc(feedbackContainer = Rf_allocVector(RAWSXP, (feedbackVals.size()) * sizeof(L2Feedback)));
+	// SLOT 1: FUNCTION_LIST
+	void insert(Function * f, const std::vector<L2Feedback> & feedbackVals);
 
-			L2Feedback* currTF = (L2Feedback *) DATAPTR(feedbackContainer);
-
-			for (size_t i = 0; i < feedbackVals.size(); i++) {
-				*(currTF + i) = feedbackVals[i];
-				i++;
-			}
-			{ // [Function, Speculative Context]
-				SET_VECTOR_ELT(mainContainer, 0, f->container());
-				SET_VECTOR_ELT(mainContainer, 1, feedbackContainer);
-			}
-			SET_VECTOR_ELT(FunctionList, storageIdx, mainContainer);
-		}
-
-		L2Function getFunction(const int & idx) {
-			assert(idx <= _last);
-			SEXP FunctionList = getEntry(FN_LIST);
-			SEXP l2FunContainer = VECTOR_ELT(FunctionList, idx);
-			return { Function::unpack(VECTOR_ELT(l2FunContainer, 0)), (L2Feedback*) DATAPTR(VECTOR_ELT(l2FunContainer, 1)) };
-		}
+	L2Function getFunction(const int & idx) {
+		assert(idx <= _last);
+		SEXP FunctionList = getEntry(FN_LIST);
+		SEXP l2FunContainer = VECTOR_ELT(FunctionList, idx);
+		return { Function::unpack(VECTOR_ELT(l2FunContainer, 0)), (L2Feedback*) DATAPTR(VECTOR_ELT(l2FunContainer, 1)) };
+	}
 
 
-		Function * dispatch();
+	Function * dispatch();
 
-		// Genesis
-		int functionListContainerSize() {
-			return Rf_length(getEntry(FN_LIST));
-		}
+	// Genesis
+	int functionListContainerSize() {
+		return Rf_length(getEntry(FN_LIST));
+	}
 
-
-
+	void print(std::ostream& out, const int & space = 0);
   private:
 
 
@@ -213,27 +174,9 @@ struct L2Dispatch
 
 	L2Dispatch() = delete;
 
-	explicit L2Dispatch(Function* fallback, const std::vector<L2Feedback> & feedbackVals) :
-		RirRuntimeObject(sizeof(L2Dispatch),ENTRIES_SIZE) {
-		rir::Protect protecc;
-		SEXP functionList;
-		protecc(functionList = Rf_allocVector(VECSXP, GROWTH_RATE));
-		setEntry(FN_LIST, functionList);
-
-		runtimeFeedbackData = feedbackVals;
-		setFallback(fallback);
-	}
-
+	explicit L2Dispatch(Function* fallback, const std::vector<L2Feedback> & feedbackVals);
 	// Expands the function list by GROWTH_RATE
-	void expandStorage() {
-		rir::Protect p;
-		SEXP oldVec = getEntry(FN_LIST);
-		int oldSize = Rf_length(oldVec);
-		SEXP newVec;
-		p(newVec = Rf_allocVector(VECSXP, oldSize + GROWTH_RATE));
-		memcpy(DATAPTR(newVec), DATAPTR(oldVec), oldSize * sizeof(SEXP));
-		setEntry(FN_LIST, newVec);
-	}
+	void expandStorage();
 
 };
 #pragma pack(pop)

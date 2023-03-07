@@ -1011,7 +1011,11 @@ SEXP doCall(CallContext& call, bool popArgs) {
                         fun->body()->codeSize < 20) {
                         call.triggerOsr = true;
                     }
+                    // std::cout << "recompile heuristic start" << std::endl;
+                    // std::cout << "Inferred context: " << given << std::endl;
+                    // table->print(std::cout);
                     DoRecompile(fun, call.ast, call.callee, given);
+                    // std::cout << "recompile heuristic end" << std::endl;
                     fun = dispatch(call, table);
                 }
             }
