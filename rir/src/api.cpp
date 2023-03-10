@@ -829,6 +829,15 @@ void printAST(int space, SEXP ast) {
     currentStack.pop_back();
 }
 
+REXPORT SEXP printSpeculativeContext(SEXP fn) {
+    assert(TYPEOF(fn) == CLOSXP && TYPEOF(BODY(fn)) == EXTERNALSXP);
+    SEXP body = BODY(fn);
+    assert(DispatchTable::check(body));
+    auto vtab = DispatchTable::unpack(body);
+    Hast::printRawFeedback(vtab, std::cout, 0);
+    return R_TrueValue;
+}
+
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 const pir::DebugOptions& debug) {
     if (*RTConsts::R_jit_enabled == 0) return what;
