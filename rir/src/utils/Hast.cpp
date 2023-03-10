@@ -530,7 +530,7 @@ void Hast::populateTypeFeedbackData(SEXP container, DispatchTable * vtab, std::v
 }
 
 void Hast::printRawFeedback(const DispatchTable* vtab, std::ostream& out, const int & space) {
-    // int idx = 0;
+    int idx = 0;
     const DispatchTable* currVtab = vtab;
 
     std::function<void(Code*, Function*)> iterateOverCodeObjs =
@@ -554,21 +554,18 @@ void Hast::printRawFeedback(const DispatchTable* vtab, std::ostream& out, const 
                 bc.addMyPromArgsTo(promises);
 
                 if (bc.bc == Opcode::record_call_) {
-                    out << "<";
+                    out << "[" << idx++ << "] record_call_: ";
                     bc.print(out);
-                    out << "> ";
                 }
 
                 if (bc.bc == Opcode::record_test_) {
-                    out << "<";
+                    out << "[" << idx++ << "] record_test_: ";
                     bc.print(out);
-                    out << "> ";
                 }
 
                 if (bc.bc == Opcode::record_type_) {
-                    out << "<";
+                    out << "[" << idx++ << "] record_type_: ";
                     bc.print(out);
-                    out << "> ";
                 }
 
                 // inner functions

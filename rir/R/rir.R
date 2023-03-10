@@ -19,6 +19,12 @@ f.stopSerializer <- function() {
     invisible(.Call("stopSerializer"))
 }
 
+# Debugging help
+
+f.printSpeculativeContext <- function(fn) {
+    invisible(.Call("printSpeculativeContext", fn))
+}
+
 # f.startCapturingStats <- function() {
 #     invisible(.Call("startCapturingStats"))
 # }
