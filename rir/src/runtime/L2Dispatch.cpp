@@ -137,7 +137,7 @@ int L2Feedback::getSrcIdxVal() const {
 		return 0;
 	}
 	// std::cout << "getSrcIdxVal(tag=" << tag << ")" << std::endl;
-	assert(false);
+	//assert(false);
 	return 0;
 }
 
