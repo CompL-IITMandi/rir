@@ -34,6 +34,7 @@
 #include <fstream>
 #include <string>
 
+
 extern "C" {
 extern SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP);
 extern Rboolean R_Visible;
@@ -2110,7 +2111,12 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     // someData = ss.str();
                     std::string line;
                     ss << "[";
-                    std::ifstream stkFile("/home/aayush/stack.txt");
+                    char resolved_path[PATH_MAX];
+                    char *a = realpath("../../../stack.txt", resolved_path);
+                    // std::string wd = a;
+                    // wd += "/stack.txt";
+                    // std::cout << a << std::endl;
+                    std::ifstream stkFile(a);
                     if (stkFile.is_open()) {
                         while (std::getline(stkFile,line)) {
                             ss << "\"" << line << "\"," << '\n';
@@ -2124,8 +2130,9 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     std::string line;
                     ss << "[";
                     SEXP currAst = src_pool_at(c->src);
-
-                    SEXP where = PROTECT(Rf_mkString("/home/aayush/viz_tmp.txt"));
+                    char resolved_path[PATH_MAX];
+                    char *a = realpath("../../../viz_tmp.txt", resolved_path);
+                    SEXP where = PROTECT(Rf_mkString(a));
                     printASTToSink(currAst,where);
                     UNPROTECT(1);
                     std::ifstream tmpFile("/home/aayush/viz_tmp.txt");
@@ -2135,6 +2142,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                         }
                         tmpFile.close();
                     }
+                    // std::cout << Rf_isObject(currAst) << std::endl;
+                    //ss << "\"" << Print::dumpSexp(currAst) << "\"," << '\n';
 
                     ss << "\"\"]";
                     someData = ss.str();
@@ -2200,32 +2209,39 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     //std::cout << TYPEOF(env) << std::endl;
                     if(TYPEOF(env) == ENVSXP){
                         REnvHandler env_h(env);
-                        std::unordered_map<std::string,std::string> mapp;
+                        std::unordered_map<std::string,SEXP> mapp;
                         env_h.iterate([&](std::string key,SEXP val){
-                            SEXP where = PROTECT(Rf_mkString("/home/aayush/viz_env.txt"));
+                            //SEXP where = PROTECT(Rf_mkString("/home/aayush/viz_env.txt"));
                             //if already evaluated promise
                             if (TYPEOF(val) == PROMSXP && PRVALUE(val) && PRVALUE(val) != R_UnboundValue) {
                                 val = PRVALUE(val);
                             }
-                            printASTToSink(val,where);
-                            UNPROTECT(1);
-                            std::string line;
-                            std::ifstream tmpFile("/home/aayush/viz_env.txt");
-                            if (tmpFile.is_open()) {
-                            if (std::getline(tmpFile,line)) {
-                                mapp[key] = line;
-                            }
-                            tmpFile.close();
-                            }
+                            // printASTToSink(val,where);
+                            // UNPROTECT(1);
+                            // std::string line;
+                            // std::ifstream tmpFile("/home/aayush/viz_env.txt");
+                            // if (tmpFile.is_open()) {
+                            // if (std::getline(tmpFile,line)) {
+                            //     mapp[key] = line;
+                            // }
+                            // tmpFile.close();
+                            // }
+                            mapp[key] = val;
 
                         });
-
+                        ss << "[";
                         for(auto it : mapp){
-                            std::cout << it.first << " ---> " << it.second << std::endl;
+                            ss << "{" << "\"" << it.first << "\":" << "\"" << Print::dumpSexp(it.second) << "\"" << "}" << "," << '\n';
+                            std::cout << it.first << " ---> " << Print::dumpSexp(it.second) << std::endl;
                         }
+                        ss << "\"\"]";
                         std::cout << "-----------" << std::endl;
                     }
-
+                    else{
+                        ss << "[";
+                        ss << "\"\"]";
+                        someData = ss.str();
+                    }
 
                 }
                 else {
