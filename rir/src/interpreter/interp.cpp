@@ -2130,20 +2130,20 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     std::string line;
                     ss << "[";
                     SEXP currAst = src_pool_at(c->src);
-                    char resolved_path[PATH_MAX];
-                    char *a = realpath("../../../viz_tmp.txt", resolved_path);
-                    SEXP where = PROTECT(Rf_mkString(a));
-                    printASTToSink(currAst,where);
-                    UNPROTECT(1);
-                    std::ifstream tmpFile("/home/aayush/viz_tmp.txt");
-                    if (tmpFile.is_open()) {
-                        while (std::getline(tmpFile,line)) {
-                            ss << "\"" << line << "\"," << '\n';
-                        }
-                        tmpFile.close();
-                    }
+                    // char resolved_path[PATH_MAX];
+                    // char *a = realpath("../../../viz_tmp.txt", resolved_path);
+                    // SEXP where = PROTECT(Rf_mkString(a));
+                    // printASTToSink(currAst,where);
+                    // UNPROTECT(1);
+                    // std::ifstream tmpFile("/home/aayush/viz_tmp.txt");
+                    // if (tmpFile.is_open()) {
+                    //     while (std::getline(tmpFile,line)) {
+                    //         ss << "\"" << line << "\"," << '\n';
+                    //     }
+                    //     tmpFile.close();
+                    // }
                     // std::cout << Rf_isObject(currAst) << std::endl;
-                    //ss << "\"" << Print::dumpSexp(currAst) << "\"," << '\n';
+                    ss << "\"" << Print::dumpSexp(currAst) << "\"," << '\n';
 
                     ss << "\"\"]";
                     someData = ss.str();
