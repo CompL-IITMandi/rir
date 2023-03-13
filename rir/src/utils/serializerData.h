@@ -12,6 +12,141 @@
 
 #include <chrono>
 namespace rir {
+    template <typename T>
+    static void addTToContainer(SEXP container, const int & index, T val) {
+        rir::Protect protecc;
+        SEXP store;
+        protecc(store = Rf_allocVector(RAWSXP, sizeof(T)));
+        T * tmp = (T *) DATAPTR(store);
+        *tmp = val;
+
+        SET_VECTOR_ELT(container, index, store);
+    }
+
+    template <typename T>
+    static T getTFromContainer(SEXP container, const int & index) {
+        SEXP dataContainer = VECTOR_ELT(container, index);
+        T* res = (T *) DATAPTR(dataContainer);
+        return *res;
+    }
+
+    static inline void qSpace(int size) {
+        assert(size >= 0);
+        for (int i = 0; i < size; i++) {
+            std::cout << " ";
+        }
+    }
+
+    static void addSEXP(SEXP container, SEXP data, const int & index) {
+        SET_VECTOR_ELT(container, index, data);
+    }
+
+    static SEXP getSEXP(SEXP container, const int & index) {
+        return VECTOR_ELT(container, index);
+    }
+
+    struct speculativeContextElement {
+        // 0 (SEXP_int) TAG (0: TypeFeedback, 1: TestFeedback, 2: Callee)
+        // 1 (SEXP_rawsxp) Pointer to memory address where the slot is located (just here to make marking points of deopt easier while lowering)
+        // 2 (SEXP_bool) Point of Deopt
+        // 3 (SEXP_rawsxp | SEXP_symsxp) (0: uint32_t, 1: uint32_t, 2: SYMSXP)
+        static unsigned getStorageSize() {
+            return 4;
+        }
+
+        // ENTRY 0: Tag
+        static void addTag(SEXP container, const int & data) {
+            assert(data < 3);
+            addTToContainer<int>(container, 0, data);
+        }
+
+        static int getTag(SEXP container) {
+            auto res = getTFromContainer<int>(container, 0);
+            assert(res < 3);
+            return res;
+        }
+
+        // ENTRY 1: PC*
+        static void addPC(SEXP container, uintptr_t pc) {
+            addTToContainer<uintptr_t>(container, 1, pc);
+        }
+
+        static uintptr_t getPC(SEXP container) {
+            if (getSEXP(container, 1) == R_NilValue) return 0;
+            return getTFromContainer<uintptr_t>(container, 1);
+        }
+
+        // ENTRY 2: Point Of Deopt?
+        static void addPOD(SEXP container, bool pod) {
+            addTToContainer<bool>(container, 2, pod);
+        }
+
+        static bool getPOD(SEXP container) {
+            return getTFromContainer<bool>(container, 2);
+        }
+
+        // ENTRY 3:
+        static void addVal(SEXP container, uint32_t data) {
+            addTToContainer<uint32_t>(container, 3, data);
+        }
+
+        static void addVal(SEXP container, SEXP data) {
+            addSEXP(container, data, 3);
+        }
+
+        static uint32_t getValUint(SEXP container) {
+            return getTFromContainer<uint32_t>(container, 3);
+        }
+
+        static SEXP getValSEXP(SEXP container) {
+            return getSEXP(container, 3);
+        }
+
+        static void print(SEXP container) {
+            std::cout << "[";
+            switch(getTag(container)) {
+                case 0:
+                std::cout << "Type,"; break;
+                case 1:
+                std::cout << "Test,"; break;
+                case 2:
+                std::cout << "Call,"; break;
+                default:
+                std::cout << "ERR!,"; break;
+            }
+            std::cout << getPC(container) << ",";
+            std::cout << (getPOD(container) ? "D" : "U") << ",";
+            switch(getTag(container)) {
+                case 0:
+                std::cout << getValUint(container); break;
+                case 1:
+                std::cout << getValUint(container); break;
+                case 2: {
+                    SEXP val = getValSEXP(container);
+                    if (TYPEOF(val) == INTSXP) {
+                        if (INTEGER(val)[0] == -1) {
+                            std::cout << "NonHast";
+                        } else if (INTEGER(val)[0] == -2) {
+                            std::cout << "NonRirClos";
+                        } else if (INTEGER(val)[0] == -3) {
+                            std::cout << "NonMono";
+                        } else {
+                            std::cout << "Special(" << INTEGER(val)[0] << ")";
+                        }
+                    } else {
+                        assert(TYPEOF(val) == SYMSXP);
+                        std::cout << CHAR(PRINTNAME(val));
+                    }
+                    break;
+
+                }
+                default:
+                std::cout << "ERR!"; break;
+            }
+            std::cout << "]";
+        }
+    };
+
     class SerializedPool {
         // 0 (rir::FunctionSignature) Function Signature
         // 1 (SEXP) Function Names
@@ -29,40 +164,9 @@ namespace rir {
             return 8;
         }
 
-        static void addSEXP(SEXP container, SEXP data, const int & index) {
-            SET_VECTOR_ELT(container, index, data);
-        }
 
-        static SEXP getSEXP(SEXP container, const int & index) {
-            return VECTOR_ELT(container, index);
-        }
-
-        static void printSpace(int size) {
-            assert(size >= 0);
-            for (int i = 0; i < size; i++) {
-                std::cout << " ";
-            }
-        }
 
         // ENTRY 0: Function Signature
-        template <typename T>
-        static void addTToContainer(SEXP container, const int & index, T val) {
-            rir::Protect protecc;
-            SEXP store;
-            protecc(store = Rf_allocVector(RAWSXP, sizeof(T)));
-            T * tmp = (T *) DATAPTR(store);
-            *tmp = val;
-
-            SET_VECTOR_ELT(container, index, store);
-        }
-
-        template <typename T>
-        static T getTFromContainer(SEXP container, const int & index) {
-            SEXP dataContainer = VECTOR_ELT(container, index);
-            T* res = (T *) DATAPTR(dataContainer);
-            return *res;
-        }
-
         static void addFS(SEXP container, const rir::FunctionSignature & fs) {
             rir::Protect protecc;
             SEXP fsContainer;
@@ -158,14 +262,14 @@ namespace rir {
         }
 
         static void print(SEXP container, int space) {
-            printSpace(space);
+            qSpace(space);
             std::cout << "== serializedPool ==" << std::endl;
             space += 2;
 
-            printSpace(space);
+            qSpace(space);
             rir::FunctionSignature fs = getFS(container);
             std::cout << "ENTRY(0)[Function Signature]: " << (int)fs.envCreation << ", " << (int)fs.optimization << ", " <<  fs.numArguments << ", " << fs.hasDotsFormals << ", " << fs.hasDefaultArgs << ", " << fs.dotsPosition << std::endl;
-            printSpace(space);
+            qSpace(space);
             std::cout << "ENTRY(1)[Function names]: [ ";
             auto fNames = getFNames(container);
             for (int i = 0; i < Rf_length(fNames); i++) {
@@ -174,7 +278,7 @@ namespace rir {
             }
             std::cout << "]" << std::endl;
 
-            printSpace(space);
+            qSpace(space);
             std::cout << "ENTRY(2)[Function Src]: [ ";
             auto fSrc = getFSrc(container);
             for (int i = 0; i < Rf_length(fSrc); i++) {
@@ -187,7 +291,7 @@ namespace rir {
             }
             std::cout << "]" << std::endl;
 
-            printSpace(space);
+            qSpace(space);
             std::cout << "ENTRY(3)[Function Arglist Order]: [ ";
             auto fArg = getFArg(container);
             for (int i = 0; i < Rf_length(fArg); i++) {
@@ -196,7 +300,7 @@ namespace rir {
             }
             std::cout << "]" << std::endl;
 
-            printSpace(space);
+            qSpace(space);
             #if PRINT_EXTENDED_CHILDREN == 1
             std::cout << "ENTRY(4)[children Data]" << std::endl;
             #else
@@ -207,7 +311,7 @@ namespace rir {
                 auto cVector = VECTOR_ELT(fChildren, i);
 
                 #if PRINT_EXTENDED_CHILDREN == 1
-                printSpace(space);
+                qSpace(space);
                 auto handle = std::string(CHAR(STRING_ELT(VECTOR_ELT(fNames, i), 0)));
                 std::cout << handle << " : [ ";
                 #else
@@ -231,7 +335,7 @@ namespace rir {
             std::cout<< std::endl;
             #endif
 
-            printSpace(space);
+            qSpace(space);
             std::cout << "ENTRY(5)[Constant Pool Entries]: [ ";
             auto cpool = getCpool(container);
             for (int i = 0; i < Rf_length(cpool); i++) {
@@ -268,7 +372,7 @@ namespace rir {
             }
             std::cout << "]" << std::endl;
 
-            printSpace(space);
+            qSpace(space);
             std::cout << "ENTRY(6)[Source Pool Entries]: [ ";
             auto spool = getSpool(container);
             for (int i = 0; i < Rf_length(spool); i++) {
@@ -276,7 +380,7 @@ namespace rir {
                 std::cout << TYPEOF(c) << " ";
             }
             std::cout << "]" << std::endl;
-            printSpace(space);
+            qSpace(space);
             std::cout << "ENTRY(7)[Epoch]: " << *((size_t *) DATAPTR(getEpoch(container))) << std::endl;
         }
     };
@@ -284,23 +388,13 @@ namespace rir {
     class contextData {
         // 0 (unsigned long) unsigned long
         // 1 (SEXP) reqMapForCompilation
-
-        // 2 (SEXP) Type Feedback Info
-        // It is stored as a linearized list of the TypeFeedback from the mainCodeObj.
-
+        // 2 (SEXP) Speculative Context
         // 3 (unsigned int) creationIndex
-        // Within a run this index is unique, handle merging across program runs this is invalid.
-
-        // 4 (SEXP) otherFeedbackInfo
-        // Stores the test info and other callee info
-
-        // 5 (SEXP) pointsOfDeopt
-        // Stores the slot information about the points of deopt
 
         public:
             // Misc functions
             static unsigned getStorageSize() {
-                return 6;
+                return 4;
             }
 
             static void addSEXP(SEXP container, SEXP data, const int & index) {
@@ -311,16 +405,13 @@ namespace rir {
                 return VECTOR_ELT(container, index);
             }
 
-            static void printSpace(int size) {
+            static void qSpace(int size) {
                 assert(size >= 0);
                 for (int i = 0; i < size; i++) {
                     std::cout << " ";
                 }
             }
-            static void addObservedTestToVector(SEXP container, ObservedTest * observedVal);
-            static void addObservedCallSiteInfo(SEXP container, ObservedCallees * observedVal, rir::Code *);
 
-            static void addObservedValueToVector(SEXP container, ObservedValues * observedVal);
             // ENTRY 0: Con
             static void addContext(SEXP container, const unsigned long & data) {
                 rir::Protect protecc;
@@ -377,12 +468,13 @@ namespace rir {
                 }
             }
 
-            // ENTRY 2: TypeFeedbackData
-            static void addTF(SEXP container, SEXP data) {
+            // ENTRY 2: SpeculativeContext
+            static void addSpeculativeContext(SEXP container, SEXP data) {
+                assert(TYPEOF(data) == VECSXP);
                 addSEXP(container, data, 2);
             }
 
-            static SEXP getTF(SEXP container) {
+            static SEXP getSpeculativeContext(SEXP container) {
                 return getSEXP(container, 2);
             }
 
@@ -404,112 +496,46 @@ namespace rir {
                 return *res;
             }
 
-            // ENTRY 4: TypeFeedbackData
-            static void addFBD(SEXP container, SEXP data) {
-                addSEXP(container, data, 4);
-            }
-
-            static SEXP getFBD(SEXP container) {
-                return getSEXP(container, 4);
-            }
-
-            // ENTRY 5: PointsOfDeopt
-            static void addPOD(SEXP container, SEXP data) {
-                addSEXP(container, data, 5);
-            }
-
-            static SEXP getPOD(SEXP container) {
-                return getSEXP(container, 5);
-            }
 
             static void print(SEXP container, unsigned int space) {
-                printSpace(space);
+                qSpace(space);
                 std::cout << "== contextData ==" << std::endl;
                 space += 2;
 
-                printSpace(space);
+                qSpace(space);
                 std::cout << "ENTRY(0)[Context]: " << rir::Context(getContext(container)) << std::endl;
                 space += 2;
 
-                printSpace(space);
                 auto rData = getReqMapAsVector(container);
+                qSpace(space);
                 std::cout << "ENTRY(1)[reqMapForCompilation]: <";
                 for (int i = 0; i < Rf_length(rData); i++) {
                     SEXP ele = VECTOR_ELT(rData, i);
                     std::cout << CHAR(PRINTNAME(ele)) << " ";
                 }
                 std::cout << ">" << std::endl;
-                printSpace(space);
-                SEXP tfContainer = getTF(container);
-                std::cout << "ENTRY(2)[Type Feedback Info](" << Rf_length(tfContainer) / (int) sizeof(ObservedValues) << " Entries): < ";
-                ObservedValues * tmp = (ObservedValues *) DATAPTR(tfContainer);
-                for (int i = 0; i < Rf_length(tfContainer) / (int) sizeof(ObservedValues); i++) {
-                    std::cout << "[";
-                    tmp[i].print(std::cout);
-                    std::cout << "] ";
-                    // if (i + 1 != Rf_length(tfContainer) / (int) sizeof(ObservedValues)) {
-                    // }
-                }
-                std::cout << ">" << std::endl;
 
-                printSpace(space);
+                SEXP scContainer = getSpeculativeContext(container);
+                qSpace(space);
+                std::cout << "ENTRY(2)[Speculative Context](" << Rf_length(scContainer) << " Entries)" << std::endl;
+                for (int i = 0; i < Rf_length(scContainer); i++) {
+                    SEXP curr = VECTOR_ELT(scContainer, i);
+                    SEXP currHast = VECTOR_ELT(curr, 0);
+                    SEXP currCon = VECTOR_ELT(curr, 1);
+                    qSpace(space + 2);
+                    std::cout << "Hast: " << CHAR(PRINTNAME(currHast)) << " (" << Rf_length(currCon) << " elements)" << std::endl;
+                    qSpace(space + 4);
+                    // std::cout << "conStore: " << currCon << " ";
+                    for (int j = 0; j < Rf_length(currCon); j++) {
+                        std::cout << "(" << j << ")";
+                        speculativeContextElement::print(VECTOR_ELT(currCon, j));
+                        std::cout << " ";
+                    }
+                    std::cout << std::endl;
+                }
+
+                qSpace(space);
                 std::cout << "ENTRY(3)[Creation Index]: " << getCI(container) << std::endl;
-
-                printSpace(space);
-                SEXP fbdContainer = getFBD(container);
-                std::cout << "ENTRY(4)[Other Feedback Info](" << Rf_length(fbdContainer) << " Entries): < ";
-
-                for (int i = 0; i < Rf_length(fbdContainer); i++) {
-                    SEXP ele = VECTOR_ELT(fbdContainer, i);
-                    if (ele == R_NilValue) {
-                        std::cout << "NIL ";
-                    } else if (ele == R_dot_defined) {
-                        std::cout << "T ";
-                    } else if (ele == R_dot_Method) {
-                        std::cout << "F ";
-                    } else if (TYPEOF(ele) == VECSXP){
-                        auto hast = VECTOR_ELT(ele, 0);
-                        auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
-                        std::cout << "(" << CHAR(PRINTNAME(hast)) << "," << index << ") ";
-                    } else {
-                        std::cout << "UN ";
-                    }
-                }
-                std::cout << ">" << std::endl;
-
-                printSpace(space);
-                SEXP podContainer = getPOD(container);
-                std::cout << "ENTRY(5)[Points Of Deopt](" << Rf_length(podContainer) << " Entries): < ";
-
-                for (int i = 0; i < Rf_length(podContainer); i++) {
-                    SEXP ele = VECTOR_ELT(podContainer, i);
-                    auto speculationType = Rf_asInteger(VECTOR_ELT(ele, 0));
-                    auto speculationIdx = Rf_asInteger(VECTOR_ELT(ele, 1));
-                    if (speculationType == 0) {
-                        ObservedValues * tmp = (ObservedValues *) DATAPTR(tfContainer);
-                        std::cout << "[";
-                        tmp[speculationIdx].print(std::cout);
-                        std::cout << "] ";
-                    } else {
-                        SEXP ele = VECTOR_ELT(fbdContainer, speculationIdx);
-                        std::cout << "[";
-                        if (ele == R_NilValue) {
-                            std::cout << "NIL ";
-                        } else if (ele == R_dot_defined) {
-                            std::cout << "T ";
-                        } else if (ele == R_dot_Method) {
-                            std::cout << "F ";
-                        } else if (TYPEOF(ele) == VECSXP){
-                            auto hast = VECTOR_ELT(ele, 0);
-                            auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
-                            std::cout << "(" << CHAR(PRINTNAME(hast)) << "," << index << ") ";
-                        } else {
-                            std::cout << "UN ";
-                        }
-                        std::cout << "] ";
-                    }
-                }
-                std::cout << ">" << std::endl;
             }
     };
 
@@ -532,7 +558,7 @@ namespace rir {
                 return VECTOR_ELT(container, index);
             }
 
-            static void printSpace(int size) {
+            static void qSpace(int size) {
                 assert(size >= 0);
                 for (int i = 0; i < size; i++) {
                     std::cout << " ";
@@ -648,25 +674,25 @@ namespace rir {
             }
 
             static void print(SEXP container, int space) {
-                printSpace(space);
+                qSpace(space);
                 std::cout << "== serializerData ==" << std::endl;
                 space += 2;
 
-                printSpace(space);
+                qSpace(space);
                 std::cout << "ENTRY(0)[Hast]: " << CHAR(PRINTNAME(getHast(container))) << std::endl;
 
-                printSpace(space);
+                qSpace(space);
                 std::cout << "ENTRY(1)[Function Name]: " << CHAR(PRINTNAME(getName(container))) << std::endl;
 
                 space += 2;
 
                 iterate(container, [&](SEXP offsetSym, SEXP conSym, SEXP cData, bool isMask) {
                     if (!isMask) {
-                        printSpace(space);
+                        qSpace(space);
                         std::cout << "At Offset: " << CHAR(PRINTNAME(offsetSym)) << ", Epoch: " << CHAR(PRINTNAME(conSym)) << std::endl;
                         contextData::print(cData, space+2);
                     } else {
-                        printSpace(space);
+                        qSpace(space);
                         std::cout << "Mask At Offset: " << CHAR(PRINTNAME(offsetSym)) << std::endl;
                     }
                 });

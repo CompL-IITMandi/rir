@@ -470,11 +470,6 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
     Code * mainFunCodeObj = nullptr;
     SEXP hast = R_NilValue;
 
-    std::vector<uintptr_t> tfPCS;
-    std::vector<uintptr_t> othPCS;
-    std::set<uintptr_t> seenTF;
-    std::set<uintptr_t> seenOTH;
-
     if (RuntimeFlags::contextualCompilationSkip && serializerError && contextDataContainer) {
         if (*serializerError == false) {
             // Find the head code object
@@ -483,15 +478,15 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
             auto hastInfo = Hast::getHastInfo(mainFunCodeObj->rirSrc()->src, true);
             if (hastInfo.isValid()) {
                 hast = hastInfo.hast;
-                assert(Hast::hastMap.count(hast) > 0);
-                SEXP vtabContainer = Hast::hastMap[hast].vtabContainer;
-                assert(DispatchTable::check(vtabContainer));
+                // assert(Hast::hastMap.count(hast) > 0);
+                // SEXP vtabContainer = Hast::hastMap[hast].vtabContainer;
+                // assert(DispatchTable::check(vtabContainer));
 
-                auto dt = DispatchTable::unpack(vtabContainer);
+                // auto dt = DispatchTable::unpack(vtabContainer);
 
-                // Collect feedback data
-                Hast::populateTypeFeedbackData(contextDataContainer, dt, &tfPCS);
-                Hast::populateOtherFeedbackData(contextDataContainer, dt, &othPCS);
+                // // Collect feedback data
+                // Hast::populateTypeFeedbackData(contextDataContainer, dt, &tfPCS);
+                // Hast::populateOtherFeedbackData(contextDataContainer, dt, &othPCS);
             } else {
                 *serializerError = true;
                 SerializerDebug::infoMessage("(E) [backend.cpp] hast for main code object missing", 2);
@@ -514,19 +509,16 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
     //
 
     std::set<SEXP> rMap;
+    std::set<uintptr_t> pods;
 
     if (RuntimeFlags::contextualCompilationSkip && serializerError && contextDataContainer) {
         jit.reqMapForCompilation = &rMap;
-        jit.tfPCS = &tfPCS;
-        jit.othPCS = &othPCS;
-        jit.seenTF = &seenTF;
-        jit.seenOTH = &seenOTH;
+        jit.pods = &pods;
         jit.serializerError = serializerError;
     } else {
         jit.reqMapForCompilation = nullptr;
         jit.serializerError = nullptr;
     }
-
 
     std::unordered_map<Code*, rir::Code*> done;
     std::function<rir::Code*(Code*)> compile = [&](Code* c) {
@@ -562,36 +554,6 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
 
     if (RuntimeFlags::contextualCompilationSkip && serializerError && contextDataContainer) {
         if (*serializerError == false) {
-            // 0. Add guaranteed deopt point offsets to metadata
-            SEXP podStore;
-            Protect protecc;
-            protecc(podStore = Rf_allocVector(VECSXP, seenTF.size() + seenOTH.size()));
-            int i = 0;
-            for (auto & ele : seenTF) {
-                SEXP tmpStore, type, idx;
-                protecc(tmpStore = Rf_allocVector(VECSXP, 2));
-                protecc(type = Rf_ScalarInteger(0));
-                protecc(idx = Rf_ScalarInteger(ele));
-                SET_VECTOR_ELT(tmpStore, 0, type);
-                SET_VECTOR_ELT(tmpStore, 1, idx);
-
-                SET_VECTOR_ELT(podStore, i, tmpStore);
-                i++;
-            }
-
-            for (auto & ele : seenOTH) {
-                SEXP tmpStore, type, idx;
-                protecc(tmpStore = Rf_allocVector(VECSXP, 2));
-                protecc(type = Rf_ScalarInteger(1));
-                protecc(idx = Rf_ScalarInteger(ele));
-                SET_VECTOR_ELT(tmpStore, 0, type);
-                SET_VECTOR_ELT(tmpStore, 1, idx);
-
-                SET_VECTOR_ELT(podStore, i, tmpStore);
-                i++;
-            }
-            contextData::addPOD(contextDataContainer, podStore);
-            SerializerDebug::infoMessage("(*) Added certain deopt offsets.", 2);
             // 1: Generate a unique prefix [also makes it easy to keep track]
             // (to prevent collisions in the JIT when serializing and deserializing together)
             std::random_device rd;
@@ -746,7 +708,7 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
                 SerializedPool::addFArg(serializedPoolData, fArgDataVec);
                 SerializedPool::addFChildren(serializedPoolData, fChildrenData);
 
-                jit.serializeModule(contextDataContainer, done[mainFunCodeObj], serializedPoolData, relevantNames, mainName, rMap);
+                jit.serializeModule(contextDataContainer, done[mainFunCodeObj], serializedPoolData, relevantNames, mainName);
 
                 if (SerializerDebug::level > 1) {
                     SerializedPool::print(serializedPoolData, 2);
@@ -756,6 +718,25 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
                 if (*serializerError == true) {
                     SerializerDebug::infoMessage("(E) [backend.cpp] serializing module/pool failed", 2);
                 }
+
+                // Populate Speculative Context
+                rMap.insert(hast); // Ensure main function hast is always there when saving the context
+                SEXP speculativeContexts;
+                protecc(speculativeContexts = Rf_allocVector(VECSXP, rMap.size()));
+                int i = 0;
+                for (auto & ele : rMap) {
+                    assert(Hast::hastMap.count(ele) > 0);
+                    SEXP vtabContainer = Hast::hastMap[ele].vtabContainer;
+                    assert(DispatchTable::check(vtabContainer));
+                    SEXP store;
+                    protecc(store = Rf_allocVector(VECSXP, 2));
+                    SET_VECTOR_ELT(store, 0, ele);
+                    Hast::addSpeculativeContext(store, DispatchTable::unpack(vtabContainer), pods);
+
+                    SET_VECTOR_ELT(speculativeContexts, i++, store);
+                }
+
+                contextData::addSpeculativeContext(contextDataContainer, speculativeContexts);
 
                 // Entry [8]: requirement map
                 std::vector<SEXP> reqMap;
@@ -768,37 +749,37 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
                 SEXP rData;
                 protecc(rData = Rf_allocVector(VECSXP, reqMap.size()));
 
-                int i = 0;
+                i = 0;
                 for (auto & ele : reqMap) {
                     SET_VECTOR_ELT(rData, i++, ele);
                 }
 
                 contextData::addReqMapForCompilation(contextDataContainer, rData);
 
-                SEXP fbdContainer = contextData::getFBD(contextDataContainer);
-                // Ensure General Feedback derives from the requirement map
-                for (int i = 0; i < Rf_length(fbdContainer); i++) {
-                    SEXP ele = VECTOR_ELT(fbdContainer, i);
-                    if (TYPEOF(ele) == VECSXP){
-                        auto hast = VECTOR_ELT(ele, 0);
-                        // auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
-                        bool exists = false;
-                        std::string str(CHAR(PRINTNAME(hast)));
-                        for (auto & ele : reqMap) {
-                            std::string str2(CHAR(PRINTNAME(ele)));
+                // SEXP fbdContainer = contextData::getFBD(contextDataContainer);
+                // // Ensure General Feedback derives from the requirement map
+                // for (int i = 0; i < Rf_length(fbdContainer); i++) {
+                //     SEXP ele = VECTOR_ELT(fbdContainer, i);
+                //     if (TYPEOF(ele) == VECSXP){
+                //         auto hast = VECTOR_ELT(ele, 0);
+                //         // auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
+                //         bool exists = false;
+                //         std::string str(CHAR(PRINTNAME(hast)));
+                //         for (auto & ele : reqMap) {
+                //             std::string str2(CHAR(PRINTNAME(ele)));
 
-                            if (str2.find(str) != std::string::npos) {
-                                // std::cout << "Exists: " << str << ", At reqmap: " << str2 << std::endl;
-                                exists = true;
-                                break;
-                            }
-                        }
-                        if (!exists) {
-                            // std::cout << "[REM_GEN_FB] !Exists: " << str << std::endl;
-                            SET_VECTOR_ELT(fbdContainer, i, R_NilValue);
-                        }
-                    }
-                }
+                //             if (str2.find(str) != std::string::npos) {
+                //                 // std::cout << "Exists: " << str << ", At reqmap: " << str2 << std::endl;
+                //                 exists = true;
+                //                 break;
+                //             }
+                //         }
+                //         if (!exists) {
+                //             // std::cout << "[REM_GEN_FB] !Exists: " << str << std::endl;
+                //             SET_VECTOR_ELT(fbdContainer, i, R_NilValue);
+                //         }
+                //     }
+                // }
 
                 //
                 // Collect type feedback before lowering as lowering may update some slots

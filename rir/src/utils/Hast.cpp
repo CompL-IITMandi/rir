@@ -465,69 +465,69 @@ unsigned Hast::getSrcPoolIndexAtOffset(SEXP hastSym, int requiredOffset) {
     return r.srcIdx;
 }
 
-void Hast::populateTypeFeedbackData(SEXP container, DispatchTable * vtab, std::vector<uintptr_t> * tfPCs) {
-    // int idx = 0;
-    DispatchTable * currVtab = vtab;
+// void Hast::populateTypeFeedbackData(SEXP container, DispatchTable * vtab, std::vector<uintptr_t> * tfPCs) {
+//     // int idx = 0;
+//     DispatchTable * currVtab = vtab;
 
-    std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
-        // Default args
-        if (funn) {
-            auto nargs = funn->nargs();
-            for (unsigned i = 0; i < nargs; i++) {
-                auto code = funn->defaultArg(i);
-                if (code != nullptr) {
-                    iterateOverCodeObjs(code, nullptr);
-                }
-            }
-        }
+//     std::function<void(Code *, Function *)> iterateOverCodeObjs = [&] (Code * c, Function * funn) {
+//         // Default args
+//         if (funn) {
+//             auto nargs = funn->nargs();
+//             for (unsigned i = 0; i < nargs; i++) {
+//                 auto code = funn->defaultArg(i);
+//                 if (code != nullptr) {
+//                     iterateOverCodeObjs(code, nullptr);
+//                 }
+//             }
+//         }
 
-        Opcode* pc = c->code();
-        std::vector<BC::FunIdx> promises;
-        Protect p;
-        while (pc < c->endCode()) {
-            BC bc = BC::decode(pc, c);
-            bc.addMyPromArgsTo(promises);
+//         Opcode* pc = c->code();
+//         std::vector<BC::FunIdx> promises;
+//         Protect p;
+//         while (pc < c->endCode()) {
+//             BC bc = BC::decode(pc, c);
+//             bc.addMyPromArgsTo(promises);
 
-            // call sites
-            if (bc.bc == Opcode::record_type_) {
-                    if (tfPCs) tfPCs->push_back(((uintptr_t) pc));
-                    // std::cout << "record_type " << feedback << " [" << *((uint32_t *) feedback) << "]" << std::endl;
-                    // std::cout << "  ";
-                    // feedback->print(std::cout);
-                    // std::cout << std::endl;
-                    contextData::addObservedValueToVector(container, &bc.immediate.typeFeedback);
-            }
-            // switch (bc.bc) {
-            //     case Opcode::record_type_:
-            //         break;
-            // }
+//             // call sites
+//             if (bc.bc == Opcode::record_type_) {
+//                     if (tfPCs) tfPCs->push_back(((uintptr_t) pc));
+//                     // std::cout << "record_type " << feedback << " [" << *((uint32_t *) feedback) << "]" << std::endl;
+//                     // std::cout << "  ";
+//                     // feedback->print(std::cout);
+//                     // std::cout << std::endl;
+//                     contextData::addObservedValueToVector(container, &bc.immediate.typeFeedback);
+//             }
+//             // switch (bc.bc) {
+//             //     case Opcode::record_type_:
+//             //         break;
+//             // }
 
-            // inner functions
-            if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
-                SEXP iConst = bc.immediateConst();
-                if (DispatchTable::check(iConst)) {
-                    currVtab = DispatchTable::unpack(iConst);
-                    auto c = currVtab->baseline()->body();
-                    auto f = c->function();
-                    iterateOverCodeObjs(c, f);
-                }
-            }
+//             // inner functions
+//             if (bc.bc == Opcode::push_ && TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+//                 SEXP iConst = bc.immediateConst();
+//                 if (DispatchTable::check(iConst)) {
+//                     currVtab = DispatchTable::unpack(iConst);
+//                     auto c = currVtab->baseline()->body();
+//                     auto f = c->function();
+//                     iterateOverCodeObjs(c, f);
+//                 }
+//             }
 
-            pc = BC::next(pc);
-        }
+//             pc = BC::next(pc);
+//         }
 
-        // Iterate over promises code objects recursively
-        for (auto i : promises) {
-            auto prom = c->getPromise(i);
-            iterateOverCodeObjs(prom, nullptr);
-        }
-    };
+//         // Iterate over promises code objects recursively
+//         for (auto i : promises) {
+//             auto prom = c->getPromise(i);
+//             iterateOverCodeObjs(prom, nullptr);
+//         }
+//     };
 
-    Code * genesisCodeObj = currVtab->baseline()->body();
-    Function * genesisFunObj = genesisCodeObj->function();
+//     Code * genesisCodeObj = currVtab->baseline()->body();
+//     Function * genesisFunObj = genesisCodeObj->function();
 
-    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
-}
+//     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+// }
 
 void Hast::printRawFeedback(const DispatchTable* vtab, std::ostream& out, const int & space) {
     int idx = 0;
@@ -596,10 +596,11 @@ void Hast::printRawFeedback(const DispatchTable* vtab, std::ostream& out, const 
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
 }
 
-// Handling call site information
-void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfOth) {
+void Hast::addSpeculativeContext(SEXP mContainer, const DispatchTable* vtab, std::set<uintptr_t> pods) {
     // int idx = 0;
-    DispatchTable* currVtab = vtab;
+    const DispatchTable* currVtab = vtab;
+    Protect protecc;
+    std::vector<SEXP> sContextVector;
 
     std::function<void(Code*, Function*)> iterateOverCodeObjs =
         [&](Code* c, Function* funn) {
@@ -621,29 +622,76 @@ void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab, std::v
                 BC bc = BC::decode(pc, c);
                 bc.addMyPromArgsTo(promises);
 
+                bool pod = pods.find((uintptr_t) pc) != pods.end();
+
+                SEXP store;
                 if (bc.bc == Opcode::record_call_) {
-                    if (tfOth) tfOth->push_back(((uintptr_t) pc));
-                    // ObservedCallees * v = (ObservedCallees *) (pc + 1);
-                    // std::cout << "Decoded target from pointer: [";
-                    // for (auto & ele : v->targets) {
-                    //     std::cout << ele << " ";
-                    // }
-                    // std::cout << "]" << std::endl;
+                    protecc(store = Rf_allocVector(VECSXP, speculativeContextElement::getStorageSize()));
+                    speculativeContextElement::addTag(store, 2);
+                    speculativeContextElement::addPC(store, (uintptr_t) pc);
+                    speculativeContextElement::addPOD(store, pod);
+                    ObservedCallees * feedback = (ObservedCallees *) (pc + 1);
+                    if (feedback->numTargets == 1) {
+                        auto target = feedback->getTarget(c, 0);
+                        if (TYPEOF(target) == CLOSXP && TYPEOF(BODY(target)) == EXTERNALSXP && DispatchTable::check(BODY(target))) {
+                            auto targetVtab = DispatchTable::unpack(BODY(target));
+                            auto targetCode = targetVtab->baseline()->body();
 
-                    ObservedCallees prof = bc.immediate.callFeedback;
-
-                    // std::cout << "Decoded target from data: [";
-                    // for (auto & ele : prof.targets) {
-                    //     std::cout << ele << " ";
-                    // }
-                    // std::cout << "]" << std::endl;
-
-                    contextData::addObservedCallSiteInfo(container, &prof, c);
+                            auto hastInfo = Hast::getHastInfo(targetCode->src, true);
+                            if (hastInfo.isValid()) {
+                                speculativeContextElement::addVal(store, hastInfo.hast);
+                            } else {
+                                speculativeContextElement::addVal(store, Rf_ScalarInteger(-1));
+                            }
+                        } else if (TYPEOF(target) == SPECIALSXP) {
+                            speculativeContextElement::addVal(store, Rf_ScalarInteger(target->u.primsxp.offset));
+                        } else {
+                            speculativeContextElement::addVal(store, Rf_ScalarInteger(-2));
+                        }
+                    } else {
+                        speculativeContextElement::addVal(store, Rf_ScalarInteger(-3));
+                    }
+                    sContextVector.push_back(store);
+                    // bc.print(std::cout);
+                    // speculativeContextElement::print(store);
+                    // std::cout << std::endl;
                 }
 
                 if (bc.bc == Opcode::record_test_) {
-                    if (tfOth) tfOth->push_back(((uintptr_t) pc));
-                    contextData::addObservedTestToVector(container, &bc.immediate.testFeedback);
+                    protecc(store = Rf_allocVector(VECSXP, speculativeContextElement::getStorageSize()));
+                    speculativeContextElement::addTag(store, 1);
+                    speculativeContextElement::addPC(store, (uintptr_t) pc);
+                    speculativeContextElement::addPOD(store, pod);
+                    ObservedTest* feedback = (ObservedTest*)(pc + 1);
+                    speculativeContextElement::addVal(store, *(reinterpret_cast<uint32_t*>(feedback)));
+                    sContextVector.push_back(store);
+                    // bc.print(std::cout);
+                    // speculativeContextElement::print(store);
+                    // std::cout << std::endl;
+                }
+
+                if (bc.bc == Opcode::record_type_) {
+                    protecc(store = Rf_allocVector(VECSXP, speculativeContextElement::getStorageSize()));
+                    speculativeContextElement::addTag(store, 0);
+                    speculativeContextElement::addPC(store, (uintptr_t) pc);
+                    speculativeContextElement::addPOD(store, pod);
+                    ObservedValues* feedback = (ObservedValues*)(pc + 1);
+                    uint32_t storedVal = *((uint32_t*) feedback);
+                    speculativeContextElement::addVal(store, storedVal);
+                    sContextVector.push_back(store);
+
+                    // std::cout << ">>>>>>>>>>>>>>>>" << std::endl;
+                    // std::cout << "feedback: " << *((uint32_t*) feedback) << std::endl;
+                    // std::cout << "Storing Val: " << storedVal << std::endl;
+                    // speculativeContextElement::print(store);
+                    // std::cout << std::endl;
+                    // bc.print(std::cout);
+                    // ObservedValues test;
+                    // *(&test) = *((ObservedValues *)&storedVal);
+                    // std::cout << "   [ ";
+                    // test.print(std::cout);
+                    // std::cout << " ]" << std::endl;
+                    // std::cout << "<<<<<<<<<<<<<<<<" << std::endl;
                 }
 
                 // inner functions
@@ -667,12 +715,96 @@ void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab, std::v
                 iterateOverCodeObjs(prom, nullptr);
             }
         };
-
     Code* genesisCodeObj = currVtab->baseline()->body();
     Function* genesisFunObj = genesisCodeObj->function();
-
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+    SEXP conStore;
+    protecc(conStore = Rf_allocVector(VECSXP, sContextVector.size()));
+    for(size_t i = 0; i < sContextVector.size(); i++) {
+        SET_VECTOR_ELT(conStore, i, sContextVector[i]);
+
+    }
+    SET_VECTOR_ELT(mContainer, 1, conStore);
 }
+
+
+// // Handling call site information
+// void Hast::populateOtherFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfOth) {
+//     // int idx = 0;
+//     DispatchTable* currVtab = vtab;
+
+//     std::function<void(Code*, Function*)> iterateOverCodeObjs =
+//         [&](Code* c, Function* funn) {
+//             // Default args
+//             if (funn) {
+//                 auto nargs = funn->nargs();
+//                 for (unsigned i = 0; i < nargs; i++) {
+//                     auto code = funn->defaultArg(i);
+//                     if (code != nullptr) {
+//                         iterateOverCodeObjs(code, nullptr);
+//                     }
+//                 }
+//             }
+
+//             Opcode* pc = c->code();
+//             std::vector<BC::FunIdx> promises;
+//             Protect p;
+//             while (pc < c->endCode()) {
+//                 BC bc = BC::decode(pc, c);
+//                 bc.addMyPromArgsTo(promises);
+
+//                 if (bc.bc == Opcode::record_call_) {
+//                     if (tfOth) tfOth->push_back(((uintptr_t) pc));
+//                     // ObservedCallees * v = (ObservedCallees *) (pc + 1);
+//                     // std::cout << "Decoded target from pointer: [";
+//                     // for (auto & ele : v->targets) {
+//                     //     std::cout << ele << " ";
+//                     // }
+//                     // std::cout << "]" << std::endl;
+
+//                     ObservedCallees prof = bc.immediate.callFeedback;
+
+//                     // std::cout << "Decoded target from data: [";
+//                     // for (auto & ele : prof.targets) {
+//                     //     std::cout << ele << " ";
+//                     // }
+//                     // std::cout << "]" << std::endl;
+
+//                     contextData::addObservedCallSiteInfo(container, &prof, c);
+//                 }
+
+//                 if (bc.bc == Opcode::record_test_) {
+//                     if (tfOth) tfOth->push_back(((uintptr_t) pc));
+//                     contextData::addObservedTestToVector(container, &bc.immediate.testFeedback);
+//                 }
+
+//                 // inner functions
+//                 if (bc.bc == Opcode::push_ &&
+//                     TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+//                     SEXP iConst = bc.immediateConst();
+//                     if (DispatchTable::check(iConst)) {
+//                         currVtab = DispatchTable::unpack(iConst);
+//                         auto c = currVtab->baseline()->body();
+//                         auto f = c->function();
+//                         iterateOverCodeObjs(c, f);
+//                     }
+//                 }
+
+//                 pc = BC::next(pc);
+//             }
+
+//             // Iterate over promises code objects recursively
+//             for (auto i : promises) {
+//                 auto prom = c->getPromise(i);
+//                 iterateOverCodeObjs(prom, nullptr);
+//             }
+//         };
+
+//     Code* genesisCodeObj = currVtab->baseline()->body();
+//     Function* genesisFunObj = genesisCodeObj->function();
+
+//     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+// }
 
 void Hast::serializerCleanup() {
     auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : "bitcodes";

@@ -73,12 +73,14 @@ class Hast {
     static bool isAnonEnv(SEXP env);
     static SEXP getHast(SEXP body, SEXP env);
 
-    static void populateTypeFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfPCs = nullptr);
+    // static void populateTypeFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfPCs = nullptr);
 
-    static void populateOtherFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfOth = nullptr);
+    // static void populateOtherFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfOth = nullptr);
     static void getGeneralFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<GenFeedbackHolder> & res, DispatchTable * vtab);
     static void getTypeFeedbackPtrsAtIndices(std::vector<int> & indices, std::vector<ObservedValues*> & res, DispatchTable * vtab);
     static void printRawFeedback(const DispatchTable* vtab, std::ostream& out, const int & space);
+
+    static void addSpeculativeContext(SEXP contextDataContainer, const DispatchTable* vtab, std::set<uintptr_t> pods);
 
     static void serializerCleanup();
 };

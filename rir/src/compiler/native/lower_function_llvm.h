@@ -122,10 +122,7 @@ class LowerFunctionLLVM {
     // Serializer start
     std::set<SEXP>* reqMap = nullptr;
     bool* serializerError = nullptr;
-    std::vector<uintptr_t> * tfPCS;
-    std::vector<uintptr_t> * othPCS;
-    std::set<uintptr_t> * seenTF;
-    std::set<uintptr_t> * seenOTH;
+    std::set<uintptr_t> * pods = nullptr;
 
     std::unordered_map<std::string, llvm::Value*> symbolPatchCache;
     std::unordered_map<std::string, llvm::GlobalVariable*> globalSymbolPatchCache;

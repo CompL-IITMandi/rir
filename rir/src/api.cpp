@@ -614,7 +614,7 @@ static void serializeClosure(SEXP hast, const unsigned & indexOffset, const std:
 bool serializerOnline = false;
 
 // PRINT AST, small debugging utility
-void printSpace(int & lim) {
+static inline void printSpace(const int & lim) {
     int i = 0;
     for(i = 0; i < lim; i++ ) {
         std::cout << " ";

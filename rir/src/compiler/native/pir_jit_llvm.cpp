@@ -539,7 +539,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     }
 }
 
-void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName, std::set<SEXP> & rMap) {
+void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName) {
     auto prefix = getenv("PIR_SERIALIZE_PREFIX") ? getenv("PIR_SERIALIZE_PREFIX") : "bitcodes";
 
     auto poolEpoch = std::chrono::system_clock::now().time_since_epoch().count();
@@ -888,10 +888,7 @@ void PirJitLLVM::compile(
 
     funCompiler.serializerError = serializerError;
     funCompiler.reqMap = reqMapForCompilation;
-    funCompiler.tfPCS = tfPCS;
-    funCompiler.othPCS = othPCS;
-    funCompiler.seenTF = seenTF;
-    funCompiler.seenOTH = seenOTH;
+    funCompiler.pods = pods;
 
     funCompiler.compile();
 

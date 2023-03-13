@@ -32,11 +32,11 @@ SEXP GeneralWorklist::get(SEXP hastSym) {
 }
 
 void GeneralWorklist::print(const unsigned int & space) {
-    generalUtil::printSpace(space);
+    generalUtil::pSpace(space);
     std::cerr << "Deserializer Map" << std::endl;
 
     for (auto & ele : availableMetas) {
-        generalUtil::printSpace(space + 2);
+        generalUtil::pSpace(space + 2);
         std::cerr << "HAST: " << CHAR(PRINTNAME(ele.first)) << std::endl;
 
         deserializerData::print(Pool::get(ele.second), space + 4);
@@ -164,38 +164,38 @@ void UnlockingElement::print(BC::PoolIdx idx, const int & space) {
 }
 
 void UnlockingElement::print(SEXP container, const int & space) {
-    generalUtil::printSpace(space);
+    generalUtil::pSpace(space);
     std::cerr << "[Unlocking Element]" << std::endl;
 
-    generalUtil::printSpace(space + 2);
+    generalUtil::pSpace(space + 2);
     std::cerr << "├─(ENTRY 0, PathPrefix    ): " << getPathPrefix(container) << std::endl;
 
-    generalUtil::printSpace(space + 2);
+    generalUtil::pSpace(space + 2);
     std::cerr << "├─(ENTRY 1, VtabContainer ): " << getVtableContainer(container) << std::endl;
 
-    generalUtil::printSpace(space + 2);
+    generalUtil::pSpace(space + 2);
     std::cerr << "├─(ENTRY 2, Versioning    ): " << getVersioningInfo(container) << std::endl;
 
-    generalUtil::printSpace(space + 2);
+    generalUtil::pSpace(space + 2);
     std::cerr << "├─(ENTRY 3, Counter       ): " << *getCounter(container) << std::endl;
 
-    // generalUtil::printSpace(space + 2);
+    // generalUtil::pSpace(space + 2);
     // if (containsNArgs(container)) {
     //     std::cerr << "├─(ENTRY 4, numArgs       ): " << *getNumArgs(container) << std::endl;
     // } else {
     //     std::cerr << "├─(ENTRY 4, numArgs       ): NA" << std::endl;
     // }
 
-    generalUtil::printSpace(space + 2);
+    generalUtil::pSpace(space + 2);
     std::cerr << "├─(ENTRY 4, context       ): (" << getContext(container) << ") " << Context(getContext(container)) << std::endl;
 
     if (getTFSlotInfo(container) == R_NilValue) {
-        generalUtil::printSpace(space + 2);
+        generalUtil::pSpace(space + 2);
         std::cerr << "└─(No Type Versioning Info)" << std::endl;
     } else {
         SEXP slotsInfo = getTFSlotInfo(container);
 
-        generalUtil::printSpace(space + 2);
+        generalUtil::pSpace(space + 2);
         std::cerr << "├─(ENTRY 5, TF Slot Idx  ): [ ";
         for (int i = 0; i < Rf_length(slotsInfo); i++) {
             std::cerr << Rf_asInteger(VECTOR_ELT(slotsInfo, i)) << " ";
@@ -203,7 +203,7 @@ void UnlockingElement::print(SEXP container, const int & space) {
         std::cerr << "]" << std::endl;
 
         SEXP funTF = getFunTFInfo(container);
-        generalUtil::printSpace(space + 2);
+        generalUtil::pSpace(space + 2);
         std::cerr << "└─(ENTRY 6, Fun TF Data  ): [ ";
         for (int i = 0; i < Rf_length(funTF); i++) {
             auto ele = generalUtil::getUint32t(funTF, i);
@@ -214,12 +214,12 @@ void UnlockingElement::print(SEXP container, const int & space) {
     }
 
     if (getGTFSlotInfo(container) == R_NilValue) {
-        generalUtil::printSpace(space + 2);
+        generalUtil::pSpace(space + 2);
         std::cerr << "└─(No General Feedback Info)" << std::endl;
     } else {
         SEXP slotsInfo = getGTFSlotInfo(container);
 
-        generalUtil::printSpace(space + 2);
+        generalUtil::pSpace(space + 2);
         std::cerr << "├─(ENTRY 7, GTF Slot Idx  ): [ ";
         for (int i = 0; i < Rf_length(slotsInfo); i++) {
             std::cerr << Rf_asInteger(VECTOR_ELT(slotsInfo, i)) << " ";
@@ -227,7 +227,7 @@ void UnlockingElement::print(SEXP container, const int & space) {
         std::cerr << "]" << std::endl;
 
         SEXP funTF = getGFunTFInfo(container);
-        generalUtil::printSpace(space + 2);
+        generalUtil::pSpace(space + 2);
         std::cerr << "└─(ENTRY 7, Fun GTF Data  ): [ ";
         for (int i = 0; i < Rf_length(funTF); i++) {
             auto ele = VECTOR_ELT(funTF, i);
@@ -290,10 +290,10 @@ void OptUnlockingElement::print(BC::PoolIdx idx, const int & space) {
 }
 
 void OptUnlockingElement::print(SEXP container, const int & space) {
-    generalUtil::printSpace(space);
+    generalUtil::pSpace(space);
     std::cerr << "[Unlocking Element]" << std::endl;
 
-    generalUtil::printSpace(space + 2);
+    generalUtil::pSpace(space + 2);
     std::cerr << "├─(ENTRY 0, numArgs       ): " << *getNumArgs(container) << std::endl;
 
     SEXP uEleContainer = getUE(container);
