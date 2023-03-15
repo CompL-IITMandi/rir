@@ -111,7 +111,7 @@ void BitcodeLinkUtil::tryUnlocking(SEXP currHastSym) {
 static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime) {
     auto start = high_resolution_clock::now();
 
-    DeserializerDebug::infoMessage("Deserializing binary", 4);
+    // DeserializerDebug::infoMessage("Deserializing binary", 4);
     // deserializedMetadata::print(uEleContainer, std::cout, 6);
 
     rir::pir::PirJitLLVM jit("deserializer");
@@ -171,19 +171,19 @@ void BitcodeLinkUtil::tryLinking(DispatchTable * vtab, SEXP hSym) {
       Pool::patch(ueIdx, binary);
       if (unsatisfiedDeps.size() == 0) {
         earlyLinkingIdx.push_back(ueIdx);
-        break;
+        continue;
       }
       for (auto & dep : unsatisfiedDeps) {
         Worklist1::worklist[dep].push_back(ueIdx);
       }
     }
-
+    DeserializerDebug::infoMessage("TryUnlocking", 2);
     tryUnlocking(hSym);
 
     // Early linking is now semi early linking
     for (auto & ueIdx : earlyLinkingIdx) {
         if (DeserializerDebug::level > 1) {
-            DeserializerDebug::infoMessage("Deserializer Starting", 0);
+            DeserializerDebug::infoMessage("Early linking", 2);
         }
         doUnlockingElement(Pool::get(ueIdx), linkTime);
         Pool::patch(ueIdx, R_NilValue);

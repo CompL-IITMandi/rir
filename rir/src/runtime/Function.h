@@ -65,7 +65,7 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
     }
 
     bool matchSpeculativeContext();
-    void printSpeculativeContext();
+    void printSpeculativeContext(std::ostream& out, const int & space);
 
     static Function* deserialize(SEXP refTable, R_inpstream_t inp);
     void serialize(SEXP refTable, R_outpstream_t out) const;

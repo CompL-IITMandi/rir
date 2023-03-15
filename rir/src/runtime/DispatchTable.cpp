@@ -22,28 +22,25 @@ Function* DispatchTable::get(size_t i) const {
 }
 
 void DispatchTable::print(std::ostream& out, const int & space) const {
-    for (int i = 0; i < space; i++) {
-        out << " ";
-    }
-    out << "=== Printing Dispatch table (" << this << ") ===";
-    for (int i = 0; i < space; i++) {
-        out << " ";
-    }
-    out << std::endl;
-    out << "Full Runtime speculative context" << std::endl;
-    Hast::printRawFeedback(this, out, space);
-    out << std::endl;
+    printSpace(space, out);
+    out << "=== Printing Dispatch table (" << this << ") ===" << std::endl;
+    // out << std::endl;
+    // out << "Full Runtime speculative context" << std::endl;
+    // Hast::printRawFeedback(this, out, space);
+    // out << std::endl;
     for (size_t i = 1; i < size(); ++i) {
         SEXP funContainer = getEntry(i);
 
         if (L2Dispatch::check(funContainer)) {
             L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
-            auto fun = l2vt->dispatch();
-            out << "(" << i << ")[L2][" << (fun->disabled() ? "Disabled" : "") << "]: " << fun->context() << std::endl;
-            l2vt->print(out, 4);
+            // auto fun = l2vt->dispatch();
+            printSpace(space+2, out);
+            out << "(" << i << "): " << l2vt->getFallback()->context() << std::endl;
+            l2vt->print(out, space+4);
         } else {
             auto fun = Function::unpack(funContainer);
-            out << "(" << i << ")[][" << (fun->disabled() ? "Disabled" : "") << "]: " << fun->context() << std::endl;
+            printSpace(space+2, out);
+            out << "(" << i << ")[" << (fun->disabled() ? "D" : "") << "]: " << fun->context() << std::endl;
         }
     }
 }
@@ -155,7 +152,8 @@ void DispatchTable::insertL2(Function* fun) {
         dummy->registerDeopt();
         L2Dispatch * l2vt = L2Dispatch::create(dummy, p);
         l2vt->insert(fun);
-
+        // std::cout << "Create L2: " << l2vt << std::endl;
+        // l2vt->print(std::cout,2);
         setEntry(idx, l2vt->container());
     } else {
         if (Function::check(idxContainer)) {
@@ -163,9 +161,13 @@ void DispatchTable::insertL2(Function* fun) {
             Function * old = Function::unpack(idxContainer);
             L2Dispatch * l2vt = L2Dispatch::create(old, p);
             l2vt->insert(fun);
+            // std::cout << "Create L2: " << l2vt << std::endl;
+            // l2vt->print(std::cout,2);
         } else if (L2Dispatch::check(idxContainer)) {
             L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
             l2vt->insert(fun);
+            // std::cout << "Add to L2: " << l2vt << std::endl;
+            // l2vt->print(std::cout,2);
         } else {
             Rf_error("Dispatch table L2insertion error, corrupted slot!!");
         }

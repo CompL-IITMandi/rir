@@ -66,62 +66,75 @@ bool Function::matchSpeculativeContext() {
     return true;
 }
 
-void Function::printSpeculativeContext() {
+void Function::printSpeculativeContext(std::ostream& out, const int & space) {
     assert(speculativeContextIdx != -1);
-    std::cout << "=== Speculative Context ===" << std::endl;
     SEXP speculativeContext = body()->getExtraPoolEntry(speculativeContextIdx);
     for (int i = 0; i < Rf_length(speculativeContext); i++) {
-        std::cout << "   Slot[" << i << "]" << std::endl;
+        printSpace(space, out);
+        out << "Slot[" << i << "/" << (Rf_length(speculativeContext) - 1) << "]" << std::endl;
         SEXP ele = VECTOR_ELT(speculativeContext, i);
         SpeculativeContextValue * sVal = getTFromContainerPointer<SpeculativeContextValue>(ele, 0);
         SpeculativeContextPointer * sPtr = getTFromContainerPointer<SpeculativeContextPointer>(ele, 1);
         if (sVal->tag == 0) {
             ObservedValues* feedback = (ObservedValues*)(sPtr->pc + 1);
             uint32_t storedVal = *((uint32_t*) feedback);
-            std::cout << "      TAG[0]: " << sVal->uIntVal << "," << storedVal << std::endl;
+            printSpace(space+2,out);
+            out << "TAG[0]: " << sVal->uIntVal << "," << storedVal << std::endl;
         } else if (sVal->tag == 1) {
             ObservedTest* feedback = (ObservedTest*)(sPtr->pc + 1);
             uint32_t storedVal = *((uint32_t*) feedback);
-            std::cout << "      TAG[1]: " << sVal->uIntVal << "," << storedVal << std::endl;
+            printSpace(space+2,out);
+            out << "TAG[1]: " << sVal->uIntVal << "," << storedVal << std::endl;
         } else {
             SEXP val = sVal->sexpVal;
             ObservedCallees * feedback = (ObservedCallees *) (sPtr->pc + 1);
 
             if (TYPEOF(val) == INTSXP && INTEGER(val)[0] > 0) {
-                std::cout << "      TAG[2:Special]" << std::endl;
+                printSpace(space+2,out);
+                out << "TAG[2:Special]" << std::endl;
 
                 // Check specialsxp
                 if (feedback->invalid) {
-                    std::cout << "        -- Invalid Feedback --" << std::endl;
+                    printSpace(space+4,out);
+                    out << "[Invalid Feedback]" << std::endl;
                     continue;
                 }
                 if (feedback->numTargets == 0) {
-                    std::cout << "        -- 0 targets --" << std::endl;
+                    printSpace(space+4, out);
+                    out << "[targets]" << std::endl;
                     continue;
                 }
                 for (int j = 0; j < feedback->numTargets; ++j) {
-                    std::cout << "        Callee(" << j <<")" << std::endl;
+                    printSpace(space+4, out);
+                    out << "Callee(" << j <<")" << std::endl;
 
                     auto target = feedback->getTarget(sPtr->code, j);
                     if (TYPEOF(target) == SPECIALSXP) {
-                        std::cout << "          [" << target->u.primsxp.offset << "," << INTEGER(val)[0] << "]" << std::endl;
-
+                        printSpace(space+6, out);
+                        out << "[" << target->u.primsxp.offset << "," << INTEGER(val)[0] << "]" << std::endl;
                     } else {
-                        std::cout << "          NONSPECIAL" << std::endl;
+                        printSpace(space+6, out);
+                        out << "[NONSPECIAL]" << std::endl;
                     }
                 }
             } else if (TYPEOF(val) == SYMSXP) {
+                printSpace(space+2,out);
+                out << "TAG[2:Special]" << std::endl;
+
                 // Check callee
                 if (feedback->invalid) {
-                    std::cout << "        -- Invalid Feedback --" << std::endl;
+                    printSpace(space+4, out);
+                    out << "[Invalid Feedback]" << std::endl;
                     continue;
                 }
                 if (feedback->numTargets == 0) {
-                    std::cout << "        -- 0 targets --" << std::endl;
+                    printSpace(space+4, out);
+                    out << "[targets]" << std::endl;
                     continue;
                 }
                 for (int j = 0; j < feedback->numTargets; ++j) {
-                    std::cout << "        Callee(" << j <<")" << std::endl;
+                    printSpace(space+4, out);
+                    out << "Callee(" << j <<")" << std::endl;
 
                     auto target = feedback->getTarget(sPtr->code, j);
                     if (TYPEOF(target) == CLOSXP && TYPEOF(BODY(target)) == EXTERNALSXP && DispatchTable::check(BODY(target))) {
@@ -130,18 +143,22 @@ void Function::printSpeculativeContext() {
 
                         auto hastInfo = Hast::getHastInfo(targetCode->src, true);
                         if (hastInfo.isValid()) {
-                            std::cout << "          [" << CHAR(PRINTNAME(hastInfo.hast)) << "," << CHAR(PRINTNAME(val)) << "]" << std::endl;
+                            printSpace(space+6, out);
+                            out << "[" << CHAR(PRINTNAME(hastInfo.hast)) << "," << CHAR(PRINTNAME(val)) << "]" << std::endl;
                         } else {
-                            std::cout << "          INVALID-HAST" << std::endl;
+                            printSpace(space+6, out);
+                            out << "[INVALID-HAST]" << std::endl;
 
                         }
                     } else {
-                        std::cout << "          NONCLOS" << std::endl;
+                        printSpace(space+6, out);
+                        out << "[NONCLOS]" << std::endl;
 
                     }
                 }
             } else {
-                std::cout << "      ASSERT(FALSE)" << std::endl;
+                printSpace(space+2,out);
+                out << "[OTHER:" << TYPEOF(val) << "]" << std::endl;
             }
         }
     }

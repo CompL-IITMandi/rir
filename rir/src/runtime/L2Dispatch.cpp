@@ -20,9 +20,10 @@ void L2Dispatch::print(std::ostream& out, const int & space) {
 	for (int i = _last; i >= 0; i--) {
 		auto currFun = getFunction(i);
 		printSpace(out, space);
-		out << "(" << i << ")" << (currFun->disabled() ? "[disabled]" : "[]");
+		out << "(" << i << ")" << (currFun->disabled() ? "[disabled]" : "[]") << "[function=" << currFun << "]";
 		out << std::endl;
-		currFun->printSpeculativeContext();
+
+		currFun->printSpeculativeContext(out,space + 2);
 	}
 
 }
@@ -179,7 +180,7 @@ Function * L2Dispatch::dispatch() {
 	}
 	#endif
 	// std::cout << "L2 Dispatch called" << std::endl;
-	// print(std::cout);
+	// print(std::cout,2);
 
 
 	if (lastDispatch && !lastDispatch->disabled()) {
