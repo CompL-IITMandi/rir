@@ -81,7 +81,7 @@ class Hast {
     static void printRawFeedback(const DispatchTable* vtab, std::ostream& out, const int & space);
 
     static void addSpeculativeContext(SEXP contextDataContainer, const DispatchTable* vtab, std::set<uintptr_t> pods);
-
+    static std::pair<rir::Code*,Opcode*> getSpeculativeContext(const DispatchTable* vtab, const int & offset);
     static void serializerCleanup();
 };
 }

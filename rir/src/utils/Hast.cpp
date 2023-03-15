@@ -596,6 +596,93 @@ void Hast::printRawFeedback(const DispatchTable* vtab, std::ostream& out, const 
     iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
 }
 
+std::pair<rir::Code*,Opcode*> Hast::getSpeculativeContext(const DispatchTable* vtab, const int & offset) {
+    std::pair<rir::Code*,Opcode*> res;
+    res.first = nullptr;
+    res.second = nullptr;
+    int idx = 0;
+    const DispatchTable* currVtab = vtab;
+    Protect protecc;
+    std::vector<SEXP> sContextVector;
+
+    std::function<void(Code*, Function*)> iterateOverCodeObjs =
+        [&](Code* c, Function* funn) {
+            // Default args
+            if (funn) {
+                auto nargs = funn->nargs();
+                for (unsigned i = 0; i < nargs; i++) {
+                    auto code = funn->defaultArg(i);
+                    if (code != nullptr) {
+                        iterateOverCodeObjs(code, nullptr);
+                        if (res.first) return;
+                    }
+                }
+            }
+
+            Opcode* pc = c->code();
+            std::vector<BC::FunIdx> promises;
+            Protect p;
+            while (pc < c->endCode()) {
+                BC bc = BC::decode(pc, c);
+                bc.addMyPromArgsTo(promises);
+                if (bc.bc == Opcode::record_call_) {
+                    if (idx == offset) {
+                        res.first = c;
+                        res.second = pc;
+                        return;
+                    }
+                    idx++;
+                }
+
+                if (bc.bc == Opcode::record_test_) {
+                    if (idx == offset) {
+                        res.first = c;
+                        res.second = pc;
+                        return;
+                    }
+                    idx++;
+                }
+
+                if (bc.bc == Opcode::record_type_) {
+                    if (idx == offset) {
+                        res.first = c;
+                        res.second = pc;
+                        return;
+                    }
+                    idx++;
+                }
+
+                // inner functions
+                if (bc.bc == Opcode::push_ &&
+                    TYPEOF(bc.immediateConst()) == EXTERNALSXP) {
+                    SEXP iConst = bc.immediateConst();
+                    if (DispatchTable::check(iConst)) {
+                        currVtab = DispatchTable::unpack(iConst);
+                        auto c = currVtab->baseline()->body();
+                        auto f = c->function();
+                        iterateOverCodeObjs(c, f);
+                        if (res.first) return;
+                    }
+                }
+
+                pc = BC::next(pc);
+            }
+
+            // Iterate over promises code objects recursively
+            for (auto i : promises) {
+                auto prom = c->getPromise(i);
+                iterateOverCodeObjs(prom, nullptr);
+                if (res.first) return;
+            }
+        };
+    Code* genesisCodeObj = currVtab->baseline()->body();
+    Function* genesisFunObj = genesisCodeObj->function();
+    iterateOverCodeObjs(genesisCodeObj, genesisFunObj);
+
+    assert(res.first && res.second);
+    return res;
+}
+
 void Hast::addSpeculativeContext(SEXP mContainer, const DispatchTable* vtab, std::set<uintptr_t> pods) {
     // int idx = 0;
     const DispatchTable* currVtab = vtab;

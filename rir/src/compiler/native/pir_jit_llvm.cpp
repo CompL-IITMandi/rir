@@ -34,7 +34,8 @@
 #include "utils/DeserializerConsts.h"
 
 #include "utils/BitcodeLinkUtility.h"
-
+#include "utils/deserializerRuntime.h"
+#include "utils/DeserializerDebug.h"
 #include <chrono>
 
 namespace rir {
@@ -354,20 +355,33 @@ void PirJitLLVM::finalize() {
 }
 
 void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
-    int versioning = UnlockingElement::getVersioningInfo(uEleContainer);
-    unsigned long con = UnlockingElement::getContext(uEleContainer);
+    unsigned long con = deserializedMetadata::getContext(uEleContainer);
 
+    SEXP vtabContainer = deserializedMetadata::getVTab(uEleContainer);
+
+    if (!DispatchTable::check(vtabContainer)) {
+        DeserializerDebug::infoMessage("Deserializer quietly failing, vtab is corrupted!", 0);
+        return;
+    }
+
+    DispatchTable * vtab = DispatchTable::unpack(vtabContainer);
+    assert(vtab->hast && vtab->hast != R_NilValue);
+    assert(vtab->offsetIdx != -1);
+
+    std::stringstream pathPrefix;
+
+    pathPrefix << CHAR(PRINTNAME(vtab->hast)) << "_" << vtab->offsetIdx << "_" << CHAR(PRINTNAME(deserializedMetadata::getEpoch(uEleContainer)));
 
     // Path to the pool
     std::stringstream poolPath;
-    poolPath << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".pool";
+    poolPath << DeserializerConsts::bitcodesPath << "/" << pathPrefix.str() << ".pool";
 
     // Deserialize the pools
     FILE *reader;
     reader = fopen(poolPath.str().c_str(),"r");
 
     if (!reader) {
-        std::cerr << "deserializer quietly failing, unable to open pool file: " << poolPath.str() << std::endl;
+        DeserializerDebug::infoMessage("Deserializer quietly failing, unable to open pool file!", 0);
         return;
     }
     Protect protecc;
@@ -391,16 +405,16 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     std::stringstream fp;
 
     if (usingBC) {
-        fp << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".bc";
+        fp << DeserializerConsts::bitcodesPath << "/" << pathPrefix.str() << ".bc";
         llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> error_or_buffer = MemoryBuffer::getFile(fp.str());
         std::error_code std_error_code = error_or_buffer.getError();
         if( std_error_code ) {
-            std::cerr << "deserializer quietly failing, bitcode file buffer failed to load: " << fp.str() << std::endl;
+            DeserializerDebug::infoMessage("Deserializer quietly failing, bitcode file buffer failed to load!", 0);
             return;
         }
         llvm::Expected<std::unique_ptr<llvm::Module>> llModuleHolder = llvm::parseBitcodeFile(error_or_buffer->get()->getMemBufferRef(), this->getContext());
         if (std::error_code ec = errorToErrorCode(llModuleHolder.takeError())) {
-            std::cerr << "deserializer quietly failing, error reading module from bitcode: " << fp.str() << std::endl;
+            DeserializerDebug::infoMessage("Deserializer quietly failing, error reading module from bitcode!", 0);
             return;
         }
 
@@ -408,11 +422,11 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         ExitOnErr(JIT->addIRModule(std::move(TSM)));
 
     } else {
-        fp << DeserializerConsts::bitcodesPath << "/" << UnlockingElement::getPathPrefix(uEleContainer) << ".o";
+        fp << DeserializerConsts::bitcodesPath << "/" << pathPrefix.str() << ".o";
         llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> error_or_buffer = MemoryBuffer::getFile(fp.str());
         std::error_code std_error_code = error_or_buffer.getError();
         if( std_error_code ) {
-            std::cerr << "deserializer quietly failing, object file failed to load: " << fp.str() << std::endl;
+            DeserializerDebug::infoMessage("Deserializer quietly failing, object file failed to load!", 0);
             return;
         }
         std::unique_ptr<MemoryBuffer> memory_buffer(
@@ -480,58 +494,96 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         }
     }
 
-
-
-
     auto res = codeObjs[0];
     function.finalize(res, fs, Context(con));
 
     for (auto& item : codeObjs) {
         item->function(function.function());
     }
-
-    DispatchTable * vtab;
-
-    if (!DispatchTable::check(UnlockingElement::getVtableContainer(uEleContainer))) {
-        std::cerr << "deserializer quietly failing, vtab is corrupted! " << std::endl;
-        return;
-    }
-
-    SEXP vtabContainer = UnlockingElement::getVtableContainer(uEleContainer);
-
-    protecc(vtabContainer);
-
-    vtab = DispatchTable::unpack(vtabContainer);
-
     function.function()->inheritFlags(vtab->baseline());
-
-    // std::cout << "Adding Context: " << Context(con) << std::endl;
-    // std::cout << "Adding native function(deserialized): " << function.function() << std::endl;
-    // UnlockingElement::print(uEleContainer, 4);
-
     auto currFun = function.function();
-
     protecc(currFun->container());
 
-    static bool naiveL2 = getenv("NAIVE_L2") ? getenv("NAIVE_L2")[0] == '1' : false;
+    SEXP speculativeContext = deserializedMetadata::getSpeculativeContext(uEleContainer);
+
+    if (speculativeContext == R_NilValue) {
+        DeserializerDebug::infoMessage("Deserialized rare function with not feedback slots!",0);
+        vtab->insert(currFun);
+    } else {
+        Protect pp;
+        std::vector<SEXP> finalSContext;
+        for (int i = 0; i < Rf_length(speculativeContext); i++) {
+            SEXP curr = VECTOR_ELT(speculativeContext, i);
+            SEXP store;
+            pp(store = Rf_allocVector(VECSXP, 2));
+            SpeculativeContextValue scVal;
+            scVal.tag = desSElement::getTag(curr);
+            if (scVal.tag == 0 || scVal.tag == 1) {
+                scVal.uIntVal = desSElement::getValUint(curr);
+            } else {
+                scVal.sexpVal = desSElement::getValSEXP(curr);
+            }
+            addTToContainer<SpeculativeContextValue>(store, 0, scVal);
+
+            SpeculativeContextPointer scPtr;
+            SEXP hastOfCrit = desSElement::getCriteria(curr);
+            assert(Hast::hastMap.count(hastOfCrit) > 0);
+            SEXP vtc = Hast::hastMap[hastOfCrit].vtabContainer;
+            assert(vtc && DispatchTable::check(vtc));
+            DispatchTable * vt = DispatchTable::unpack(vtc);
+            size_t critOffset = desSElement::getOffset(curr);
+
+            auto r = Hast::getSpeculativeContext(vt, critOffset);
+            scPtr.code = r.first;
+            scPtr.pc = r.second;
+
+            BC bc = BC::decode(scPtr.pc, scPtr.code);
+
+            if (scVal.tag == 0) {
+                assert(bc.bc == Opcode::record_type_);
+            } else if (scVal.tag == 1) {
+                assert(bc.bc == Opcode::record_test_);
+            } else if (scVal.tag == 2) {
+                assert(bc.bc == Opcode::record_call_);
+            }
+
+            addTToContainer<SpeculativeContextPointer>(store, 1, scPtr);
+            finalSContext.push_back(store);
+        }
+        SEXP scStore;
+        pp(scStore = Rf_allocVector(VECSXP, finalSContext.size()));
+
+        for (size_t j = 0; j < finalSContext.size(); j++) {
+            SET_VECTOR_ELT(scStore, j, finalSContext[j]);
+        }
+
+        currFun->addSpeculativeContext(scStore);
+
+        std::cout << "        Speculative Dispatch: " << (currFun->matchSpeculativeContext() ? "True" : "False") << std::endl;
+
+        vtab->insertL2(currFun);
+    }
+
+    // static bool naiveL2 = getenv("NAIVE_L2") ? getenv("NAIVE_L2")[0] == '1' : false;
 
     // std::cout << "Deserialization success, adding to dispatch table" << std::endl;
     // vtab->insert(currFun);
     // DES-TODO
     // generalUtil::printSpace(2);
     // std::cout << "Adding to vtable: " << versioning << std::endl;
-    if (naiveL2) {
-        vtab->insert(currFun);
-    } else if (versioning == 0) {
-        vtab->insert(currFun);
-    }
-    else if (versioning == 1) {
-        vtab->insertL2V1(currFun);
-    }
-    else if (versioning == 2) {
-        vtab->insertL2V2(currFun, uEleContainer);
-    }
-    // std::cout << "Added to vtable" << std::endl;
+    // if (naiveL2) {
+    //     vtab->insert(currFun);
+    // } else if (versioning == 0) {
+
+    // }
+    // else if (versioning == 1) {
+    //     vtab->insertL2V1(currFun);
+    // }
+    // else if (versioning == 2) {
+    //     vtab->insertL2V2(currFun, uEleContainer);
+    // }
+    DeserializerDebug::infoMessage("Successfully deserialized",10);
+    DeserializerDebug::infoMessage(pathPrefix.str(),12);
 
     static bool eagerBC = getenv("EAGER_BITCODES") ? getenv("EAGER_BITCODES")[0] == '1' : false;
     if (eagerBC) {

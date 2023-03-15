@@ -25,7 +25,7 @@ class GeneralWorklist {
 
     static SEXP get(SEXP hastSym);
 
-    static void print(const unsigned int & space);
+    static void print(std::ostream& out, const int & space);
 };
 
 //

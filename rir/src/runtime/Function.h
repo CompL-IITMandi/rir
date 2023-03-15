@@ -5,7 +5,7 @@
 #include "FunctionSignature.h"
 #include "R/r.h"
 #include "RirRuntimeObject.h"
-
+#include "utils/deserializerRuntime.h"
 namespace rir {
 
 /**
@@ -57,6 +57,15 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
 
     Code* body() const { return Code::unpack(getEntry(0)); }
     void body(SEXP body) { setEntry(0, body); }
+
+    int speculativeContextIdx = -1;
+
+    void addSpeculativeContext(SEXP speculativeContext) {
+        speculativeContextIdx = body()->addExtraPoolEntry(speculativeContext);
+    }
+
+    bool matchSpeculativeContext();
+    void printSpeculativeContext();
 
     static Function* deserialize(SEXP refTable, R_inpstream_t inp);
     void serialize(SEXP refTable, R_outpstream_t out) const;

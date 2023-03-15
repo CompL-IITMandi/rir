@@ -117,9 +117,9 @@ struct DispatchTable
 
     void insert(Function* fun);
 
-    void insertL2V2(Function* fun, SEXP uEleContainer);
+    void insertL2(Function* fun);
 
-    void insertL2V1(Function* fun);
+    // void insertL2V1(Function* fun);
 
     // Function slot negotiation
     int negotiateSlot(const Context& assumptions);
@@ -178,7 +178,7 @@ struct DispatchTable
     }
 
     SEXP hast = nullptr;
-    Context mask = Context(0ul);
+    int offsetIdx = -1;
   private:
     DispatchTable() = delete;
     explicit DispatchTable(size_t cap)

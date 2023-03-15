@@ -8,34 +8,11 @@
 #include "runtime/TypeFeedback.h"
 #include <fstream>
 
+#include "utils/Debug.h"
 #define PRINT_EXTENDED_CHILDREN 0
 
 #include <chrono>
 namespace rir {
-    template <typename T>
-    static void addTToContainer(SEXP container, const int & index, T val) {
-        rir::Protect protecc;
-        SEXP store;
-        protecc(store = Rf_allocVector(RAWSXP, sizeof(T)));
-        T * tmp = (T *) DATAPTR(store);
-        *tmp = val;
-
-        SET_VECTOR_ELT(container, index, store);
-    }
-
-    template <typename T>
-    static T getTFromContainer(SEXP container, const int & index) {
-        SEXP dataContainer = VECTOR_ELT(container, index);
-        T* res = (T *) DATAPTR(dataContainer);
-        return *res;
-    }
-
-    static inline void qSpace(int size) {
-        assert(size >= 0);
-        for (int i = 0; i < size; i++) {
-            std::cout << " ";
-        }
-    }
 
     static void addSEXP(SEXP container, SEXP data, const int & index) {
         SET_VECTOR_ELT(container, index, data);
@@ -114,7 +91,7 @@ namespace rir {
                 default:
                 std::cout << "ERR!,"; break;
             }
-            std::cout << getPC(container) << ",";
+            // std::cout << getPC(container) << ",";
             std::cout << (getPOD(container) ? "D" : "U") << ",";
             switch(getTag(container)) {
                 case 0:
@@ -262,14 +239,14 @@ namespace rir {
         }
 
         static void print(SEXP container, int space) {
-            qSpace(space);
+            printSpace(space);
             std::cout << "== serializedPool ==" << std::endl;
             space += 2;
 
-            qSpace(space);
+            printSpace(space);
             rir::FunctionSignature fs = getFS(container);
             std::cout << "ENTRY(0)[Function Signature]: " << (int)fs.envCreation << ", " << (int)fs.optimization << ", " <<  fs.numArguments << ", " << fs.hasDotsFormals << ", " << fs.hasDefaultArgs << ", " << fs.dotsPosition << std::endl;
-            qSpace(space);
+            printSpace(space);
             std::cout << "ENTRY(1)[Function names]: [ ";
             auto fNames = getFNames(container);
             for (int i = 0; i < Rf_length(fNames); i++) {
@@ -278,7 +255,7 @@ namespace rir {
             }
             std::cout << "]" << std::endl;
 
-            qSpace(space);
+            printSpace(space);
             std::cout << "ENTRY(2)[Function Src]: [ ";
             auto fSrc = getFSrc(container);
             for (int i = 0; i < Rf_length(fSrc); i++) {
@@ -291,7 +268,7 @@ namespace rir {
             }
             std::cout << "]" << std::endl;
 
-            qSpace(space);
+            printSpace(space);
             std::cout << "ENTRY(3)[Function Arglist Order]: [ ";
             auto fArg = getFArg(container);
             for (int i = 0; i < Rf_length(fArg); i++) {
@@ -300,7 +277,7 @@ namespace rir {
             }
             std::cout << "]" << std::endl;
 
-            qSpace(space);
+            printSpace(space);
             #if PRINT_EXTENDED_CHILDREN == 1
             std::cout << "ENTRY(4)[children Data]" << std::endl;
             #else
@@ -311,7 +288,7 @@ namespace rir {
                 auto cVector = VECTOR_ELT(fChildren, i);
 
                 #if PRINT_EXTENDED_CHILDREN == 1
-                qSpace(space);
+                printSpace(space);
                 auto handle = std::string(CHAR(STRING_ELT(VECTOR_ELT(fNames, i), 0)));
                 std::cout << handle << " : [ ";
                 #else
@@ -335,7 +312,7 @@ namespace rir {
             std::cout<< std::endl;
             #endif
 
-            qSpace(space);
+            printSpace(space);
             std::cout << "ENTRY(5)[Constant Pool Entries]: [ ";
             auto cpool = getCpool(container);
             for (int i = 0; i < Rf_length(cpool); i++) {
@@ -372,7 +349,7 @@ namespace rir {
             }
             std::cout << "]" << std::endl;
 
-            qSpace(space);
+            printSpace(space);
             std::cout << "ENTRY(6)[Source Pool Entries]: [ ";
             auto spool = getSpool(container);
             for (int i = 0; i < Rf_length(spool); i++) {
@@ -380,7 +357,7 @@ namespace rir {
                 std::cout << TYPEOF(c) << " ";
             }
             std::cout << "]" << std::endl;
-            qSpace(space);
+            printSpace(space);
             std::cout << "ENTRY(7)[Epoch]: " << *((size_t *) DATAPTR(getEpoch(container))) << std::endl;
         }
     };
@@ -405,7 +382,7 @@ namespace rir {
                 return VECTOR_ELT(container, index);
             }
 
-            static void qSpace(int size) {
+            static void printSpace(int size) {
                 assert(size >= 0);
                 for (int i = 0; i < size; i++) {
                     std::cout << " ";
@@ -498,16 +475,16 @@ namespace rir {
 
 
             static void print(SEXP container, unsigned int space) {
-                qSpace(space);
+                printSpace(space);
                 std::cout << "== contextData ==" << std::endl;
                 space += 2;
 
-                qSpace(space);
+                printSpace(space);
                 std::cout << "ENTRY(0)[Context]: " << rir::Context(getContext(container)) << std::endl;
                 space += 2;
 
                 auto rData = getReqMapAsVector(container);
-                qSpace(space);
+                printSpace(space);
                 std::cout << "ENTRY(1)[reqMapForCompilation]: <";
                 for (int i = 0; i < Rf_length(rData); i++) {
                     SEXP ele = VECTOR_ELT(rData, i);
@@ -516,15 +493,15 @@ namespace rir {
                 std::cout << ">" << std::endl;
 
                 SEXP scContainer = getSpeculativeContext(container);
-                qSpace(space);
+                printSpace(space);
                 std::cout << "ENTRY(2)[Speculative Context](" << Rf_length(scContainer) << " Entries)" << std::endl;
                 for (int i = 0; i < Rf_length(scContainer); i++) {
                     SEXP curr = VECTOR_ELT(scContainer, i);
                     SEXP currHast = VECTOR_ELT(curr, 0);
                     SEXP currCon = VECTOR_ELT(curr, 1);
-                    qSpace(space + 2);
+                    printSpace(space + 2);
                     std::cout << "Hast: " << CHAR(PRINTNAME(currHast)) << " (" << Rf_length(currCon) << " elements)" << std::endl;
-                    qSpace(space + 4);
+                    printSpace(space + 4);
                     // std::cout << "conStore: " << currCon << " ";
                     for (int j = 0; j < Rf_length(currCon); j++) {
                         std::cout << "(" << j << ")";
@@ -534,7 +511,7 @@ namespace rir {
                     std::cout << std::endl;
                 }
 
-                qSpace(space);
+                printSpace(space);
                 std::cout << "ENTRY(3)[Creation Index]: " << getCI(container) << std::endl;
             }
     };
@@ -558,7 +535,7 @@ namespace rir {
                 return VECTOR_ELT(container, index);
             }
 
-            static void qSpace(int size) {
+            static void printSpace(int size) {
                 assert(size >= 0);
                 for (int i = 0; i < size; i++) {
                     std::cout << " ";
@@ -674,25 +651,25 @@ namespace rir {
             }
 
             static void print(SEXP container, int space) {
-                qSpace(space);
+                printSpace(space);
                 std::cout << "== serializerData ==" << std::endl;
                 space += 2;
 
-                qSpace(space);
+                printSpace(space);
                 std::cout << "ENTRY(0)[Hast]: " << CHAR(PRINTNAME(getHast(container))) << std::endl;
 
-                qSpace(space);
+                printSpace(space);
                 std::cout << "ENTRY(1)[Function Name]: " << CHAR(PRINTNAME(getName(container))) << std::endl;
 
                 space += 2;
 
                 iterate(container, [&](SEXP offsetSym, SEXP conSym, SEXP cData, bool isMask) {
                     if (!isMask) {
-                        qSpace(space);
+                        printSpace(space);
                         std::cout << "At Offset: " << CHAR(PRINTNAME(offsetSym)) << ", Epoch: " << CHAR(PRINTNAME(conSym)) << std::endl;
                         contextData::print(cData, space+2);
                     } else {
-                        qSpace(space);
+                        printSpace(space);
                         std::cout << "Mask At Offset: " << CHAR(PRINTNAME(offsetSym)) << std::endl;
                     }
                 });

@@ -127,12 +127,12 @@ struct L2Function {
 struct L2Dispatch
     : public RirRuntimeObject<L2Dispatch, L2_DISPATCH_MAGIC> {
 	// Constructor
-	static L2Dispatch* create(Function* fallback, const std::vector<L2Feedback> & feedbackVals, Protect & p) {
+	static L2Dispatch* create(Function* fallback, Protect & p) {
 		size_t sz =
 			sizeof(L2Dispatch) + (ENTRIES_SIZE * sizeof(SEXP));
 		SEXP s;
 		p(s = Rf_allocVector(EXTERNALSXP, sz));
-		return new (INTEGER(s)) L2Dispatch(fallback, feedbackVals);
+		return new (INTEGER(s)) L2Dispatch(fallback);
 	}
 
 	// SLOT 0: FALLBACK_FN
@@ -147,13 +147,13 @@ struct L2Dispatch
 	}
 
 	// SLOT 1: FUNCTION_LIST
-	void insert(Function * f, const std::vector<L2Feedback> & feedbackVals);
+	void insert(Function * f);
 
-	L2Function getFunction(const int & idx) {
+	Function * getFunction(const int & idx) {
 		assert(idx <= _last);
 		SEXP FunctionList = getEntry(FN_LIST);
-		SEXP l2FunContainer = VECTOR_ELT(FunctionList, idx);
-		return { Function::unpack(VECTOR_ELT(l2FunContainer, 0)), (L2Feedback*) DATAPTR(VECTOR_ELT(l2FunContainer, 1)) };
+		SEXP fun = VECTOR_ELT(FunctionList, idx);
+		return Function::unpack(fun);
 	}
 
 
@@ -167,14 +167,12 @@ struct L2Dispatch
 	void print(std::ostream& out, const int & space = 0);
   private:
 
-
-	std::vector<L2Feedback> runtimeFeedbackData;
 	int _last = -1;
 	Function * lastDispatch = nullptr;
 
 	L2Dispatch() = delete;
 
-	explicit L2Dispatch(Function* fallback, const std::vector<L2Feedback> & feedbackVals);
+	explicit L2Dispatch(Function* fallback);
 	// Expands the function list by GROWTH_RATE
 	void expandStorage();
 

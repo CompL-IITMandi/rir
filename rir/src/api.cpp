@@ -44,6 +44,7 @@ extern "C" Rboolean R_Visible;
 
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
 static size_t timeInPirCompiler = 0;
+static size_t metadataLoadTime = 0;
 
 static size_t oldMaxInput = 0;
 static size_t oldInlinerMax = 0;
@@ -118,10 +119,10 @@ static void loadMetadata(std::string metaDataPath) {
 
     GeneralWorklist::insert(ddContainer);
 
-    DeserializerDebug::infoMessage("loaded bitcode metadata for : " + metaDataPath, 0);
-    if (DeserializerDebug::level > 1) {
-        deserializerData::print(ddContainer, 2);
-    }
+    // DeserializerDebug::infoMessage("loaded bitcode metadata for : " + metaDataPath, 0);
+    // if (DeserializerDebug::level > 1) {
+    //     deserializerData::print(ddContainer, 2);
+    // }
     // If the function already exists, then try linking it right now
     auto currHast = deserializerData::getHast(ddContainer);
 
@@ -133,7 +134,7 @@ static void loadMetadata(std::string metaDataPath) {
         BitcodeLinkUtil::tryLinking(DispatchTable::unpack(hastData.vtabContainer), currHast);
         DeserializerDebug::infoMessage("Linking done", 0);
     }
-    DeserializerDebug::infoMessage("Loading bitcode done", 0);
+    // DeserializerDebug::infoMessage("Loading bitcode done", 0);
 
     RuntimeFlags::contextualCompilationSkip = oldVal;
 }
@@ -164,7 +165,7 @@ REXPORT SEXP compileStats(SEXP name, SEXP path) {
     std::ofstream ostrm(CHAR(STRING_ELT(path, 0)));
     ostrm << "============== RUN STATS ==============" << std::endl;
     ostrm << "Name                     : " << CHAR(STRING_ELT(name, 0)) << std::endl;
-    // ostrm << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
+    ostrm << "Metadata Load Time       : " << metadataLoadTime << "ms" << std::endl;
     // ostrm << "Bitcode load/link time   : " << BitcodeLinkUtil::linkTime << "ms" << std::endl;
     ostrm << "llvm to machine code     : " << BitcodeLinkUtil::llvmLoweringTime << "ms" << std::endl;
     ostrm << "llvm symbol patching     : " << BitcodeLinkUtil::llvmSymbolsTime << "ms" << std::endl;
@@ -202,8 +203,9 @@ REXPORT SEXP compileStats(SEXP name, SEXP path) {
 }
 
 REXPORT SEXP loadBitcodes(SEXP pathToBc) {
+    using namespace std::chrono;
     bool success = true;
-    // auto start = high_resolution_clock::now();
+    auto start = high_resolution_clock::now();
 
     if (DeserializerConsts::bitcodesLoaded) {
         Rf_error("Bitcodes already loaded, only allowed to load from one location in a session!");
@@ -244,10 +246,13 @@ REXPORT SEXP loadBitcodes(SEXP pathToBc) {
     DeserializerDebug::infoMessage("(*) Loading bitcodes from repo done!", 0);
     DeserializerDebug::infoMessage((DeserializerConsts::bitcodesLoaded ? "success" : "failed"), 2);
 
-    // auto stop = high_resolution_clock::now();
-    // auto duration = duration_cast<milliseconds>(stop - start);
-    // metadataLoadTime = duration.count();
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(stop - start);
+    metadataLoadTime = duration.count();
     if (success) {
+        if (DeserializerDebug::level > 1) {
+            GeneralWorklist::print(std::cout, 0);
+        }
         return Rf_mkString("Loading bitcode metadata successful");
     } else {
         return Rf_mkString("Loading bitcode metadata failed");
