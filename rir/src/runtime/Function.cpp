@@ -57,8 +57,9 @@ bool Function::matchSpeculativeContext() {
                 }
                 if (!match) return false;
             } else {
-                assert(false);
-                return false;
+                // std::cerr << "TYPEOF(val): " << TYPEOF(val) << std::endl;
+                assert(TYPEOF(val) == INTSXP);
+                // return false;
             }
         }
     }

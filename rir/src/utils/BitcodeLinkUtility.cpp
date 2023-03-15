@@ -64,7 +64,7 @@ static void processWorklistElements(std::vector<BC::PoolIdx> & wlElementVec, siz
         unsigned * counter = deserializedMetadata::getCounter(uEleContainer);
         *counter = *counter - 1;
 
-        deserializedMetadata::print(uEleContainer, std::cout, 4);
+        // deserializedMetadata::print(uEleContainer, std::cout, 4);
 
         if (*counter == 0) {
             //
@@ -112,7 +112,7 @@ static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime) {
     auto start = high_resolution_clock::now();
 
     DeserializerDebug::infoMessage("Deserializing binary", 4);
-    deserializedMetadata::print(uEleContainer, std::cout, 6);
+    // deserializedMetadata::print(uEleContainer, std::cout, 6);
 
     rir::pir::PirJitLLVM jit("deserializer");
     jit.deserializeAndPopulateBitcode(uEleContainer);

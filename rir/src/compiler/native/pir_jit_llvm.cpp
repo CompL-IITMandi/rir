@@ -559,7 +559,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
         currFun->addSpeculativeContext(scStore);
 
-        std::cout << "        Speculative Dispatch: " << (currFun->matchSpeculativeContext() ? "True" : "False") << std::endl;
+        // std::cout << "        Speculative Dispatch: " << (currFun->matchSpeculativeContext() ? "True" : "False") << std::endl;
 
         vtab->insertL2(currFun);
     }
