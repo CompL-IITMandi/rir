@@ -2143,7 +2143,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     //     tmpFile.close();
                     // }
                     // std::cout << Rf_isObject(currAst) << std::endl;
-                    ss << "\"" << Print::dumpSexp(currAst) << "\"," << '\n';
+                    ss << "\"" << Print::dumpSexp(currAst).substr(1) << "\"," << '\n';
 
                     ss << "\"\"]";
                     someData = ss.str();
