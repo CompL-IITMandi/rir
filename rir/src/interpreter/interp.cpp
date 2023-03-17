@@ -51,30 +51,81 @@ static SEXP evalRirCode(Code* c, SEXP env, const CallContext* callContext,
 #define PRINT_INTERP
 #define PRINT_STACK_SIZE 10
 #ifdef PRINT_INTERP
-static void printInterp(Opcode* pc, Code* c) {
+// static void printInterp(Opcode* pc, Code* c) {
+// #ifdef PRINT_STACK_SIZE
+// #define INTSEQSXP 9999
+//     // Prevent printing instructions (and recursing) while printing stack
+//     static bool printingStackSize = false;
+//     if (printingStackSize)
+//         return;
+
+//     // Print stack
+//     printingStackSize = true;
+//     std::ofstream File;
+//     File.open("/home/aayush/stack.txt");
+//     File << "#; Stack:\n";
+//     for (int i = 0;; i++) {
+//         auto typ = ostack_cell_at(i)->tag;
+//         SEXP sexp = ostack_at(i);
+//         if (sexp == nullptr || ostack_length() - i == 0)
+//             break;
+//         else if (i == PRINT_STACK_SIZE) {
+//             File << "    ...\n";
+//             break;
+//         }
+//         if (typ == 0) {
+//             File << "    >>> " << Print::dumpSexp(sexp) << " <<<\n";
+//         } else if (typ == INTSXP || typ == LGLSXP) {
+//             File << "    int/lgl >>> " << ostack_cell_at(i)->u.ival
+//                       << " <<<\n";
+//         } else if (typ == REALSXP) {
+//             File << "    real >>> " << ostack_cell_at(i)->u.dval
+//                       << " <<<\n";
+//         } else if (typ == INTSEQSXP) {
+//             File << "    intseq >>> " << Print::dumpSexp(sexp) << " <<<\n";
+//         }
+//     }
+//     File.close();
+//     printingStackSize = false;
+// #endif
+//     // Print source
+//     // unsigned sidx = c->getSrcIdxAt(pc, true);
+//     // if (sidx != 0) {
+//     //     SEXP src = src_pool_at(sidx);
+//     //     std::cout << "#; " << Print::dumpSexp(src) << "\n";
+//     // }
+//     // // Print bc
+//     // BC bc = BC::decode(pc, c);
+//     // std::cout << "#";
+//     // bc.print(std::cout);
+// }
+
+static std::vector<std::string> printInterpss(Opcode* pc, Code* c) {
+std::vector<std::string> res;
 #ifdef PRINT_STACK_SIZE
 #define INTSEQSXP 9999
     // Prevent printing instructions (and recursing) while printing stack
     static bool printingStackSize = false;
     if (printingStackSize)
-        return;
+        return res;
 
     // Print stack
     printingStackSize = true;
-    std::ofstream File;
-    File.open("/home/aayush/stack.txt");
-    File << "#; Stack:\n";
+    // File << "#; Stack:\n";
+    res.push_back("#; Stack:");
     for (int i = 0;; i++) {
         auto typ = ostack_cell_at(i)->tag;
         SEXP sexp = ostack_at(i);
         if (sexp == nullptr || ostack_length() - i == 0)
             break;
         else if (i == PRINT_STACK_SIZE) {
-            File << "    ...\n";
+            res.push_back("    ...");
             break;
         }
+        std::stringstream File;
         if (typ == 0) {
-            File << "    >>> " << Print::dumpSexp(sexp) << " <<<\n";
+            File << "    >>> " << Print::dumpSexp(sexp) << " <<<";
+
         } else if (typ == INTSXP || typ == LGLSXP) {
             File << "    int/lgl >>> " << ostack_cell_at(i)->u.ival
                       << " <<<\n";
@@ -82,22 +133,13 @@ static void printInterp(Opcode* pc, Code* c) {
             File << "    real >>> " << ostack_cell_at(i)->u.dval
                       << " <<<\n";
         } else if (typ == INTSEQSXP) {
-            File << "    intseq >>> " << Print::dumpSexp(sexp) << " <<<\n";
+            File << "    intseq >>> " << Print::dumpSexp(sexp) << " <<<";
         }
+        res.push_back(File.str());
     }
-    File.close();
     printingStackSize = false;
 #endif
-    // Print source
-    // unsigned sidx = c->getSrcIdxAt(pc, true);
-    // if (sidx != 0) {
-    //     SEXP src = src_pool_at(sidx);
-    //     std::cout << "#; " << Print::dumpSexp(src) << "\n";
-    // }
-    // // Print bc
-    // BC bc = BC::decode(pc, c);
-    // std::cout << "#";
-    // bc.print(std::cout);
+return res;
 }
 
 static void printLastop() { std::cout << "> lastop\n"; }
@@ -124,7 +166,7 @@ static SEXP getSrcForCall(Code* c, Opcode* pc) {
 #ifdef PRINT_INTERP
 #define NEXT()                                                                 \
     (__extension__({                                                           \
-        printInterp(pc, c);pauseForViz();                                                    \
+        pauseForViz();                                                    \
         goto* opAddr[static_cast<uint8_t>(advanceOpcode())];                   \
     }))
 #define LASTOP                                                                 \
@@ -2109,21 +2151,24 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                 } else if (requestId == "stack"){
                     // ss << "[\"" << requestId << "\", \"stackData\"";
                     // someData = ss.str();
-                    std::string line;
+                    //std::string line;
                     ss << "[";
-                    char resolved_path[PATH_MAX];
-                    char *a = realpath("../../../stack.txt", resolved_path);
+                    // char resolved_path[PATH_MAX];
+                    // char *a = realpath("../../../stack.txt", resolved_path);
                     // std::string wd = a;
                     // wd += "/stack.txt";
                     // std::cout << a << std::endl;
-                    std::ifstream stkFile(a);
-                    if (stkFile.is_open()) {
-                        while (std::getline(stkFile,line)) {
-                            ss << "\"" << line << "\"," << '\n';
+                    // std::ifstream stkFile(a);
+                    // if (stkFile.is_open()) {
+                    //     while (std::getline(stkFile,line)) {
+                    //         ss << "\"" << line << "\"," << '\n';
+                    //     }
+                    //     stkFile.close();
+                    // }
+                    std::vector<std::string> ststr = printInterpss(pc,c);
+                     for (std::string s : ststr) {
+                            ss << "\"" << s << "\"," << '\n';
                         }
-                        stkFile.close();
-                    }
-
                     ss << "\"\"]";
                     someData = ss.str();
                 } else if (requestId == "sourcecode") {
