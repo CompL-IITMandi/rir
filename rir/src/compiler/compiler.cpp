@@ -135,6 +135,13 @@ void Compiler::compileClosure(Closure* closure, rir::Function* optFunction,
         return fail();
     }
 
+    auto hastInfo = Hast::getHastInfo(closure->rirFunction()->body()->src, true);
+    if (!hastInfo.isValid()) {
+        logger.warn("skipping unstable function");
+        return fail();
+    }
+
+
     if (auto existing = closure->findCompatibleVersion(ctx))
         return success(existing);
 

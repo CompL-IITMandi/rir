@@ -460,6 +460,19 @@ bool Rir2Pir::compileBC(const BC& bc, Opcode* pos, Opcode* nextPos,
             const auto& feedback = bc.immediate.callFeedback;
             f.taken = feedback.taken;
             f.feedbackOrigin = FeedbackOrigin(srcCode, pos);
+            bool serializerSafe = true;
+            if (!feedback.invalid) {
+                for (size_t i = 0; i < feedback.numTargets; ++i) {
+                    SEXP obs = feedback.getTarget(srcCode, i);
+                    if (TYPEOF(obs) == CLOSXP && TYPEOF(BODY(obs)) == EXTERNALSXP && DispatchTable::check(BODY(obs))) {
+                        auto hastInfo = Hast::getHastInfo(DispatchTable::unpack(BODY(obs))->baseline()->body()->src, true);
+                        if (!hastInfo.isValid()) {
+                            serializerSafe = false;
+                        }
+                    }
+                }
+            }
+            if (!serializerSafe) break;
             if (feedback.numTargets == 1) {
                 assert(!feedback.invalid &&
                        "feedback can't be invalid if numTargets is 1");

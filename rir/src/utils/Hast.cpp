@@ -7,7 +7,7 @@
 #include "utils/serializerData.h"
 #include "utils/SerializerDebug.h"
 #include "dirent.h"
-
+#include "api.h"
 #include <bits/stdc++.h>
 
 #define PRINT_HAST_SRC_ENTRIES 0
@@ -69,6 +69,10 @@ void Hast::printHastSrcData(DispatchTable* vtable, SEXP parentHast) {
 
             // call sites
             switch (bc.bc) {
+                case Opcode::push_:
+                    addSrcToMap(bc.immediate.pool, false);
+                    indexOffset++;
+                    break;
                 case Opcode::call_:
                 case Opcode::named_call_:
                     addSrcToMap(bc.immediate.callFixedArgs.ast, false);
@@ -161,6 +165,13 @@ void Hast::populateHastSrcData(DispatchTable* vtable, SEXP parentHast) {
 
             // call sites
             switch (bc.bc) {
+                case Opcode::push_:
+                    #if PRINT_HAST_SRC_ENTRIES == 1
+                    std::cout << "src_hast_entry[push_] at indexOffset: " << indexOffset << "," << bc.immediate.pool << " [" << Pool::get(bc.immediate.pool) << "]" << std::endl;
+                    #endif
+                    addSrcToMap(bc.immediate.pool, false);
+                    indexOffset++;
+                    break;
                 case Opcode::call_:
                 case Opcode::named_call_:
                     #if PRINT_HAST_SRC_ENTRIES == 1
@@ -351,6 +362,16 @@ static inline TraversalResult getResultAtOffset(DispatchTable * vtab, const unsi
 
             // call sites
             switch (bc.bc) {
+                case Opcode::push_:
+                    if (indexOffset == requiredOffset) {
+                        // required thing was constant pool index
+                        poolIdx = bc.immediate.pool;
+                        done = true;
+                        return;
+                    }
+                    indexOffset++;
+                    break;
+
                 case Opcode::call_:
                 case Opcode::named_call_:
                     if (indexOffset == requiredOffset) {

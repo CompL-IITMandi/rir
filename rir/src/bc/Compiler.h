@@ -16,10 +16,6 @@
 
 #include "utils/WorklistManager.h"
 #include "utils/BitcodeLinkUtility.h"
-
-#define DEBUG_TABLE_ENTRIES 0
-#define PRINT_SOURCE_ENTRIES 0
-
 namespace rir {
 
 class Compiler {
