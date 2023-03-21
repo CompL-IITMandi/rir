@@ -16,6 +16,7 @@ class RshViz {
     static std::string VIZ_TO_APP_REQUEST;
     static std::string APP_TO_VIZ_DATA;
     static std::string APP_VIZ_SYNCED;
+    static std::string APP_MOD_ENV;
     // static std::string END_OF_PROGRAM;
 
     static void init(const std::string & address);
@@ -31,10 +32,12 @@ class RshViz {
     // Callbacks
     static void onVizEventRequest(sio::event &);
     static void onVizEventCompleted(sio::event &);
+    static void modify_curr_env(sio::event &);
 
     static void onSynDone(sio::event &);
 
     static std::function<void(sio::event &)> eventCallback;
+    static std::function<void(sio::event &)> mod_env;
     static void waitForSynDone();
 
     static std::mutex _eventLock;

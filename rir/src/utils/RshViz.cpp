@@ -21,6 +21,7 @@ void RshViz::init(const std::string & address) {
     current_socket->on(APP_EVENT_SYN_RES, onSynDone);
     current_socket->on(VIZ_TO_APP_REQUEST, onVizEventRequest);
     current_socket->on(APP_VIZ_SYNCED, onVizEventCompleted);
+    current_socket->on(APP_MOD_ENV, modify_curr_env);
 }
 
 // void RshViz::helper(){
@@ -37,12 +38,20 @@ void RshViz::onVizEventRequest(sio::event & event) {
     eventCallback(event);
 }
 
+void RshViz::modify_curr_env(sio::event & event) {
+    assert(mod_env);
+    // Callback
+    mod_env(event);
+}
+
+
 void RshViz::onVizEventCompleted(sio::event & event) {
     _eventLock.lock();
     std::cout << "[app #==# viz DATA-ACK]  : " << event.get_message().get()->get_int() << " items in service queue" << std::endl;
     _eventWait.notify_all();
     _eventLock.unlock();
 }
+
 
 
 void RshViz::doRequestSyn(const std::string & reqData) {
@@ -72,10 +81,12 @@ std::mutex RshViz::_lock, RshViz::_eventLock;
 std::condition_variable_any RshViz::_connWait, RshViz::_eventWait;
 bool RshViz::connection = false;
 std::function<void(sio::event &)> RshViz::eventCallback = nullptr;
+std::function<void(sio::event &)> RshViz::mod_env = nullptr;
 
 std::string RshViz::APP_EVENT_SYN_REQ = "app-req-syn";
 std::string RshViz::APP_EVENT_SYN_RES = "app-res-syn";
 std::string RshViz::VIZ_TO_APP_REQUEST = "viz-to-app-req";
 std::string RshViz::APP_TO_VIZ_DATA = "app-to-viz-data";
 std::string RshViz::APP_VIZ_SYNCED = "app-viz-ack";
+std::string RshViz::APP_MOD_ENV = "app-mod-env";
 // std::string RshViz::END_OF_PROGRAM = "end-of-prog";

@@ -2092,6 +2092,15 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
 
     }
 
+    RshViz::mod_env = [&] (sio::event & event) {
+
+        REnvHandler env_h(env);
+        std::cout << event.get_messages().at(0).get()->get_string() << std::endl;
+        std::cout << event.get_messages().at(1).get()->get_string() << std::endl;
+        env_h.set("a",Rf_ScalarInteger(5));
+        std::cout << "Env Change Req" << std::endl;
+    };
+
 
     auto pauseForViz = [&] {
         if (RshViz::getConnectionStatus()) {
@@ -2278,6 +2287,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                         for(auto it : mapp){
                             ss << "{" << "\"" << it.first << "\":" << "\"" << Print::dumpSexp(it.second) << "\"" << "}" << "," << '\n';
                             std::cout << it.first << " ---> " << Print::dumpSexp(it.second) << std::endl;
+                            // if(it.first == "a") env_h.set(it.first,Rf_ScalarLogical(1));
+                            std::cout << TYPEOF(it.second) << std::endl;
                         }
                         ss << "\"\"]";
                         std::cout << "-----------" << std::endl;
