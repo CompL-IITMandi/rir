@@ -15,6 +15,8 @@
 
 #include <stack>
 
+#define DEBUG_TABLE_ENTRIES 0
+#define PRINT_SOURCE_ENTRIES 0
 namespace rir {
 
 namespace {
