@@ -30,6 +30,7 @@
 #include "utils/DeserializerConsts.h"
 #include "utils/deserializerData.h"
 #include "utils/WorklistManager.h"
+#include "utils/EventLogger.h"
 
 #include "dirent.h"
 #include <unistd.h>
@@ -868,7 +869,10 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         cmp.optimizeModule();
         auto pirOptEnd = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(pirOptEnd - pirOptStart);
-        timeInPirCompiler+=duration.count();
+        auto durationCount = duration.count();
+        timeInPirCompiler+= durationCount;
+        EventLogger::logStats("pirTime", name,  durationCount);
+
 
         if (dryRun)
             return;

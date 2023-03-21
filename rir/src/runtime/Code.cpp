@@ -13,6 +13,8 @@
 #include <sstream>
 #include "utils/DeserializerConsts.h"
 #include "utils/BitcodeLinkUtility.h"
+#include "utils/EventLogger.h"
+
 #include <chrono>
 
 namespace rir {
@@ -352,8 +354,9 @@ NativeCode Code::lazyCompile() {
     if (usesSerializedBinary) DeserializerConsts::skipLLVMPasses = false;
     auto stopCompileTimeCounter = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stopCompileTimeCounter - startCompileTimeCounter);
-    BitcodeLinkUtil::llvmLoweringTime += duration.count();
-
+    auto durationCount = duration.count();
+    BitcodeLinkUtil::llvmLoweringTime += durationCount;
+    EventLogger::logStats("llvmTime", "", durationCount);
     return nativeCode_;
 }
 
