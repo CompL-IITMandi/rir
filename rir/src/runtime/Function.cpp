@@ -164,6 +164,29 @@ void Function::printSpeculativeContext(std::ostream& out, const int & space) {
     }
 }
 
+void Function::registerDeopt() {
+    // Deopt counts are kept on the optimized versions
+    assert(isOptimized());
+
+    if (!disabled()) {
+        flags.set(Flag::Deopt);
+        if (l2Dispatcher) {
+            EventLogger::logDisableL2(vtab->hast, context(), l2Dispatcher->getInfo());
+        } else if (vtab) {
+            EventLogger::logDisable(vtab->hast, context());
+        }
+        // else {
+            // Case of dummy deopt sentinals
+        // }
+    }
+
+    flags.set(Flag::Deopt);
+
+    if (deoptCount_ < UINT_MAX)
+        deoptCount_++;
+
+}
+
 Function* Function::deserialize(SEXP refTable, R_inpstream_t inp) {
     size_t functionSize = InInteger(inp);
     const FunctionSignature sig = FunctionSignature::deserialize(refTable, inp);

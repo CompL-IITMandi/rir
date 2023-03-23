@@ -6,6 +6,7 @@
 #include "R/r.h"
 #include "RirRuntimeObject.h"
 #include "utils/deserializerRuntime.h"
+#include "utils/EventLogger.h"
 namespace rir {
 
 /**
@@ -13,6 +14,8 @@ namespace rir {
  */
 typedef SEXP FunctionSEXP;
 
+struct L2Dispatch;
+struct DispatchTable;
 // Function magic constant is designed to help to distinguish between Function
 // objects and normal EXTERNALSXPs. Normally this is not necessary, but a very
 // creative user might try to assign arbitrary EXTERNAL to a closure which we
@@ -173,13 +176,10 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
     bool disabled() const { return flags.contains(Flag::Deopt); }
     bool pendingCompilation() const { return body()->pendingCompilation(); }
 
-    void registerDeopt() {
-        // Deopt counts are kept on the optimized versions
-        assert(isOptimized());
-        flags.set(Flag::Deopt);
-        if (deoptCount_ < UINT_MAX)
-            deoptCount_++;
-    }
+    L2Dispatch * l2Dispatcher = nullptr;
+    DispatchTable * vtab = nullptr;
+
+    void registerDeopt();
 
     void registerDeoptReason(DeoptReason::Reason r) {
         // Deopt reasons are counted in the baseline

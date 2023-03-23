@@ -1,13 +1,28 @@
 #include "Function.h"
 #include "L2Dispatch.h"
 #include "runtime/DispatchTable.h"
-
+#include <sstream>
 namespace rir {
 
 static inline void printSpace(std::ostream& out, const int & space) {
 	for (int i = 0; i < space; i++) {
 		out << " ";
 	}
+}
+
+std::string L2Dispatch::getInfo() {
+	std::stringstream ss;
+	unsigned total = 0, disabled = 0;
+	for (int i = _last; i >= 0; i--) {
+		auto currFun = getFunction(i);
+		total++;
+		if (currFun->disabled()) {
+			disabled++;
+		}
+	}
+
+	ss << (total-disabled) << "/" << total;
+	return ss.str();
 }
 
 void L2Dispatch::print(std::ostream& out, const int & space) {
@@ -173,18 +188,14 @@ bool L2Feedback::operator==(const L2Feedback& other) {
 }
 
 Function * L2Dispatch::dispatch() {
-	#if ASSERT_CONDITIONS == 1
-	// If nothing exists return genesis
+	auto fallback = getFallback();
 	if (_last == -1) {
-		return getFallback();
+		EventLogger::logL2Check(fallback->vtab->hast, fallback->context(), getInfo(), "cache-miss");
+		return fallback;
 	}
-	#endif
-	// std::cout << "L2 Dispatch called" << std::endl;
-	// print(std::cout,2);
-
 
 	if (lastDispatch && !lastDispatch->disabled()) {
-		// std::cout << "=== L2Dispatch fastcase ===" << std::endl;
+		EventLogger::logL2Check(lastDispatch->vtab->hast, lastDispatch->context(), getInfo(), "fastcase");
 		return lastDispatch;
 	}
 
@@ -192,12 +203,12 @@ Function * L2Dispatch::dispatch() {
 		auto currFun = getFunction(i);
 		if (!currFun->disabled() && currFun->matchSpeculativeContext()) {
 			lastDispatch = currFun;
-			// std::cout << "=== L2Dispatch success ===" << std::endl;
+			EventLogger::logL2Check(lastDispatch->vtab->hast, lastDispatch->context(), getInfo(), "cache-hit");
 			return currFun;
 		}
 	}
-	// std::cout << "=== L2Dispatch fail ===" << std::endl;
-	return getFallback();
+	EventLogger::logL2Check(fallback->vtab->hast, fallback->context(), getInfo(), "cache-miss");
+	return fallback;
 }
 
 } // namespace rir
