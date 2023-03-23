@@ -1,6 +1,7 @@
 #include "EventLogger.h"
 
 
+
 #include <iostream>
 #include <unistd.h>
 #include <sstream>
@@ -15,14 +16,37 @@
 #include <iomanip>
 #include <memory>
 
+
 using namespace std;
+using namespace std::chrono;
 
 namespace rir {
 
     static std::string logsFullPath = "";
 
+    void findAndReplaceAll(std::string & data, std::string toSearch, std::string replaceStr)
+    {
+        // Get the first occurrence
+        size_t pos = data.find(toSearch);
+        // Repeat till end is reached
+        while( pos != std::string::npos)
+        {
+            // Replace this occurrence of Sub String
+            data.replace(pos, toSearch.size(), replaceStr);
+            // Get the next occurrence from the current position
+            pos =data.find(toSearch, pos + replaceStr.size());
+        }
+    }
 
-    void EventLogger::logStats(std::string event, std::string name, double timeInMS) {
+
+    void EventLogger::logStats(
+            std::string event,
+            std::string name,
+            double timeInMS,
+            std::chrono::_V2::system_clock::time_point& timeStamp,
+            const rir::Context& context,
+            SEXP closure)
+    {
 
         if (!logsFullPath.size()) {
             std::string logsFolder ="/tmp/rsh";
@@ -50,7 +74,13 @@ namespace rir {
 
         std::ofstream outfile;
         outfile.open(logsFullPath, std::ios_base::app);
-        outfile << event << "," << name << "," << timeInMS;
+
+        std::stringstream streamctx;
+        streamctx << context;
+        auto contextAsString = streamctx.str();
+        findAndReplaceAll(contextAsString, ",", " ");
+
+        outfile << event << "," << name << "," << timeInMS << "," << timeStamp.time_since_epoch().count() << "," << contextAsString << "," << closure;
         outfile << "\n";
         outfile.close();
     }

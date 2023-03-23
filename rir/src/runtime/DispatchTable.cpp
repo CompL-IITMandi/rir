@@ -163,6 +163,7 @@ void DispatchTable::insertL2(Function* fun) {
             l2vt->insert(fun);
             // std::cout << "Create L2: " << l2vt << std::endl;
             // l2vt->print(std::cout,2);
+            setEntry(idx, l2vt->container());
         } else if (L2Dispatch::check(idxContainer)) {
             L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
             l2vt->insert(fun);

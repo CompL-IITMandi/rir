@@ -871,7 +871,8 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         auto duration = duration_cast<milliseconds>(pirOptEnd - pirOptStart);
         auto durationCount = duration.count();
         timeInPirCompiler+= durationCount;
-        EventLogger::logStats("pirTime", name,  durationCount);
+
+        EventLogger::logStats("pirTime", name,  durationCount, pirOptStart, c->context(), c->owner()->rirClosure());
 
 
         if (dryRun)
@@ -989,12 +990,23 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         done->body()->nativeCode();
     };
 
+    //timestamp, l1 context, closure add,  hast
+
+    //using namespace std::chrono;
+    //auto pirOptStart = high_resolution_clock::now();
     cmp.compileClosure(what, name, assumptions, true, compile,
                        [&]() {
                            if (debug.includes(pir::DebugFlag::ShowWarnings))
                                std::cerr << "Compilation failed\n";
                        },
                        {});
+    // auto pirOptEnd = high_resolution_clock::now();
+
+    // auto duration = duration_cast<milliseconds>(pirOptEnd - pirOptStart);
+    // auto durationCount = duration.count();
+    // EventLogger::logStats("pirTime", name,  durationCount);
+
+
     logger.title("Compiled " + name);
     delete m;
     UNPROTECT(1);
