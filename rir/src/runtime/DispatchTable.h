@@ -68,6 +68,11 @@ struct DispatchTable
                 if (!e->disabled()) {
                     if (outputDisabledFunc)
                         *disabledFunc = r2;
+                    if (!e->l2Dispatcher) {
+                        EventLogger::logDispatchNormal(hast, a);
+                    } else {
+                        EventLogger::logDispatchL2(hast, a, e->l2Dispatcher->getInfo());
+                    }
                     return e;
                 }
             }

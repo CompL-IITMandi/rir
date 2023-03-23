@@ -140,6 +140,8 @@ void DispatchTable::insertL2(Function* fun) {
     int idx = negotiateSlot(fun->context());
     SEXP idxContainer = getEntry(idx);
 
+    fun->vtab = this;
+
     if (idxContainer == R_NilValue) {
         Protect p;
         std::vector<SEXP> defaultArgs;
@@ -150,10 +152,10 @@ void DispatchTable::insertL2(Function* fun) {
         Function* dummy = new (payload) Function(functionSize, baseline()->body()->container(),
                                             defaultArgs, fun->signature(), fun->context());
         dummy->registerDeopt();
+        dummy->vtab = this;
         L2Dispatch * l2vt = L2Dispatch::create(dummy, p);
         l2vt->insert(fun);
-        // std::cout << "Create L2: " << l2vt << std::endl;
-        // l2vt->print(std::cout,2);
+        fun->l2Dispatcher = l2vt;
         setEntry(idx, l2vt->container());
     } else {
         if (Function::check(idxContainer)) {
@@ -161,14 +163,12 @@ void DispatchTable::insertL2(Function* fun) {
             Function * old = Function::unpack(idxContainer);
             L2Dispatch * l2vt = L2Dispatch::create(old, p);
             l2vt->insert(fun);
-            // std::cout << "Create L2: " << l2vt << std::endl;
-            // l2vt->print(std::cout,2);
+            fun->l2Dispatcher = l2vt;
             setEntry(idx, l2vt->container());
         } else if (L2Dispatch::check(idxContainer)) {
             L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
             l2vt->insert(fun);
-            // std::cout << "Add to L2: " << l2vt << std::endl;
-            // l2vt->print(std::cout,2);
+            fun->l2Dispatcher = l2vt;
         } else {
             Rf_error("Dispatch table L2insertion error, corrupted slot!!");
         }
@@ -180,6 +180,8 @@ void DispatchTable::insert(Function* fun) {
             FunctionSignature::OptimizationLevel::Baseline);
     int idx = negotiateSlot(fun->context());
     SEXP idxContainer = getEntry(idx);
+
+    fun->vtab = this;
 
     if (idxContainer == R_NilValue) {
         setEntry(idx, fun->container());

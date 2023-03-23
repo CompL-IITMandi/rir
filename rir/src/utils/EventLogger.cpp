@@ -15,6 +15,7 @@
 #include <fstream>
 #include <iomanip>
 #include <memory>
+#include <chrono>
 
 
 using namespace std;
@@ -23,6 +24,156 @@ using namespace std::chrono;
 namespace rir {
 
     static std::string logsFullPath = "";
+    static std::string dispatchLogsFullPath = "";
+    static std::string disableLogsFullPath = "";
+
+    // timestamp
+    // hast
+    // event           - dispatch, deopt
+    // isL2            - true/false
+    // l1-context      - Level-1 context
+    // l2-info         - Number of active L2 functions
+    // l2-case         - fastcase/slowcase/miss/nil
+
+    static void setDispatchLogsPath() {
+        if (!dispatchLogsFullPath.size()) {
+            std::string logsFolder ="/tmp/rsh";
+            if (getenv("testResultsFolder"))
+                logsFolder =  getenv("testResultsFolder");
+
+            std::string runType ="noruntype";
+            if (getenv("runType"))
+                runType =  getenv("runType");
+
+            struct stat st = {0};
+            if (stat(logsFolder.c_str(), &st) == -1) {
+                mkdir(logsFolder.c_str(),0700);
+            }
+
+            auto t = std::time(nullptr);
+            auto tm = *std::localtime(&t);
+            std::stringstream ss;
+
+            ss << logsFolder << "/dispatch-" << runType << "-" << std::put_time(&tm, "%y%m%d-%H%M%S")
+            << "-" << std::to_string(getpid()) << ".csv";
+            dispatchLogsFullPath = ss.str();
+
+            std::ofstream outfile;
+            outfile.open(dispatchLogsFullPath, std::ios_base::app);
+            outfile << "timestamp,hast,event,isL2,l1-context,l2-info,l2-case\n";
+            outfile.close();
+        }
+    }
+
+    static void setDisableLogsPath() {
+        if (!disableLogsFullPath.size()) {
+            std::string logsFolder ="/tmp/rsh";
+            if (getenv("testResultsFolder"))
+                logsFolder =  getenv("testResultsFolder");
+
+            std::string runType ="noruntype";
+            if (getenv("runType"))
+                runType =  getenv("runType");
+
+            struct stat st = {0};
+            if (stat(logsFolder.c_str(), &st) == -1) {
+                mkdir(logsFolder.c_str(),0700);
+            }
+
+            auto t = std::time(nullptr);
+            auto tm = *std::localtime(&t);
+            std::stringstream ss;
+
+            ss << logsFolder << "/disable-" << runType << "-" << std::put_time(&tm, "%y%m%d-%H%M%S")
+            << "-" << std::to_string(getpid()) << ".csv";
+            disableLogsFullPath = ss.str();
+
+            std::ofstream outfile;
+            outfile.open(disableLogsFullPath, std::ios_base::app);
+            outfile << "timestamp,hast,event,isL2,l1-context,l2-info,l2-case\n";
+            outfile.close();
+        }
+    }
+    void EventLogger::logDispatchNormal(SEXP hast, const rir::Context & context) {
+        setDispatchLogsPath();
+        std::ofstream outfile;
+        outfile.open(dispatchLogsFullPath, std::ios_base::app);
+        auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+        outfile << timestamp << ",";
+        outfile << (hast ? CHAR(PRINTNAME(hast)) : "") << ",";
+        outfile << "dispatch" << ",";
+        outfile << "false" << ",";
+        outfile << context << ",";
+        outfile << "0/0" << ",";
+        outfile << "NIL" << ",";
+        outfile << "\n";
+        outfile.close();
+    }
+
+    void EventLogger::logDispatchL2(SEXP hast, const rir::Context & context, const std::string & l2Info) {
+        setDispatchLogsPath();
+        std::ofstream outfile;
+        outfile.open(dispatchLogsFullPath, std::ios_base::app);
+        auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+        outfile << timestamp << ",";
+        outfile << (hast ? CHAR(PRINTNAME(hast)) : "") << ",";
+        outfile << "dispatch" << ",";
+        outfile << "true" << ",";
+        outfile << context << ",";
+        outfile << l2Info << ",";
+        outfile << "NIL" << ",";
+        outfile << "\n";
+        outfile.close();
+    }
+
+    void EventLogger::logL2Check(SEXP hast, const rir::Context & context, const std::string & l2Info, const char * l2Case) {
+        setDispatchLogsPath();
+        std::ofstream outfile;
+        outfile.open(dispatchLogsFullPath, std::ios_base::app);
+        auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+        outfile << timestamp << ",";
+        outfile << (hast ? CHAR(PRINTNAME(hast)) : "") << ",";
+        outfile << "check" << ",";
+        outfile << "true" << ",";
+        outfile << context << ",";
+        outfile << l2Info << ",";
+        outfile << l2Case << ",";
+        outfile << "\n";
+        outfile.close();
+    }
+
+    void EventLogger::logDisable(SEXP hast, const rir::Context & context) {
+        setDisableLogsPath();
+        std::ofstream outfile;
+        outfile.open(disableLogsFullPath, std::ios_base::app);
+        auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+        outfile << timestamp << ",";
+        outfile << (hast ? CHAR(PRINTNAME(hast)) : "") << ",";
+        outfile << "deopt" << ",";
+        outfile << "false" << ",";
+        outfile << context << ",";
+        outfile << "0" << ",";
+        outfile << "nil";
+        outfile << "\n";
+        outfile.close();
+
+    }
+
+    void EventLogger::logDisableL2(SEXP hast, const rir::Context & context, const std::string & l2Info) {
+        setDisableLogsPath();
+        std::ofstream outfile;
+        outfile.open(disableLogsFullPath, std::ios_base::app);
+        auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+        outfile << timestamp << ",";
+        outfile << (hast ? CHAR(PRINTNAME(hast)) : "") << ",";
+        outfile << "deopt" << ",";
+        outfile << "true" << ",";
+        outfile << context << ",";
+        outfile << l2Info << ",";
+        outfile << "nil";
+        outfile << "\n";
+        outfile.close();
+    }
 
     void findAndReplaceAll(std::string & data, std::string toSearch, std::string replaceStr)
     {

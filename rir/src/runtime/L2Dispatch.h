@@ -1,6 +1,7 @@
 #pragma once
 #include "Function.h"
 #include "R/Protect.h"
+#include <string>
 namespace rir {
 
 struct GenFeedbackHolder {
@@ -165,6 +166,7 @@ struct L2Dispatch
 	}
 
 	void print(std::ostream& out, const int & space = 0);
+	std::string getInfo();
   private:
 
 	int _last = -1;
