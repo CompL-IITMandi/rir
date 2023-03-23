@@ -190,15 +190,7 @@ namespace rir {
     }
 
 
-    void EventLogger::logStats(
-            std::string event,
-            std::string name,
-            double timeInMS,
-            std::chrono::_V2::system_clock::time_point& timeStamp,
-            const rir::Context& context,
-            SEXP closure)
-    {
-
+    static void setStatsLogsPathIfNeeded() {
         if (!logsFullPath.size()) {
             std::string logsFolder ="/tmp/rsh";
             if (getenv("testResultsFolder"))
@@ -219,19 +211,47 @@ namespace rir {
             std::stringstream ss;
 
             ss << logsFolder << "/stats-" << runType << "-" << std::put_time(&tm, "%y%m%d-%H%M%S")
-            << "-" << std::to_string(getpid()) << ".log";
+            << "-" << std::to_string(getpid()) << ".csv";
             logsFullPath = ss.str();
+
+            // header
+            std::ofstream outfile;
+            outfile.open(logsFullPath, std::ios_base::app);
+            outfile << "event,name,timeInMS,timeStamp,context,closure,pid";
+            outfile << "\n";
+            outfile.close();
+
         }
+
+    }
+
+    void EventLogger::logStats(
+            std::string event,
+            std::string name,
+            double timeInMS,
+            std::chrono::_V2::system_clock::time_point& timeStamp,
+            const rir::Context& context,
+            SEXP closure)
+    {
+
+
+        setStatsLogsPathIfNeeded();
+
 
         std::ofstream outfile;
         outfile.open(logsFullPath, std::ios_base::app);
-
         std::stringstream streamctx;
         streamctx << context;
         auto contextAsString = streamctx.str();
         findAndReplaceAll(contextAsString, ",", " ");
 
-        outfile << event << "," << name << "," << timeInMS << "," << timeStamp.time_since_epoch().count() << "," << contextAsString << "," << closure;
+        outfile << event
+                << "," << name
+                << "," << timeInMS
+                << "," << timeStamp.time_since_epoch().count()
+                << "," << contextAsString
+                << "," << closure
+                << "," << getpid();
         outfile << "\n";
         outfile.close();
     }
