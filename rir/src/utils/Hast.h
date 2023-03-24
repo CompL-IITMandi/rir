@@ -71,7 +71,7 @@ class Hast {
     static rir::DispatchTable * getVtableObjectAtOffset(rir::DispatchTable *, int offset);
 
     static bool isAnonEnv(SEXP env);
-    static SEXP getHast(SEXP body, SEXP env);
+    static SEXP getHast(SEXP body, SEXP formals, SEXP env);
 
     // static void populateTypeFeedbackData(SEXP container, DispatchTable* vtab, std::vector<uintptr_t> * tfPCs = nullptr);
 

@@ -2028,7 +2028,7 @@ void Compiler::compileClosure(SEXP inClosure) {
     }
 
     // Calculate hast
-    SEXP hast = Hast::getHast(body, CLOENV(inClosure));
+    SEXP hast = Hast::getHast(body, FORMALS(inClosure), CLOENV(inClosure));
     Compiler c(body, FORMALS(inClosure), CLOENV(inClosure));
     auto res = p(c.finalize());
 

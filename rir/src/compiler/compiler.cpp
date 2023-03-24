@@ -135,8 +135,9 @@ void Compiler::compileClosure(Closure* closure, rir::Function* optFunction,
         return fail();
     }
 
+    static bool onlyStable = getenv("ONLY_STABLE_COMPILATIONS") ? getenv("ONLY_STABLE_COMPILATIONS")[0] == '1' : true;
     auto hastInfo = Hast::getHastInfo(closure->rirFunction()->body()->src, true);
-    if (!hastInfo.isValid()) {
+    if (onlyStable && !hastInfo.isValid()) {
         logger.warn("skipping unstable function");
         return fail();
     }
