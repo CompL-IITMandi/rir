@@ -844,6 +844,7 @@ REXPORT SEXP printSpeculativeContext(SEXP fn) {
     return R_TrueValue;
 }
 
+static bool pureSerializerRun = getenv("PURE_SERIALIZER_RUN") ? getenv("PURE_SERIALIZER_RUN")[0] == '1' : false;
 SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 const pir::DebugOptions& debug) {
     if (*RTConsts::R_jit_enabled == 0) return what;
@@ -871,9 +872,26 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         auto duration = duration_cast<milliseconds>(pirOptEnd - pirOptStart);
         auto durationCount = duration.count();
         timeInPirCompiler+= durationCount;
+        auto vt = DispatchTable::unpack(BODY(c->owner()->rirClosure()));
+        if (EventLogger::enabled) {
 
-        EventLogger::logStats("pirTime", name,  durationCount, pirOptStart, c->context(), c->owner()->rirClosure());
-
+            std::stringstream eventDataJSON;
+            eventDataJSON << "{"
+                << "\"hast\": " << "\"" << ((vt->hast) ? CHAR(PRINTNAME(vt->hast)) : "NULL")  << "\"" << ","
+                << "\"hastOffset\": " << "\"" << vt->offsetIdx  << "\"" << ","
+                << "\"functionName\": " << "\"" << name << "\"" << ","
+                << "\"context\": " << "\"" << c->context() << "\"" << ","
+                << "\"closure\": " << "\"" << c->owner()->rirClosure() << "\"" << ","
+                << "\"vtab\": " << "\"" << vt << "\""
+                << "}";
+            // EventLogger::logStats("pirTime", name,  durationCount, pirOptStart, c->context(), c->owner()->rirClosure());
+            EventLogger::logTimedEvent(
+                pirOptStart,
+                "pirCompilation",
+                durationCount,
+                eventDataJSON.str()
+            );
+        }
 
         if (dryRun)
             return;

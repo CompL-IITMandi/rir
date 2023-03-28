@@ -25,6 +25,7 @@
 
 #include "runtime/RuntimeFlags.h"
 #include "utils/Hast.h"
+#include "utils/SerializerDebug.h"
 // #include <csignal>
 extern "C" {
 extern SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP);
@@ -982,43 +983,124 @@ SEXP doCall(CallContext& call, bool popArgs) {
 
         auto table = DispatchTable::unpack(body);
 
-        inferCurrentContext(call, table->baseline()->signature().formalNargs());
-        Function* disabledFun;
+        Function * baselineFun = table->baseline();
+
+        inferCurrentContext(call, baselineFun->signature().formalNargs());
+        Function* disabledFun = baselineFun;
         auto fun =
             table->dispatchConsideringDisabled(call.givenContext, &disabledFun);
 
-        bool firstInterpCall = table->baseline()->invocationCount() == 0;
-        if (firstInterpCall) {
-            fun = table->baseline();
-        }
-        fun->registerInvocation();
-        if (!firstInterpCall && RuntimeFlags::contextualCompilationSkip == false && !isDeoptimizing() && RecompileHeuristic(fun, disabledFun)) {
-            Context given = call.givenContext;
-            // addDynamicAssumptionForOneTarget compares arguments with the
-            // signature of the current dispatch target. There the number of
-            // arguments might be off. But we want to force compiling a new
-            // version exactly for this number of arguments, thus we need to add
-            // this as an explicit assumption.
+        Context given = call.givenContext;
+        bool jitCompileDecision = false;
+        bool forcedInterp = baselineFun->invocationCount() == 0;
 
-            fun->clearDisabledAssumptions(given);
-            if (RecompileCondition(table, fun, given)) {
-                if (given.includes(pir::Compiler::minimalContext)) {
-                    if (call.caller &&
-                        call.caller->function()->invocationCount() > 0 &&
-                        !call.caller->isCompiled() &&
-                        !call.caller->function()->disabled() &&
-                        call.caller->size() < pir::Parameter::MAX_INPUT_SIZE &&
-                        fun->body()->codeSize < 20) {
-                        call.triggerOsr = true;
+        static bool pureSerializerRun = getenv("PURE_SERIALIZER_RUN") ? getenv("PURE_SERIALIZER_RUN")[0] == '1' : false;
+
+        // Tick is reduced everytime a function is called
+        if (table->jitTick > 0) table->jitTick--;
+        if (pureSerializerRun) {
+            fun = baselineFun;
+            // Everytime the feedback state changes, recompile
+            if (table->lastCompilationState != fun->body()->stateVal) {
+                table->lastCompilationState = fun->body()->stateVal;
+                SerializerDebug::infoMessage("(?) Serializer state: " + std::to_string(table->lastCompilationState), 0);
+
+                DoRecompile(fun, call.ast, call.callee, given);
+                fun = dispatch(call, table);
+            }
+        } else if (forcedInterp) {
+            // FORCE ATLEAST ONE INTERPRETER RUN, NEEDED IN CASE OF DESERIALIZER
+            fun = baselineFun;
+        } else if (RuntimeFlags::contextualCompilationSkip) {
+            // Flag to disable contextual compilation altogether
+            jitCompileDecision = false;
+        } else if (fun == baselineFun) {
+            // BYTECODE
+            auto flags = fun->flags;
+            if (flags.contains(Function::MarkOpt)) {
+                jitCompileDecision = true;
+            }
+            else if (flags.contains(Function::NotOptimizable)) {
+                jitCompileDecision = false;
+            }
+            else if (table->jitTick == 0) {
+                jitCompileDecision = true;
+            }
+        } else {
+            // NATIVE
+            if (table->jitTick == 0) {
+                if (fun->invocationCount() < 8) {
+                    // If we are already in native code, specialize more only if
+                    // current specialization is executed more than X times
+                    jitCompileDecision = false;
+                } else
+                if (disabledFun->deoptCount() >= pir::Parameter::DEOPT_ABANDON) {
+                    // Abandon
+                    jitCompileDecision = false;
+                } else {
+                    // addDynamicAssumptionForOneTarget compares arguments with the
+                    // signature of the current dispatch target. There the number of
+                    // arguments might be off. But we want to force compiling a new
+                    // version exactly for this number of arguments, thus we need to add
+                    // this as an explicit assumption.
+
+                    fun->clearDisabledAssumptions(given);
+
+                    if (given.smaller(fun->context()) && given.isImproving(fun) > table->size()) {
+                        // Improving context
+                        jitCompileDecision = true;
                     }
-                    // std::cout << "Recompile heuristic: " << given << " (vtab=" << table << ")" << std::endl;
-                    // table->print(std::cout, 2);
-                    DoRecompile(fun, call.ast, call.callee, given);
-                    // std::cout << "Recompile heuristic end" << std::endl;
-                    fun = dispatch(call, table);
                 }
             }
         }
+
+
+        if (jitCompileDecision) {
+            if (given.includes(pir::Compiler::minimalContext)) {
+                if (call.caller &&
+                    call.caller->function()->invocationCount() > 0 &&
+                    !call.caller->isCompiled() &&
+                    !call.caller->function()->disabled() &&
+                    call.caller->size() < pir::Parameter::MAX_INPUT_SIZE &&
+                    fun->body()->codeSize < 20) {
+                    call.triggerOsr = true;
+                }
+                // Make next compilation slightly harder everytime we compile
+                table->jitLag = table->jitLag * 2;
+                table->jitTick = table->jitLag;
+
+                DoRecompile(fun, call.ast, call.callee, given);
+                fun = dispatch(call, table);
+            }
+        }
+        fun->registerInvocation();
+        // if (!firstInterpCall && RuntimeFlags::contextualCompilationSkip == false && !isDeoptimizing() && RecompileHeuristic(fun, disabledFun)) {
+        //     Context given = call.givenContext;
+        //     // addDynamicAssumptionForOneTarget compares arguments with the
+        //     // signature of the current dispatch target. There the number of
+        //     // arguments might be off. But we want to force compiling a new
+        //     // version exactly for this number of arguments, thus we need to add
+        //     // this as an explicit assumption.
+
+        //     fun->clearDisabledAssumptions(given);
+        //     if (RecompileCondition(table, fun, given)) {
+        //         if (given.includes(pir::Compiler::minimalContext)) {
+        //             if (call.caller &&
+        //                 call.caller->function()->invocationCount() > 0 &&
+        //                 !call.caller->isCompiled() &&
+        //                 !call.caller->function()->disabled() &&
+        //                 call.caller->size() < pir::Parameter::MAX_INPUT_SIZE &&
+        //                 fun->body()->codeSize < 20) {
+        //                 call.triggerOsr = true;
+        //             }
+        //             // std::cout << "Recompile heuristic: " << given << " (vtab=" << table << ")" << std::endl;
+        //             // table->print(std::cout, 2);
+        //             DoRecompile(fun, call.ast, call.callee, given);
+        //             // std::cout << "Recompile heuristic end" << std::endl;
+        //             fun = dispatch(call, table);
+        //         }
+        //     }
+        // }
         bool needsEnv = fun->signature().envCreation ==
                         FunctionSignature::Environment::CallerProvided;
 
@@ -2322,7 +2404,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         INSTRUCTION(record_call_) {
             ObservedCallees* feedback = (ObservedCallees*)pc;
             SEXP callee = ostack_top();
-            feedback->record(c, callee);
+            bool stateChange = feedback->record(c, callee);
+            if (stateChange) c->stateVal++;
             pc += sizeof(ObservedCallees);
             NEXT();
         }
@@ -2330,7 +2413,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         INSTRUCTION(record_test_) {
             ObservedTest* feedback = (ObservedTest*)pc;
             SEXP t = ostack_top();
-            feedback->record(t);
+            bool stateChange = feedback->record(t);
+            if (stateChange) c->stateVal++;
             pc += sizeof(ObservedTest);
             NEXT();
         }
@@ -2338,7 +2422,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         INSTRUCTION(record_type_) {
             ObservedValues* feedback = (ObservedValues*)pc;
             SEXP t = ostack_top();
-            feedback->record(t);
+            bool stateChange = feedback->record(t);
+            if (stateChange) c->stateVal++;
             pc += sizeof(ObservedValues);
             NEXT();
         }

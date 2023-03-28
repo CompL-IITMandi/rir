@@ -171,9 +171,39 @@ void Function::registerDeopt() {
     if (!disabled()) {
         flags.set(Flag::Deopt);
         if (l2Dispatcher) {
-            EventLogger::logDisableL2(vtab->hast, context(), l2Dispatcher->getInfo());
+            if (EventLogger::enabled) {
+                std::stringstream eventDataJSON;
+                eventDataJSON << "{"
+                    << "\"hast\": " << "\"" << CHAR(PRINTNAME(vtab->hast))  << "\"" << ","
+                    << "\"hastOffset\": " << "\"" << vtab->offsetIdx << "\"" << ","
+                    << "\"function\": " << "\"" << this << "\"" << ","
+                    << "\"context\": " << "\"" << context() << "\"" << ","
+                    << "\"vtab\": " << "\"" << vtab << "\"" << ","
+                    << "\"l2Info\": " << "{" << l2Dispatcher->getInfo() << "}"
+                    << "}";
+
+                EventLogger::logUntimedEvent(
+                    "deoptL2",
+                    eventDataJSON.str()
+                );
+            }
+
         } else if (vtab) {
-            EventLogger::logDisable(vtab->hast, context());
+            if (EventLogger::enabled) {
+                std::stringstream eventDataJSON;
+                eventDataJSON << "{"
+                    << "\"hast\": " << "\"" << (vtab->hast ? CHAR(PRINTNAME(vtab->hast)) : "NULL")  << "\"" << ","
+                    << "\"hastOffset\": " << "\"" << vtab->offsetIdx << "\"" << ","
+                    << "\"context\": " << "\"" << context() << "\"" << ","
+                    << "\"function\": " << "\"" << this << "\"" << ","
+                    << "\"vtab\": " << "\"" << vtab << "\""
+                    << "}";
+
+                EventLogger::logUntimedEvent(
+                    "deopt",
+                    eventDataJSON.str()
+                );
+            }
         }
         // else {
             // Case of dummy deopt sentinals

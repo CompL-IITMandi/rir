@@ -12,16 +12,26 @@ static inline void printSpace(std::ostream& out, const int & space) {
 
 std::string L2Dispatch::getInfo() {
 	std::stringstream ss;
-	unsigned total = 0, disabled = 0;
-	for (int i = _last; i >= 0; i--) {
-		auto currFun = getFunction(i);
-		total++;
-		if (currFun->disabled()) {
-			disabled++;
-		}
-	}
 
-	ss << (total-disabled) << "/" << total;
+	if (_last == -1) {
+		ss << "\"fallback\": " << "true" << ",";
+
+	} else {
+		ss << "\"fallback\": " << "false" << ",";
+
+		unsigned total = 0, disabled = 0;
+		for (int i = _last; i >= 0; i--) {
+			auto currFun = getFunction(i);
+			total++;
+			ss << "\"" << currFun << "(" << (currFun->disabled() ? "Disabled" : "Enabled") << ")\": " << currFun->matchSpeculativeContext();
+			ss << ",";
+			if (currFun->disabled()) {
+				disabled++;
+			}
+		}
+		ss << "\"total\": " << total << ",";
+		ss << "\"disabled\": " << disabled;
+	}
 	return ss.str();
 }
 
@@ -190,12 +200,44 @@ bool L2Feedback::operator==(const L2Feedback& other) {
 Function * L2Dispatch::dispatch() {
 	auto fallback = getFallback();
 	if (_last == -1) {
-		EventLogger::logL2Check(fallback->vtab->hast, fallback->context(), getInfo(), "cache-miss");
+		if (EventLogger::enabled) {
+			std::stringstream eventDataJSON;
+			eventDataJSON << "{"
+				<< "\"case\": " << "\"" << "empty" << "\"" << ","
+				<< "\"hast\": " << "\"" << (fallback->vtab->hast ? CHAR(PRINTNAME(fallback->vtab->hast)) : "NULL")  << "\"" << ","
+				<< "\"hastOffset\": " << "\"" << fallback->vtab->offsetIdx << "\"" << ","
+				<< "\"function\": " << "\"" << fallback << "\"" << ","
+				<< "\"context\": " << "\"" << fallback->context() << "\"" << ","
+				<< "\"vtab\": " << "\"" << fallback->vtab << "\"" << ","
+				<< "\"l2Info\": " << "{" << getInfo() << "}"
+				<< "}";
+
+			EventLogger::logUntimedEvent(
+				"l2check",
+				eventDataJSON.str()
+			);
+		}
 		return fallback;
 	}
 
 	if (lastDispatch && !lastDispatch->disabled()) {
-		EventLogger::logL2Check(lastDispatch->vtab->hast, lastDispatch->context(), getInfo(), "fastcase");
+		if (EventLogger::enabled) {
+			std::stringstream eventDataJSON;
+			eventDataJSON << "{"
+				<< "\"case\": " << "\"" << "fast" << "\"" << ","
+				<< "\"hast\": " << "\"" << (lastDispatch->vtab->hast ? CHAR(PRINTNAME(lastDispatch->vtab->hast)) : "NULL")  << "\"" << ","
+				<< "\"hastOffset\": " << "\"" << lastDispatch->vtab->offsetIdx << "\"" << ","
+				<< "\"function\": " << "\"" << lastDispatch << "\"" << ","
+				<< "\"context\": " << "\"" << lastDispatch->context() << "\"" << ","
+				<< "\"vtab\": " << "\"" << lastDispatch->vtab << "\"" << ","
+				<< "\"l2Info\": " << "{" << getInfo() << "}"
+				<< "}";
+
+			EventLogger::logUntimedEvent(
+				"l2check",
+				eventDataJSON.str()
+			);
+		}
 		return lastDispatch;
 	}
 
@@ -203,11 +245,45 @@ Function * L2Dispatch::dispatch() {
 		auto currFun = getFunction(i);
 		if (!currFun->disabled() && currFun->matchSpeculativeContext()) {
 			lastDispatch = currFun;
-			EventLogger::logL2Check(lastDispatch->vtab->hast, lastDispatch->context(), getInfo(), "cache-hit");
+			if (EventLogger::enabled) {
+				std::stringstream eventDataJSON;
+				eventDataJSON << "{"
+					<< "\"case\": " << "\"" << "slow" << "\"" << ","
+					<< "\"hast\": " << "\"" << (lastDispatch->vtab->hast ? CHAR(PRINTNAME(lastDispatch->vtab->hast)) : "NULL")  << "\"" << ","
+					<< "\"hastOffset\": " << "\"" << lastDispatch->vtab->offsetIdx << "\"" << ","
+					<< "\"function\": " << "\"" << lastDispatch << "\"" << ","
+					<< "\"context\": " << "\"" << lastDispatch->context() << "\"" << ","
+					<< "\"vtab\": " << "\"" << lastDispatch->vtab << "\"" << ","
+					<< "\"l2Info\": " << "{" << getInfo() << "}"
+					<< "}";
+
+				EventLogger::logUntimedEvent(
+					"l2check",
+					eventDataJSON.str()
+				);
+			}
 			return currFun;
 		}
 	}
-	EventLogger::logL2Check(fallback->vtab->hast, fallback->context(), getInfo(), "cache-miss");
+
+	if (EventLogger::enabled) {
+		std::stringstream eventDataJSON;
+		eventDataJSON << "{"
+			<< "\"case\": " << "\"" << "miss" << "\"" << ","
+			<< "\"hast\": " << "\"" << (fallback->vtab->hast ? CHAR(PRINTNAME(fallback->vtab->hast)) : "NULL")  << "\"" << ","
+			<< "\"hastOffset\": " << "\"" << fallback->vtab->offsetIdx << "\"" << ","
+			<< "\"function\": " << "\"" << fallback << "\"" << ","
+			<< "\"context\": " << "\"" << fallback->context() << "\"" << ","
+			<< "\"vtab\": " << "\"" << fallback->vtab << "\"" << ","
+			<< "\"l2Info\": " << "{" << getInfo() << "}"
+			<< "}";
+
+		EventLogger::logUntimedEvent(
+			"l2check",
+			eventDataJSON.str()
+		);
+	}
+
 	return fallback;
 }
 

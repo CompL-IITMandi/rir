@@ -26,6 +26,8 @@ struct DispatchTable
 
     Function* get(size_t i) const;
 
+    rir::Context getContext(size_t i) const;
+
     Function* best() const {
         if (size() > 1)
             return get(1);
@@ -52,36 +54,104 @@ struct DispatchTable
             Rf_error("Provided context does not satisfy user defined context");
         }
 
-        Function* r2 = nullptr;
         auto outputDisabledFunc = (disabledFunc != nullptr);
+
+        auto b = baseline();
+
+        if (outputDisabledFunc)
+            *disabledFunc = b;
 
         for (size_t i = 1; i < size(); ++i) {
 #ifdef DEBUG_DISPATCH
             std::cout << "DISPATCH trying: " << a << " vs " << get(i)->context()
                       << "\n";
 #endif
-            auto e = get(i);
-            if (a.smaller(e->context()) &&
-                (ignorePending || !e->pendingCompilation())) {
+            auto eCon = getContext(i);
+            if (a.smaller(eCon)) {
+                if (EventLogger::enabled) {
+                    std::stringstream eventDataJSON;
+                    eventDataJSON << "{"
+                        << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+                        << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+                        << "\"inferred\": " << "\"" << a << "\"" << ","
+                        << "\"context\": " << "\"" << eCon << "\"" << ","
+                        << "\"vtab\": " << "\"" << this << "\""
+                        << "}";
 
-                r2 = e;
-                if (!e->disabled()) {
-                    if (outputDisabledFunc)
-                        *disabledFunc = r2;
-                    if (!e->l2Dispatcher) {
-                        EventLogger::logDispatchNormal(hast, a);
+                    EventLogger::logUntimedEvent(
+                        "dispatchTrying",
+                        eventDataJSON.str()
+                    );
+                }
+
+                auto e = get(i);
+                if (ignorePending || !e->pendingCompilation()) {
+                    if (!e->disabled()) {
+                        if (!e->l2Dispatcher) {
+                            if (EventLogger::enabled) {
+                                std::stringstream eventDataJSON;
+                                eventDataJSON << "{"
+                                    << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+                                    << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+                                    << "\"inferred\": " << "\"" << a << "\"" << ","
+                                    << "\"function\": " << "\"" << e << "\"" << ","
+                                    << "\"context\": " << "\"" << e->context() << "\"" << ","
+                                    << "\"vtab\": " << "\"" << this << "\""
+                                    << "}";
+
+                                EventLogger::logUntimedEvent(
+                                    "dispatch",
+                                    eventDataJSON.str()
+                                );
+                            }
+                        } else {
+                            if (EventLogger::enabled) {
+                                std::stringstream eventDataJSON;
+                                eventDataJSON << "{"
+                                    << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+                                    << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+                                    << "\"inferred\": " << "\"" << a << "\"" << ","
+                                    << "\"function\": " << "\"" << e << "\"" << ","
+                                    << "\"context\": " << "\"" << e->context() << "\"" << ","
+                                    << "\"vtab\": " << "\"" << this << "\"" << ","
+                                    << "\"l2vtab\": " << "\"" << e->l2Dispatcher << "\"" << ","
+                                    << "\"l2Info\": " << "{" << e->l2Dispatcher->getInfo() << "}"
+                                    << "}";
+
+                                EventLogger::logUntimedEvent(
+                                    "dispatchL2",
+                                    eventDataJSON.str()
+                                );
+                            }
+                        }
+                        return e;
                     } else {
-                        EventLogger::logDispatchL2(hast, a, e->l2Dispatcher->getInfo());
+                        // There exists a disabled binary for this context
+                        if (outputDisabledFunc && a == eCon)
+                            *disabledFunc = e;
                     }
-                    return e;
                 }
             }
         }
 
-        auto b = baseline();
 
-        if (outputDisabledFunc)
-            *disabledFunc = (!r2 ? b : r2);
+
+        if (EventLogger::enabled) {
+            std::stringstream eventDataJSON;
+            eventDataJSON << "{"
+                << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+                << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+                << "\"inferred\": " << "\"" << a << "\"" << ","
+                << "\"function\": " << "\"" << b << "\"" << ","
+                << "\"context\": " << "\"" << "baseline" << "\"" << ","
+                << "\"vtab\": " << "\"" << this << "\""
+                << "}";
+
+            EventLogger::logUntimedEvent(
+                "dispatch",
+                eventDataJSON.str()
+            );
+        }
 
         return b;
     }
@@ -182,6 +252,10 @@ struct DispatchTable
         return userDefinedContext_ | anotherContext;
     }
 
+    unsigned jitLag = 4;
+    unsigned jitTick = 4;
+    size_t lastCompilationState = SIZE_MAX;
+
     SEXP hast = nullptr;
     int offsetIdx = -1;
   private:
@@ -195,6 +269,7 @@ struct DispatchTable
 
     size_t size_ = 0;
     Context userDefinedContext_;
+
 };
 
 #pragma pack(pop)
