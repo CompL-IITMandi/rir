@@ -217,7 +217,7 @@ namespace rir {
             // header
             std::ofstream outfile;
             outfile.open(logsFullPath, std::ios_base::app);
-            outfile << "event,name,timeInMS,timeStamp,context,closure,pid";
+            outfile << "event,name,timeInMS,timeStamp,context,closure,size,pid";
             outfile << "\n";
             outfile.close();
 
@@ -231,7 +231,8 @@ namespace rir {
             double timeInMS,
             std::chrono::_V2::system_clock::time_point& timeStamp,
             const rir::Context& context,
-            SEXP closure)
+            SEXP closure,
+            size_t  size)
     {
 
 
@@ -251,6 +252,7 @@ namespace rir {
                 << "," << timeStamp.time_since_epoch().count()
                 << "," << contextAsString
                 << "," << closure
+                << "," << size
                 << "," << getpid();
         outfile << "\n";
         outfile.close();

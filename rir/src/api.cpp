@@ -41,6 +41,7 @@
 
 using namespace rir;
 
+
 extern "C" Rboolean R_Visible;
 
 int R_ENABLE_JIT = getenv("R_ENABLE_JIT") ? atoi(getenv("R_ENABLE_JIT")) : 3;
@@ -872,7 +873,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         auto durationCount = duration.count();
         timeInPirCompiler+= durationCount;
 
-        EventLogger::logStats("pirTime", name,  durationCount, pirOptStart, c->context(), c->owner()->rirClosure());
+        EventLogger::logStats("pirTime", name,  durationCount, pirOptStart, c->context(), c->owner()->rirClosure(), c->numInstrs());
 
 
         if (dryRun)
