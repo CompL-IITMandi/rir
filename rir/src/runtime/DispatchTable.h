@@ -68,7 +68,7 @@ struct DispatchTable
 #endif
             auto eCon = getContext(i);
             if (a.smaller(eCon)) {
-                if (EventLogger::enabled) {
+                if (EventLogger::logLevel >= 2) {
                     std::stringstream eventDataJSON;
                     eventDataJSON << "{"
                         << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
@@ -88,7 +88,7 @@ struct DispatchTable
                 if (ignorePending || !e->pendingCompilation()) {
                     if (!e->disabled()) {
                         if (!e->l2Dispatcher) {
-                            if (EventLogger::enabled) {
+                            if (EventLogger::logLevel >= 2) {
                                 std::stringstream eventDataJSON;
                                 eventDataJSON << "{"
                                     << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
@@ -105,7 +105,7 @@ struct DispatchTable
                                 );
                             }
                         } else {
-                            if (EventLogger::enabled) {
+                            if (EventLogger::logLevel >= 2) {
                                 std::stringstream eventDataJSON;
                                 eventDataJSON << "{"
                                     << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
@@ -136,7 +136,7 @@ struct DispatchTable
 
 
 
-        if (EventLogger::enabled) {
+        if (EventLogger::logLevel >= 2) {
             std::stringstream eventDataJSON;
             eventDataJSON << "{"
                 << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","

@@ -1015,7 +1015,7 @@ void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
     #endif
     deoptReason->record(deoptTrigger);
 
-    if (EventLogger::enabled) {
+    if (EventLogger::logLevel >= 2) {
         std::stringstream eventDataJSON;
         eventDataJSON << "{";
 

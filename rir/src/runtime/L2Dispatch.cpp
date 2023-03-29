@@ -200,7 +200,7 @@ bool L2Feedback::operator==(const L2Feedback& other) {
 Function * L2Dispatch::dispatch() {
 	auto fallback = getFallback();
 	if (_last == -1) {
-		if (EventLogger::enabled) {
+		if (EventLogger::logLevel >= 2) {
 			std::stringstream eventDataJSON;
 			eventDataJSON << "{"
 				<< "\"case\": " << "\"" << "empty" << "\"" << ","
@@ -221,7 +221,7 @@ Function * L2Dispatch::dispatch() {
 	}
 
 	if (lastDispatch && !lastDispatch->disabled()) {
-		if (EventLogger::enabled) {
+		if (EventLogger::logLevel >= 2) {
 			std::stringstream eventDataJSON;
 			eventDataJSON << "{"
 				<< "\"case\": " << "\"" << "fast" << "\"" << ","
@@ -245,7 +245,7 @@ Function * L2Dispatch::dispatch() {
 		auto currFun = getFunction(i);
 		if (!currFun->disabled() && currFun->matchSpeculativeContext()) {
 			lastDispatch = currFun;
-			if (EventLogger::enabled) {
+			if (EventLogger::logLevel >= 2) {
 				std::stringstream eventDataJSON;
 				eventDataJSON << "{"
 					<< "\"case\": " << "\"" << "slow" << "\"" << ","
@@ -266,7 +266,7 @@ Function * L2Dispatch::dispatch() {
 		}
 	}
 
-	if (EventLogger::enabled) {
+	if (EventLogger::logLevel >= 2) {
 		std::stringstream eventDataJSON;
 		eventDataJSON << "{"
 			<< "\"case\": " << "\"" << "miss" << "\"" << ","

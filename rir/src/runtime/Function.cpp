@@ -171,7 +171,7 @@ void Function::registerDeopt() {
     if (!disabled()) {
         flags.set(Flag::Deopt);
         if (l2Dispatcher) {
-            if (EventLogger::enabled) {
+            if (EventLogger::logLevel >= 2) {
                 std::stringstream eventDataJSON;
                 eventDataJSON << "{"
                     << "\"hast\": " << "\"" << CHAR(PRINTNAME(vtab->hast))  << "\"" << ","
@@ -189,7 +189,7 @@ void Function::registerDeopt() {
             }
 
         } else if (vtab) {
-            if (EventLogger::enabled) {
+            if (EventLogger::logLevel >= 2) {
                 std::stringstream eventDataJSON;
                 eventDataJSON << "{"
                     << "\"hast\": " << "\"" << (vtab->hast ? CHAR(PRINTNAME(vtab->hast)) : "NULL")  << "\"" << ","
