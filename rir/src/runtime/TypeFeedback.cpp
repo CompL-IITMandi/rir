@@ -9,10 +9,12 @@
 
 namespace rir {
 
-void ObservedCallees::record(Code* caller, SEXP callee,
+bool ObservedCallees::record(Code* caller, SEXP callee,
                              bool invalidateWhenFull) {
-    if (taken < CounterOverflow)
+    bool changed = false;
+    if (taken < CounterOverflow) {
         taken++;
+    }
 
 
     if (numTargets < MaxTargets) {
@@ -21,13 +23,17 @@ void ObservedCallees::record(Code* caller, SEXP callee,
             if (caller->getExtraPoolEntry(targets[i]) == callee)
                 break;
         if (i == numTargets) {
+            changed = true;
             auto idx = caller->addExtraPoolEntry(callee);
             targets[numTargets++] = idx;
         }
     } else {
-        if (invalidateWhenFull)
+        if (invalidateWhenFull) {
+            changed = true;
             invalid = true;
+        }
     }
+    return changed;
 }
 
 SEXP ObservedCallees::getTarget(const Code* code, size_t pos) const {

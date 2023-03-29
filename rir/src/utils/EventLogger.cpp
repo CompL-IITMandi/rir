@@ -23,6 +23,78 @@ using namespace std::chrono;
 
 namespace rir {
 
+    bool EventLogger::enabled = getenv("EVENT_LOG") ? getenv("EVENT_LOG")[0] == '1' : false;
+
+    static std::string _logPath = "";
+    static std::string _eventsFolder = "";
+    static std::string _eventsFolderOuter = "";
+
+    static void setLogPathIfNeeded() {
+        if (!_logPath.size()) {
+            std::string logsFolder ="/tmp/rsh";
+            if (getenv("testResultsFolder"))
+                logsFolder =  getenv("testResultsFolder");
+            std::string runType ="noruntype";
+            if (getenv("runType"))
+                runType =  getenv("runType");
+            struct stat st = {0};
+            if (stat(logsFolder.c_str(), &st) == -1) {
+                mkdir(logsFolder.c_str(),0700);
+            }
+            // Create events folder
+            {
+                std::stringstream eventsFolder;
+                eventsFolder << logsFolder << "/" << runType << "-events";
+                struct stat st = {0};
+                if (stat(eventsFolder.str().c_str(), &st) == -1) {
+                    mkdir(eventsFolder.str().c_str(),0700);
+                }
+                _eventsFolder = eventsFolder.str();
+                _eventsFolderOuter = runType + "-events";
+            }
+            std::stringstream ss;
+            ss << logsFolder << "/log-" << runType << ".csv";
+            _logPath = ss.str();
+        }
+    }
+
+    void EventLogger::logTimedEvent(
+        std::chrono::_V2::system_clock::time_point& timeStamp,
+        const std::string & eventType,
+        size_t timeInMS,
+        const std::string & eventDataInJson
+        ) {
+        setLogPathIfNeeded();
+
+        // Save the eventData
+        std::ofstream eventData;
+        std::stringstream eventDataPath;
+        eventDataPath << _eventsFolder << "/" << getpid() << "_" <<  timeStamp.time_since_epoch().count() << ".json";
+        std::ofstream eventDataFile;
+        eventDataFile.open(eventDataPath.str(), std::ios_base::out);
+        eventDataFile << eventDataInJson;
+        eventDataFile.close();
+
+        std::ofstream outfile;
+        outfile.open(_logPath, std::ios_base::app);
+        outfile << timeStamp.time_since_epoch().count() << ","
+                << eventType << ","
+                << timeInMS << ","
+                << getpid() << ","
+                << _eventsFolderOuter << "/" << getpid() << "_" <<  timeStamp.time_since_epoch().count() << ".json"
+                << "\n";
+        outfile.close();
+    }
+
+    void EventLogger::logUntimedEvent(
+        const std::string & eventType,
+        const std::string & eventDataInJson
+        ) {
+        using namespace std::chrono;
+        auto timestamp = high_resolution_clock::now();
+        logTimedEvent(timestamp, eventType, 0, eventDataInJson);
+    }
+
     static std::string logsFullPath = "";
     static std::string dispatchLogsFullPath = "";
     static std::string disableLogsFullPath = "";

@@ -21,6 +21,16 @@ Function* DispatchTable::get(size_t i) const {
     return Function::unpack(getEntry(i));
 }
 
+rir::Context DispatchTable::getContext(size_t i) const {
+    assert(i < capacity());
+    SEXP funContainer = getEntry(i);
+    if (L2Dispatch::check(funContainer)) {
+        L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+        return l2vt->getFallback()->context();
+    }
+    return Function::unpack(getEntry(i))->context();
+}
+
 void DispatchTable::print(std::ostream& out, const int & space) const {
     printSpace(space, out);
     out << "=== Printing Dispatch table (" << this << ") ===" << std::endl;

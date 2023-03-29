@@ -1,5 +1,40 @@
 # Ř
 
+## Using the event logger
+
+
+1. Install Nodejs, nvm is the easiest way to get it.
+
+```
+# source: https://github.com/nvm-sh/nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+# or wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+nvm install --lts
+```
+
+2. Generating logs
+The EVENT_LOG=1 flag is used to enable the event logger.
+
+The path is defined by the flag testResultsFolder.
+
+The path is defined by the flag runType.
+
+```
+EVENT_LOG=1 runType="logger-run" testResultsFolder=/some_path/outputs ./build/bin/Rscript program.R
+```
+
+This will generate a log-logger-run.csv file and a folder containing named logger-run-events folder.
+
+In order to view the logs on the tool, combine the logs using.
+```
+node combineLogs.js /path-to-csv/log-logger-run.csv /output/my-data.json
+```
+
+The obtained .json files can be visualized at:
+
+https://meetesh06.github.io/General-Event-Query-Engine/
+
+
 ## Patch custom-r for serializer/deserializer
 
 Give Ř access to the **R_jit_enabled** flag in GNUR as parallel threads in GNUR can trigger parallel Ř compilations which inturn leads to parallel serializations/deserializations.

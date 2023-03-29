@@ -472,7 +472,8 @@ bool Rir2Pir::compileBC(const BC& bc, Opcode* pos, Opcode* nextPos,
                     }
                 }
             }
-            if (!serializerSafe) break;
+            static bool onlyStable = getenv("ONLY_STABLE_COMPILATIONS") ? getenv("ONLY_STABLE_COMPILATIONS")[0] == '1' : true;
+            if (onlyStable && !serializerSafe) break;
             if (feedback.numTargets == 1) {
                 assert(!feedback.invalid &&
                        "feedback can't be invalid if numTargets is 1");

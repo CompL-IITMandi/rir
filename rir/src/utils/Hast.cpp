@@ -275,29 +275,36 @@ bool Hast::isAnonEnv(SEXP env) {
     }
 }
 
-SEXP Hast::getHast(SEXP body, SEXP env) {
-    std::stringstream qHast;
-    static bool skipGlobalBc = getenv("SKIP_GLOBAL_BC") ? true : false;
-    SEXP x = env;
-    if (x == R_GlobalEnv) {
-        if (skipGlobalBc) {
-            return R_NilValue;
+#define simple_as_environment(arg) (IS_S4_OBJECT(arg) && (TYPEOF(arg) == S4SXP) ? R_getS4DataSlot(arg, ENVSXP) : arg)
+
+static void getHastPrefix(SEXP env, std::stringstream & qHast) {
+    if (TYPEOF(env) == ENVSXP) {
+        if (env == R_GlobalEnv) {
+            qHast << "GE:";
+        } else if (env == R_BaseEnv) {
+            qHast << "BE:";
+        } else if (env == R_EmptyEnv) {
+            qHast << "EE:";
+        } else if (R_IsPackageEnv(env)) {
+            qHast << "PE:" << Rf_translateChar(STRING_ELT(R_PackageEnvName(env), 0)) << ":";
+        } else if (R_IsNamespaceEnv(env)) {
+            qHast << "NS:" << Rf_translateChar(STRING_ELT(R_NamespaceEnvSpec(env), 0)) << ":";
+        } else {
+            qHast << "AE:";
+            getHastPrefix(ENCLOS(env), qHast);
         }
-        qHast << "GE:";
-    } else if (x == R_BaseEnv) {
-        qHast << "BE:";
-    } else if (x == R_EmptyEnv) {
-        qHast << "EE:";
-    } else if (R_IsPackageEnv(x)) {
-        qHast << "PE:" << Rf_translateChar(STRING_ELT(R_PackageEnvName(x), 0)) << ":";
-    } else if (R_IsNamespaceEnv(x)) {
-        qHast << "NS:" << Rf_translateChar(STRING_ELT(R_NamespaceEnvSpec(x), 0)) << ":";
-    } else {
-        return R_NilValue;
-        qHast << "AE:";
     }
+}
+
+SEXP Hast::getHast(SEXP body, SEXP formals, SEXP env) {
+    static bool skipGlobalBc = getenv("SKIP_GLOBAL_BC") ? getenv("SKIP_GLOBAL_BC")[0] == '1' : false;
+    if (skipGlobalBc && env == R_GlobalEnv) return R_NilValue;
+    std::stringstream qHast;
+    getHastPrefix(env, qHast);
+    if (qHast.str().size() == 0) return R_NilValue;
     size_t hast = 0;
     hash_ast(body, hast);
+    hash_ast(formals, hast);
     qHast << hast;
     SEXP calcHast = Rf_install(qHast.str().c_str());
     return calcHast;

@@ -29,7 +29,7 @@ struct ObservedCallees {
     uint32_t taken : CounterBits;
     uint32_t invalid : 1;
 
-    void record(Code* caller, SEXP callee, bool invalidateWhenFull = false);
+    bool record(Code* caller, SEXP callee, bool invalidateWhenFull = false);
     SEXP getTarget(const Code* code, size_t pos) const;
 
     std::array<unsigned, MaxTargets> targets;
@@ -50,22 +50,35 @@ struct ObservedTest {
 
     ObservedTest() : seen(0), unused(0) {}
 
-    inline void record(SEXP e) {
+    inline bool record(SEXP e) {
+        bool changed = false;
         if (e == R_TrueValue) {
-            if (seen == None)
+            if (seen == None) {
                 seen = OnlyTrue;
-            else if (seen != OnlyTrue)
+                changed = true;
+            }
+            else if (seen != OnlyTrue) {
                 seen = Both;
-            return;
+                changed = true;
+            }
+            return changed;
         }
         if (e == R_FalseValue) {
-            if (seen == None)
+            if (seen == None) {
                 seen = OnlyFalse;
-            else if (seen != OnlyFalse)
+                changed = true;
+            }
+            else if (seen != OnlyFalse) {
                 seen = Both;
-            return;
+                changed = true;
+            }
+            return changed;
+        }
+        if (seen == Both) {
+            return false;
         }
         seen = Both;
+        return true;
     }
 };
 static_assert(sizeof(ObservedTest) == sizeof(uint32_t),
@@ -123,7 +136,7 @@ struct ObservedValues {
         }
     }
 
-    inline void record(SEXP e) {
+    inline bool record(SEXP e) {
 
         // Set attribs flag for every object even if the SEXP does  not
         // have attributes. The assumption used to be that e having no
@@ -134,10 +147,22 @@ struct ObservedValues {
         //     > .Internal(inspect(mf[["x"]]))
         //     @56546cb06390 14 REALSXP g0c3 [OBJ,NAM(2)] (len=3, tl=0) 41,42,43
 
+        bool changed = false;
+
+        auto oldNotScalar = notScalar;
+        auto oldObject = object;
+        auto oldAttribs = attribs;
+        auto oldNotFastVecelt = notFastVecelt;
+
         notScalar = notScalar || XLENGTH(e) != 1;
         object = object || Rf_isObject(e);
         attribs = attribs || object || ATTRIB(e) != R_NilValue;
         notFastVecelt = notFastVecelt || !fastVeceltOk(e);
+
+        changed = (oldNotScalar != notScalar) ||
+                  (oldObject != object) ||
+                  (oldAttribs != attribs) ||
+                  (oldNotFastVecelt != notFastVecelt);
 
         uint8_t type = TYPEOF(e);
         if (numTypes < MaxTypes) {
@@ -146,9 +171,13 @@ struct ObservedValues {
                 if (seen[i] == type)
                     break;
             }
-            if (i == numTypes)
+            if (i == numTypes) {
+                changed = true;
                 seen[numTypes++] = type;
+            }
         }
+
+        return changed;
     }
 };
 static_assert(sizeof(ObservedValues) == sizeof(uint32_t),
