@@ -23,7 +23,9 @@ using namespace std::chrono;
 
 namespace rir {
 
-    bool EventLogger::enabled = getenv("EVENT_LOG") ? getenv("EVENT_LOG")[0] == '1' : false;
+    // 0 = disabled, 1 = basic (pir + llvm times) , 2=  all
+    int EventLogger::logLevel = std::getenv("EVENT_LOG") ? std::stoi(std::getenv("EVENT_LOG")) : 0;
+
 
     static std::string _logPath = "";
     static std::string _eventsFolder = "";
@@ -55,6 +57,13 @@ namespace rir {
             std::stringstream ss;
             ss << logsFolder << "/log-" << runType << ".csv";
             _logPath = ss.str();
+
+            //header
+            std::ofstream outfile;
+            outfile.open(_logPath, std::ios_base::app);
+            outfile << "timestamp,event,timeMS,pid,eventsFolder";
+            outfile << "\n";
+            outfile.close();
         }
     }
 
@@ -66,22 +75,33 @@ namespace rir {
         ) {
         setLogPathIfNeeded();
 
-        // Save the eventData
-        std::ofstream eventData;
-        std::stringstream eventDataPath;
-        eventDataPath << _eventsFolder << "/" << getpid() << "_" <<  timeStamp.time_since_epoch().count() << ".json";
-        std::ofstream eventDataFile;
-        eventDataFile.open(eventDataPath.str(), std::ios_base::out);
-        eventDataFile << eventDataInJson;
-        eventDataFile.close();
+        std::string jsonFullPathOuter ="";
 
+
+        // Save the eventData
+        if (eventDataInJson != "") {
+            std::ofstream eventData;
+            std::stringstream eventDataPath;
+            std::stringstream eventDataFileName;
+
+            eventDataFileName << getpid() << "_" <<  timeStamp.time_since_epoch().count() << ".json";
+            eventDataPath << _eventsFolder << "/" << eventDataFileName.str();
+            std::ofstream eventDataFile;
+            eventDataFile.open(eventDataPath.str(), std::ios_base::out);
+            eventDataFile << eventDataInJson;
+            eventDataFile.close();
+
+            std::stringstream tmpOuter;
+            tmpOuter << _eventsFolderOuter << "/" << eventDataFileName.str();
+            jsonFullPathOuter = tmpOuter.str();
+        }
         std::ofstream outfile;
         outfile.open(_logPath, std::ios_base::app);
         outfile << timeStamp.time_since_epoch().count() << ","
                 << eventType << ","
                 << timeInMS << ","
                 << getpid() << ","
-                << _eventsFolderOuter << "/" << getpid() << "_" <<  timeStamp.time_since_epoch().count() << ".json"
+                << jsonFullPathOuter
                 << "\n";
         outfile.close();
     }
@@ -95,7 +115,7 @@ namespace rir {
         logTimedEvent(timestamp, eventType, 0, eventDataInJson);
     }
 
-    static std::string logsFullPath = "";
+
     static std::string dispatchLogsFullPath = "";
     static std::string disableLogsFullPath = "";
 
@@ -262,72 +282,72 @@ namespace rir {
     }
 
 
-    static void setStatsLogsPathIfNeeded() {
-        if (!logsFullPath.size()) {
-            std::string logsFolder ="/tmp/rsh";
-            if (getenv("testResultsFolder"))
-                logsFolder =  getenv("testResultsFolder");
+    // static void setStatsLogsPathIfNeeded() {
+    //     if (!logsFullPath.size()) {
+    //         std::string logsFolder ="/tmp/rsh";
+    //         if (getenv("testResultsFolder"))
+    //             logsFolder =  getenv("testResultsFolder");
 
 
-            std::string runType ="noruntype";
-            if (getenv("runType"))
-                runType =  getenv("runType");
+    //         std::string runType ="noruntype";
+    //         if (getenv("runType"))
+    //             runType =  getenv("runType");
 
-            struct stat st = {0};
-            if (stat(logsFolder.c_str(), &st) == -1) {
-                mkdir(logsFolder.c_str(),0700);
-            }
+    //         struct stat st = {0};
+    //         if (stat(logsFolder.c_str(), &st) == -1) {
+    //             mkdir(logsFolder.c_str(),0700);
+    //         }
 
-            auto t = std::time(nullptr);
-            auto tm = *std::localtime(&t);
-            std::stringstream ss;
+    //         auto t = std::time(nullptr);
+    //         auto tm = *std::localtime(&t);
+    //         std::stringstream ss;
 
-            ss << logsFolder << "/stats-" << runType << "-" << std::put_time(&tm, "%y%m%d-%H%M%S")
-            << "-" << std::to_string(getpid()) << ".csv";
-            logsFullPath = ss.str();
+    //         ss << logsFolder << "/stats-" << runType << "-" << std::put_time(&tm, "%y%m%d-%H%M%S")
+    //         << "-" << std::to_string(getpid()) << ".csv";
+    //         logsFullPath = ss.str();
 
-            // header
-            std::ofstream outfile;
-            outfile.open(logsFullPath, std::ios_base::app);
-            outfile << "event,name,timeInMS,timeStamp,context,closure,size,pid";
-            outfile << "\n";
-            outfile.close();
+    //         // header
+    //         std::ofstream outfile;
+    //         outfile.open(logsFullPath, std::ios_base::app);
+    //         outfile << "event,name,timeInMS,timeStamp,context,closure,size,pid";
+    //         outfile << "\n";
+    //         outfile.close();
 
-        }
+    //     }
 
-    }
+    // }
 
-    void EventLogger::logStats(
-            std::string event,
-            std::string name,
-            double timeInMS,
-            std::chrono::_V2::system_clock::time_point& timeStamp,
-            const rir::Context& context,
-            SEXP closure,
-            size_t  size)
-    {
-
-
-        setStatsLogsPathIfNeeded();
+    // void EventLogger::logStats(
+    //         std::string event,
+    //         std::string name,
+    //         double timeInMS,
+    //         std::chrono::_V2::system_clock::time_point& timeStamp,
+    //         const rir::Context& context,
+    //         SEXP closure,
+    //         size_t  size)
+    // {
 
 
-        std::ofstream outfile;
-        outfile.open(logsFullPath, std::ios_base::app);
-        std::stringstream streamctx;
-        streamctx << context;
-        auto contextAsString = streamctx.str();
-        findAndReplaceAll(contextAsString, ",", " ");
+    //     setStatsLogsPathIfNeeded();
 
-        outfile << event
-                << "," << name
-                << "," << timeInMS
-                << "," << timeStamp.time_since_epoch().count()
-                << "," << contextAsString
-                << "," << closure
-                << "," << size
-                << "," << getpid();
-        outfile << "\n";
-        outfile.close();
-    }
+
+    //     std::ofstream outfile;
+    //     outfile.open(logsFullPath, std::ios_base::app);
+    //     std::stringstream streamctx;
+    //     streamctx << context;
+    //     auto contextAsString = streamctx.str();
+    //     findAndReplaceAll(contextAsString, ",", " ");
+
+    //     outfile << event
+    //             << "," << name
+    //             << "," << timeInMS
+    //             << "," << timeStamp.time_since_epoch().count()
+    //             << "," << contextAsString
+    //             << "," << closure
+    //             << "," << size
+    //             << "," << getpid();
+    //     outfile << "\n";
+    //     outfile.close();
+    // }
 
 }

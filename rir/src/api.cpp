@@ -877,8 +877,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
 
 
         auto vt = DispatchTable::unpack(BODY(c->owner()->rirClosure()));
-        if (EventLogger::enabled) {
-            EventLogger::logStats("pirTime", name,  durationCount, pirOptStart, c->context(), c->owner()->rirClosure(), c->numInstrs());
+        if (EventLogger::logLevel) {
 
             std::stringstream eventDataJSON;
             eventDataJSON << "{"
@@ -887,7 +886,8 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                 << "\"functionName\": " << "\"" << name << "\"" << ","
                 << "\"context\": " << "\"" << c->context() << "\"" << ","
                 << "\"closure\": " << "\"" << c->owner()->rirClosure() << "\"" << ","
-                << "\"vtab\": " << "\"" << vt << "\""
+                << "\"vtab\": " << "\"" << vt << "\"" << ","
+                << "\"size\": " << c->numInstrs()
                 << "}";
 
             EventLogger::logTimedEvent(
