@@ -1006,13 +1006,12 @@ SEXP doCall(CallContext& call, bool popArgs) {
                 SerializerDebug::infoMessage("(?) Serializer state: " + std::to_string(table->lastCompilationState), 0);
 
                 DoRecompile(fun, call.ast, call.callee, given);
-                fun = dispatch(call, table);
             }
         } else if (forcedInterp) {
             // FORCE ATLEAST ONE INTERPRETER RUN, NEEDED IN CASE OF DESERIALIZER
             fun = baselineFun;
-        } else if (RuntimeFlags::contextualCompilationSkip) {
-            // Flag to disable contextual compilation altogether
+        } else if (RuntimeFlags::contextualCompilationSkip || isDeoptimizing()) {
+            // No compilation during GNUR threading or deoptimizing
             jitCompileDecision = false;
         } else if (fun == baselineFun) {
             // BYTECODE
