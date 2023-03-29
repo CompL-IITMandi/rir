@@ -129,7 +129,7 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
         LAST = NoReflection
     };
 
-    EnumSet<Flag> flags;
+    EnumSet<Flag, uint32_t> flags;
 
     unsigned src; /// AST of the function (or promise) represented by the code
 

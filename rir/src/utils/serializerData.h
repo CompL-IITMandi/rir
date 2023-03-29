@@ -33,13 +33,13 @@ namespace rir {
 
         // ENTRY 0: Tag
         static void addTag(SEXP container, const int & data) {
-            assert(data < 3);
+            assert(data < 5);
             addTToContainer<int>(container, 0, data);
         }
 
         static int getTag(SEXP container) {
             auto res = getTFromContainer<int>(container, 0);
-            assert(res < 3);
+            assert(res < 5);
             return res;
         }
 
@@ -88,6 +88,11 @@ namespace rir {
                 std::cout << "Test,"; break;
                 case 2:
                 std::cout << "Call,"; break;
+                case 3:
+                std::cout << "CFlg,"; break;
+                case 4:
+                std::cout << "FFlg,"; break;
+
                 default:
                 std::cout << "ERR!,"; break;
             }
@@ -117,6 +122,10 @@ namespace rir {
                     break;
 
                 }
+                case 3:
+                std::cout << getValUint(container); break;
+                case 4:
+                std::cout << getValUint(container); break;
                 default:
                 std::cout << "ERR!"; break;
             }

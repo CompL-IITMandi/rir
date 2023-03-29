@@ -478,15 +478,6 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
             auto hastInfo = Hast::getHastInfo(mainFunCodeObj->rirSrc()->src, true);
             if (hastInfo.isValid()) {
                 hast = hastInfo.hast;
-                // assert(Hast::hastMap.count(hast) > 0);
-                // SEXP vtabContainer = Hast::hastMap[hast].vtabContainer;
-                // assert(DispatchTable::check(vtabContainer));
-
-                // auto dt = DispatchTable::unpack(vtabContainer);
-
-                // // Collect feedback data
-                // Hast::populateTypeFeedbackData(contextDataContainer, dt, &tfPCS);
-                // Hast::populateOtherFeedbackData(contextDataContainer, dt, &othPCS);
             } else {
                 *serializerError = true;
                 SerializerDebug::infoMessage("(E) [backend.cpp] hast for main code object missing", 2);

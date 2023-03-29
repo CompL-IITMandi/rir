@@ -55,94 +55,6 @@ void DispatchTable::print(std::ostream& out, const int & space) const {
     }
 }
 
-// static std::vector<L2Feedback> getFunctionContext(SEXP container) {
-//     std::vector<L2Feedback> res;
-//     // SEXP funTF = UnlockingElement::getFunTFInfo(container);
-//     // // Populate type feedback
-//     // for (int i = 0; i < Rf_length(funTF); i++) {
-//     //     auto ele = generalUtil::getUint32t(funTF, i);
-//     //     res.push_back(L2Feedback::create(ele, true));
-//     // }
-//     // // Populate other feedback
-//     // SEXP FBData = UnlockingElement::getGFunTFInfo(container);
-//     // for (int i = 0; i < Rf_length(FBData); i++) {
-//     //     auto ele = VECTOR_ELT(FBData, i);
-//     //     if (ele == R_NilValue) {
-//     //         res.push_back(L2Feedback::create());
-//     //     } else if (ele == R_dot_defined) {
-//     //         ObservedTest r;
-//     //         r.seen = ObservedTest::OnlyTrue;
-//     //         res.push_back(L2Feedback::create(r));
-//     //     } else if (ele == R_dot_Method) {
-//     //         ObservedTest r;
-//     //         r.seen = ObservedTest::OnlyFalse;
-//     //         res.push_back(L2Feedback::create(r));
-//     //     } else if (TYPEOF(ele) == VECSXP) {
-//     //         auto hast = VECTOR_ELT(ele, 0);
-//     //         auto index = Rf_asInteger(VECTOR_ELT(ele, 1));
-//     //         auto c = Hast::getCodeObjectAtOffset(hast, index);
-//     //         res.push_back(L2Feedback::create(c->src, false));
-//     //     } else {
-//     //         res.push_back(L2Feedback::create());
-//     //     }
-//     // }
-//     // std::cout << "getFunctionContext: { ";
-
-//     // for (auto & ele : res) {
-//     //     ele.print(std::cout);
-//     //     std::cout << " ";
-//     // }
-
-//     // std::cout << "}" << std::endl;
-//     return res;
-// }
-
-// static std::vector<L2Feedback> getRuntimeContext(SEXP container, DispatchTable * vtab) {
-//     std::vector<L2Feedback> res;
-
-//     // Populate type feedback
-//     std::vector<int> indices;
-//     SEXP slotsInfo = UnlockingElement::getTFSlotInfo(container);
-//     for (int i = 0; i < Rf_length(slotsInfo); i++) {
-//         indices.push_back(Rf_asInteger(VECTOR_ELT(slotsInfo, i)));
-//     }
-//     std::vector<ObservedValues*> BCTFSlots;
-//     Hast::getTypeFeedbackPtrsAtIndices(indices, BCTFSlots, vtab);
-//     for (auto & ele : BCTFSlots) {
-//         res.push_back(L2Feedback::create(ele));
-//     }
-
-//     // Populate other feedback
-//     SEXP ssInfo = UnlockingElement::getGTFSlotInfo(container);
-//     std::vector<int> indices1;
-//     std::vector<GenFeedbackHolder> GENSlots;
-
-//     for (int i = 0; i < Rf_length(ssInfo); i++) {
-//         indices1.push_back(Rf_asInteger(VECTOR_ELT(ssInfo, i)));
-//     }
-
-//     Hast::getGeneralFeedbackPtrsAtIndices(indices1, GENSlots, vtab);
-
-//     for (auto & ele : GENSlots) {
-//         if (ele.tag == 0) { // record_call_
-//             res.push_back(L2Feedback::create(ele.code, ele.pc));
-//         } else { // record_test_
-//             res.push_back(L2Feedback::create(ele.pc));
-//         }
-//     }
-
-//     // std::cout << "getRuntimeContext: { ";
-
-//     // for (auto & ele : res) {
-//     //     ele.print(std::cout);
-//     //     std::cout << " ";
-//     // }
-
-//     // std::cout << "}" << std::endl;
-
-//     return res;
-// }
-
 void DispatchTable::insertL2(Function* fun) {
     assert(fun->signature().optimization !=
            FunctionSignature::OptimizationLevel::Baseline);
@@ -216,44 +128,6 @@ void DispatchTable::insert(Function* fun) {
         }
     }
 }
-
-// void DispatchTable::insertL2V1(Function* fun) {
-//     assert(fun->signature().optimization !=
-//             FunctionSignature::OptimizationLevel::Baseline);
-//     int idx = negotiateSlot(fun->context());
-//     std::vector<L2Feedback> feedbackVals;
-//     SEXP idxContainer = getEntry(idx);
-//     if (idxContainer == R_NilValue) {
-//         Protect p;
-//         // Create a dummy genesis function that cannot
-//         // be called i.e. is disabled() since creation
-//         std::vector<SEXP> defaultArgs;
-//         size_t functionSize = sizeof(Function);
-
-//         SEXP store;
-//         p(store = Rf_allocVector(EXTERNALSXP, functionSize));
-//         void* payload = INTEGER(store);
-//         Function* dummy = new (payload) Function(functionSize, baseline()->body()->container(),
-//                                             defaultArgs, fun->signature(), fun->context());
-//         dummy->registerDeopt();
-//         L2Dispatch * l2vt = L2Dispatch::create(dummy, feedbackVals, p);
-//         l2vt->insert(fun, feedbackVals);
-//         setEntry(idx, l2vt->container());
-//     } else {
-//         if (Function::check(idxContainer)) {
-//             Protect p;
-//             Function * old = Function::unpack(idxContainer);
-//             L2Dispatch * l2vt = L2Dispatch::create(old, feedbackVals, p);
-//             setEntry(idx, l2vt->container());
-//             l2vt->insert(fun, feedbackVals);
-//         } else if (L2Dispatch::check(idxContainer)) {
-//             L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
-//             l2vt->insert(fun, feedbackVals);
-//         } else {
-//             Rf_error("Dispatch table L2insertion error, corrupted slot!!");
-//         }
-//     }
-// }
 
 int DispatchTable::negotiateSlot(const Context& assumptions) {
     assert(size() > 0);

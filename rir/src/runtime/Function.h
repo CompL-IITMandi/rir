@@ -150,7 +150,7 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
         FIRST = Deopt,
         LAST = DisableNumArgumentsSpezialization
     };
-    EnumSet<Flag> flags;
+    EnumSet<Flag, uint32_t> flags;
 
     void inheritFlags(const Function* other) {
         static Flag inherited[] = {ForceInline,
