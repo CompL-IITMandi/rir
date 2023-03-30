@@ -281,73 +281,80 @@ namespace rir {
         }
     }
 
+    // ***  SIMPLE STATS *****
 
-    // static void setStatsLogsPathIfNeeded() {
-    //     if (!logsFullPath.size()) {
-    //         std::string logsFolder ="/tmp/rsh";
-    //         if (getenv("testResultsFolder"))
-    //             logsFolder =  getenv("testResultsFolder");
+    static std::string statsFullPath = "";
 
+    static void setStatsLogsPathIfNeeded() {
+        if (!statsFullPath.size()) {
+            std::string logsFolder ="/tmp/rsh";
+            if (getenv("testResultsFolder"))
+                logsFolder =  getenv("testResultsFolder");
 
-    //         std::string runType ="noruntype";
-    //         if (getenv("runType"))
-    //             runType =  getenv("runType");
-
-    //         struct stat st = {0};
-    //         if (stat(logsFolder.c_str(), &st) == -1) {
-    //             mkdir(logsFolder.c_str(),0700);
-    //         }
-
-    //         auto t = std::time(nullptr);
-    //         auto tm = *std::localtime(&t);
-    //         std::stringstream ss;
-
-    //         ss << logsFolder << "/stats-" << runType << "-" << std::put_time(&tm, "%y%m%d-%H%M%S")
-    //         << "-" << std::to_string(getpid()) << ".csv";
-    //         logsFullPath = ss.str();
-
-    //         // header
-    //         std::ofstream outfile;
-    //         outfile.open(logsFullPath, std::ios_base::app);
-    //         outfile << "event,name,timeInMS,timeStamp,context,closure,size,pid";
-    //         outfile << "\n";
-    //         outfile.close();
-
-    //     }
-
-    // }
-
-    // void EventLogger::logStats(
-    //         std::string event,
-    //         std::string name,
-    //         double timeInMS,
-    //         std::chrono::_V2::system_clock::time_point& timeStamp,
-    //         const rir::Context& context,
-    //         SEXP closure,
-    //         size_t  size)
-    // {
+            std::string runType ="noruntype";
+            if (getenv("runType"))
+                runType =  getenv("runType");
 
 
-    //     setStatsLogsPathIfNeeded();
+            std::stringstream tmpLogsFolder;
+            tmpLogsFolder << logsFolder << "/" << "stats";
+            logsFolder = tmpLogsFolder.str();
 
 
-    //     std::ofstream outfile;
-    //     outfile.open(logsFullPath, std::ios_base::app);
-    //     std::stringstream streamctx;
-    //     streamctx << context;
-    //     auto contextAsString = streamctx.str();
-    //     findAndReplaceAll(contextAsString, ",", " ");
+            struct stat st = {0};
+            if (stat(logsFolder.c_str(), &st) == -1) {
+                mkdir(logsFolder.c_str(),0700);
+            }
 
-    //     outfile << event
-    //             << "," << name
-    //             << "," << timeInMS
-    //             << "," << timeStamp.time_since_epoch().count()
-    //             << "," << contextAsString
-    //             << "," << closure
-    //             << "," << size
-    //             << "," << getpid();
-    //     outfile << "\n";
-    //     outfile.close();
-    // }
+            auto t = std::time(nullptr);
+            auto tm = *std::localtime(&t);
+            std::stringstream ss;
+
+            ss << logsFolder << "/stats-" << runType << "-" << std::put_time(&tm, "%y%m%d-%H%M%S")
+            << "-" << std::to_string(getpid()) << ".csv";
+            statsFullPath = ss.str();
+
+            // header
+            std::ofstream outfile;
+            outfile.open(statsFullPath, std::ios_base::app);
+            outfile << "event,functionName,timeInMS,timestamp,context,closure,size,pid";
+            outfile << "\n";
+            outfile.close();
+
+        }
+
+    }
+
+
+    void EventLogger::logStats(
+            std::string event,
+            std::string name,
+            double timeInMS,
+            std::chrono::_V2::system_clock::time_point& timeStamp,
+            std::string context,
+            SEXP closure,
+            size_t  size)
+    {
+
+
+        setStatsLogsPathIfNeeded();
+
+
+        std::ofstream outfile;
+        outfile.open(statsFullPath, std::ios_base::app);
+        auto contextSafe = context;
+        findAndReplaceAll(contextSafe, ",", " ");
+
+        outfile << event
+                << "," << name
+                << "," << timeInMS
+                << "," << timeStamp.time_since_epoch().count()
+                << "," << contextSafe
+                << "," << closure
+                << "," << size
+                << "," << getpid();
+        outfile << "\n";
+        outfile.close();
+    }
 
 }
