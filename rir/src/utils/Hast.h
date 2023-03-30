@@ -37,6 +37,7 @@ class Hast {
     static std::unordered_map<unsigned, HastInfo> sPoolHastMap;
     static std::unordered_map<unsigned, HastInfo> cPoolHastMap;
 
+    static std::unordered_map<Opcode*, std::set<Function**>> l2FastcaseInvalidationCache;
     static std::unordered_map<SEXP, HastInfo> cPoolInverseMap;
     static std::unordered_map<SEXP, HastInfo> sPoolInverseMap;
 

@@ -13,6 +13,7 @@ fs.writeFileSync(outputPath, '[\n');
 
 lines.forEach((line) => {
   i++
+  if (i == 1) return;
   console.log("At line: ",i,"out of ", lines.length)
   line = line.split(",")
   if (line.length != 5) return
@@ -21,9 +22,11 @@ lines.forEach((line) => {
   curr["eventType"] = line[1];
   curr["time"] = parseInt(line[2]);
   curr["pid"] = parseInt(line[3]);
-  let fLoad = fs.readFileSync(eventLogFolder + "/" + line[4])
-  let jFile = JSON.parse(fLoad);
-  curr = {...curr, ...jFile}
+  if (line[4] !== "") {
+    let fLoad = fs.readFileSync(eventLogFolder + "/" + line[4])
+    let jFile = JSON.parse(fLoad);
+    curr = {...curr, ...jFile}
+  }
   if (i != lines.length - 1) {
     fs.appendFileSync(outputPath, JSON.stringify(curr) + ",\n");
   } else {

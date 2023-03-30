@@ -2407,6 +2407,11 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         }
 
         INSTRUCTION(record_call_) {
+            if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
+                    *f = nullptr;
+                }
+            }
             ObservedCallees* feedback = (ObservedCallees*)pc;
             SEXP callee = ostack_top();
             bool stateChange = feedback->record(c, callee);
@@ -2416,6 +2421,11 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         }
 
         INSTRUCTION(record_test_) {
+            if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
+                    *f = nullptr;
+                }
+            }
             ObservedTest* feedback = (ObservedTest*)pc;
             SEXP t = ostack_top();
             bool stateChange = feedback->record(t);
@@ -2425,6 +2435,11 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         }
 
         INSTRUCTION(record_type_) {
+            if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
+                    *f = nullptr;
+                }
+            }
             ObservedValues* feedback = (ObservedValues*)pc;
             SEXP t = ostack_top();
             bool stateChange = feedback->record(t);

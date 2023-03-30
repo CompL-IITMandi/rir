@@ -235,6 +235,19 @@ void Function::registerDeopt() {
 
 }
 
+void Function::addFastcaseInvalidationConditions(Function ** f) {
+    assert(speculativeContextIdx != -1);
+    SEXP speculativeContext = body()->getExtraPoolEntry(speculativeContextIdx);
+
+    for (int i = 0; i < Rf_length(speculativeContext); i++) {
+        SEXP ele = VECTOR_ELT(speculativeContext, i);
+        SpeculativeContextPointer * sPtr = getTFromContainerPointer<SpeculativeContextPointer>(ele, 1);
+
+        if (sPtr->pc) {
+            Hast::l2FastcaseInvalidationCache[sPtr->pc + 1].insert(f);
+        }
+    }
+}
 Function* Function::deserialize(SEXP refTable, R_inpstream_t inp) {
     size_t functionSize = InInteger(inp);
     const FunctionSignature sig = FunctionSignature::deserialize(refTable, inp);

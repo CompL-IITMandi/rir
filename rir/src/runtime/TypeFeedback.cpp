@@ -4,7 +4,7 @@
 #include "R/r.h"
 #include "runtime/Code.h"
 #include "runtime/Function.h"
-
+#include "utils/Hast.h"
 #include <cassert>
 
 namespace rir {
@@ -80,6 +80,11 @@ void DeoptReason::record(SEXP val) const {
     case DeoptReason::DeadBranchReached: {
         assert(*pc() == Opcode::record_test_);
         ObservedTest* feedback = (ObservedTest*)(pc() + 1);
+        if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
+            for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
+                *f = nullptr;
+            }
+        }
         feedback->seen = ObservedTest::Both;
         break;
     }
@@ -88,6 +93,11 @@ void DeoptReason::record(SEXP val) const {
         if (val == symbol::UnknownDeoptTrigger)
             break;
         ObservedValues* feedback = (ObservedValues*)(pc() + 1);
+        if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
+            for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
+                *f = nullptr;
+            }
+        }
         feedback->record(val);
         if (TYPEOF(val) == PROMSXP) {
             if (PRVALUE(val) == R_UnboundValue &&
@@ -106,6 +116,11 @@ void DeoptReason::record(SEXP val) const {
         assert(*pc() == Opcode::record_call_);
         if (val == symbol::UnknownDeoptTrigger)
             break;
+        if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
+            for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
+                *f = nullptr;
+            }
+        }
         ObservedCallees* feedback = (ObservedCallees*)(pc() + 1);
         feedback->record(srcCode(), val, true);
         assert(feedback->taken > 0);

@@ -4,6 +4,7 @@
 #include <sstream>
 namespace rir {
 
+
 static inline void printSpace(std::ostream& out, const int & space) {
 	for (int i = 0; i < space; i++) {
 		out << " ";
@@ -52,16 +53,11 @@ void L2Dispatch::print(std::ostream& out, const int & space) {
 	}
 
 }
+static bool l2Fastcase = getenv("L2_FASTCASE") ? getenv("L2_FASTCASE")[0] == '1' : true;
 
 void L2Dispatch::insert(Function * f) {
-	// std::cout << "=== Inserting new function ===" << std::endl;
-	// std::cout << "Given Speculative Context: ";
-	// for (auto & ele : feedbackVals) {
-	// 	ele.print(std::cout);
-	// 	std::cout << " ";
-	// }
-	// std::cout << std::endl;
-	// Replace disabled functions
+	if (l2Fastcase)
+		f->addFastcaseInvalidationConditions(&lastDispatch);
 	int storageIdx = -1;
 	for (int i = _last; i >= 0; i--) {
 		Function * res = getFunction(i);
@@ -213,7 +209,7 @@ Function * L2Dispatch::dispatch() {
 				<< "}";
 
 			EventLogger::logUntimedEvent(
-				"l2check",
+				"l2Error",
 				eventDataJSON.str()
 			);
 		}
@@ -234,7 +230,7 @@ Function * L2Dispatch::dispatch() {
 				<< "}";
 
 			EventLogger::logUntimedEvent(
-				"l2check",
+				"l2Fast",
 				eventDataJSON.str()
 			);
 		}
@@ -258,7 +254,7 @@ Function * L2Dispatch::dispatch() {
 					<< "}";
 
 				EventLogger::logUntimedEvent(
-					"l2check",
+					"l2Slow",
 					eventDataJSON.str()
 				);
 			}
@@ -279,9 +275,13 @@ Function * L2Dispatch::dispatch() {
 			<< "}";
 
 		EventLogger::logUntimedEvent(
-			"l2check",
+			"l2Miss",
 			eventDataJSON.str()
 		);
+	}
+
+	if (l2Fastcase) {
+		lastDispatch = fallback;
 	}
 
 	return fallback;

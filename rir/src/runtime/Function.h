@@ -165,6 +165,7 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
                 flags.set(flag);
     }
 
+    void addFastcaseInvalidationConditions(Function ** f);
     void clearDisabledAssumptions(Context& given) const;
 
     unsigned nargs() const { return numArgs_; }

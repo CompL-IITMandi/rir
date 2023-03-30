@@ -22,6 +22,7 @@ std::unordered_map<unsigned, HastInfo> Hast::cPoolHastMap;
 std::unordered_map<SEXP, HastInfo> Hast::cPoolInverseMap;
 std::unordered_map<SEXP, HastInfo> Hast::sPoolInverseMap;
 
+std::unordered_map<Opcode*, std::set<Function**>> Hast::l2FastcaseInvalidationCache;
 std::unordered_map<int, SEXP> Hast::debugMap;
 int Hast::debugIdx;
 

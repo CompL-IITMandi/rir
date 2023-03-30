@@ -36,7 +36,14 @@ public:
     auto tag = getTag(container);
     out << "[" << CHAR(PRINTNAME(getCriteria(container))) << "," << getOffset(container) << "," << tag << ",";
     if (tag == 0 || tag == 1 || tag == 3 || tag == 4) {
-      out << getValUint(container) << "]";
+      uint32_t cont = getValUint(container);
+      if (tag == 0) {
+        ObservedValues* feedback = (ObservedValues*) &cont;
+        feedback->print(out);
+      } else {
+        out << cont;
+      }
+      out << "]";
     } else {
       SEXP val = getValSEXP(container);
       if (TYPEOF(val) == INTSXP) {
