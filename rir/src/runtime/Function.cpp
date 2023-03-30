@@ -12,55 +12,73 @@ bool Function::matchSpeculativeContext() {
         SEXP ele = VECTOR_ELT(speculativeContext, i);
         SpeculativeContextValue * sVal = getTFromContainerPointer<SpeculativeContextValue>(ele, 0);
         SpeculativeContextPointer * sPtr = getTFromContainerPointer<SpeculativeContextPointer>(ele, 1);
-        if (sVal->tag == 0) {
-            ObservedValues* feedback = (ObservedValues*)(sPtr->pc + 1);
-            uint32_t storedVal = *((uint32_t*) feedback);
-            // std::cout << "  TAG(0): " << sVal->uIntVal << ", " << storedVal << std::endl;
-            if (storedVal != sVal->uIntVal) return false;
-        } else if (sVal->tag == 1) {
-            ObservedTest* feedback = (ObservedTest*)(sPtr->pc + 1);
-            uint32_t storedVal = *((uint32_t*) feedback);
-            // std::cout << "  TAG(1): " << sVal->uIntVal << ", " << storedVal << std::endl;
-            if (storedVal != sVal->uIntVal) return false;
-        } else {
-            SEXP val = sVal->sexpVal;
-            ObservedCallees * feedback = (ObservedCallees *) (sPtr->pc + 1);
 
-            if (TYPEOF(val) == INTSXP && INTEGER(val)[0] > 0) {
-                // Check specialsxp
-                if (feedback->invalid) return false;
-                if (feedback->numTargets == 0) return false;
-                bool match = false;
-                for (int j = 0; j < feedback->numTargets; ++j) {
-                    auto target = feedback->getTarget(sPtr->code, j);
-                    if (TYPEOF(target) == SPECIALSXP) {
-                        match = target->u.primsxp.offset == INTEGER(val)[0];
-                    }
-                }
-                if (!match) return false;
-            } else if (TYPEOF(val) == SYMSXP) {
-                // Check callee
-                if (feedback->invalid) return false;
-                if (feedback->numTargets == 0) return false;
-                bool match = false;
-                for (int j = 0; j < feedback->numTargets; ++j) {
-                    auto target = feedback->getTarget(sPtr->code, j);
-                    if (TYPEOF(target) == CLOSXP && TYPEOF(BODY(target)) == EXTERNALSXP && DispatchTable::check(BODY(target))) {
-                        auto targetVtab = DispatchTable::unpack(BODY(target));
-                        auto targetCode = targetVtab->baseline()->body();
+        switch (sVal->tag) {
+            case 0: {
+                ObservedValues* feedback = (ObservedValues*)(sPtr->pc + 1);
+                uint32_t storedVal = *((uint32_t*) feedback);
+                if (storedVal != sVal->uIntVal) return false;
+                break;
+            }
+            case 1: {
+                ObservedTest* feedback = (ObservedTest*)(sPtr->pc + 1);
+                uint32_t storedVal = *((uint32_t*) feedback);
+                if (storedVal != sVal->uIntVal) return false;
+                break;
+            }
+            case 2: {
+                SEXP val = sVal->sexpVal;
+                ObservedCallees * feedback = (ObservedCallees *) (sPtr->pc + 1);
 
-                        auto hastInfo = Hast::getHastInfo(targetCode->src, true);
-                        if (hastInfo.isValid()) {
-                            match = hastInfo.hast == val;
+                if (TYPEOF(val) == INTSXP && INTEGER(val)[0] > 0) {
+                    // Check specialsxp
+                    if (feedback->invalid) return false;
+                    if (feedback->numTargets == 0) return false;
+                    bool match = false;
+                    for (int j = 0; j < feedback->numTargets; ++j) {
+                        auto target = feedback->getTarget(sPtr->code, j);
+                        if (TYPEOF(target) == SPECIALSXP) {
+                            match = target->u.primsxp.offset == INTEGER(val)[0];
                         }
                     }
+                    if (!match) return false;
+                } else if (TYPEOF(val) == SYMSXP) {
+                    // Check callee
+                    if (feedback->invalid) return false;
+                    if (feedback->numTargets == 0) return false;
+                    bool match = false;
+                    for (int j = 0; j < feedback->numTargets; ++j) {
+                        auto target = feedback->getTarget(sPtr->code, j);
+                        if (TYPEOF(target) == CLOSXP && TYPEOF(BODY(target)) == EXTERNALSXP && DispatchTable::check(BODY(target))) {
+                            auto targetVtab = DispatchTable::unpack(BODY(target));
+                            auto targetCode = targetVtab->baseline()->body();
+
+                            auto hastInfo = Hast::getHastInfo(targetCode->src, true);
+                            if (hastInfo.isValid()) {
+                                match = hastInfo.hast == val;
+                            }
+                        }
+                    }
+                    if (!match) return false;
+                } else {
+                    // std::cerr << "TYPEOF(val): " << TYPEOF(val) << std::endl;
+                    assert(TYPEOF(val) == INTSXP);
+                    // return false;
                 }
-                if (!match) return false;
-            } else {
-                // std::cerr << "TYPEOF(val): " << TYPEOF(val) << std::endl;
-                assert(TYPEOF(val) == INTSXP);
-                // return false;
+                break;
             }
+            case 3: {
+                uint32_t runtimeValue = sPtr->code->flags.to_i();
+                if (runtimeValue != sVal->uIntVal) return false;
+                break;
+            }
+            case 4: {
+                uint32_t runtimeValue = sPtr->code->function()->flags.to_i();
+                if (runtimeValue != sVal->uIntVal) return false;
+                break;
+            }
+            default:
+                assert(false && "Speculative dispatch error!");
         }
     }
     return true;
@@ -244,7 +262,7 @@ Function* Function::deserialize(SEXP refTable, R_inpstream_t inp) {
         } else
             fun->setEntry(Function::NUM_PTRS + i, nullptr);
     }
-    fun->flags = EnumSet<Flag>(InInteger(inp));
+    // fun->flags = EnumSet<Flag>(InInteger(inp));
     UNPROTECT(protectCount);
     return fun;
 }

@@ -507,7 +507,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     SEXP speculativeContext = deserializedMetadata::getSpeculativeContext(uEleContainer);
 
     if (speculativeContext == R_NilValue) {
-        DeserializerDebug::infoMessage("Deserialized rare function with not feedback slots!",0);
+        DeserializerDebug::infoMessage("Deserialized rare function with not feedback slots! (This case is no longer possible, debug if seen)",0);
         vtab->insert(currFun);
     } else {
         Protect pp;
@@ -518,7 +518,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
             pp(store = Rf_allocVector(VECSXP, 2));
             SpeculativeContextValue scVal;
             scVal.tag = desSElement::getTag(curr);
-            if (scVal.tag == 0 || scVal.tag == 1) {
+            if (scVal.tag == 0 || scVal.tag == 1 || scVal.tag == 3 || scVal.tag == 4) {
                 scVal.uIntVal = desSElement::getValUint(curr);
             } else {
                 scVal.sexpVal = desSElement::getValSEXP(curr);
@@ -534,18 +534,10 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
             size_t critOffset = desSElement::getOffset(curr);
 
             auto r = Hast::getSpeculativeContext(vt, critOffset);
-            scPtr.code = r.first;
-            scPtr.pc = r.second;
+            scPtr.code = r.code;
+            scPtr.pc = r.pc;
 
-            BC bc = BC::decode(scPtr.pc, scPtr.code);
-
-            if (scVal.tag == 0) {
-                assert(bc.bc == Opcode::record_type_);
-            } else if (scVal.tag == 1) {
-                assert(bc.bc == Opcode::record_test_);
-            } else if (scVal.tag == 2) {
-                assert(bc.bc == Opcode::record_call_);
-            }
+            assert(r.tag == scVal.tag);
 
             addTToContainer<SpeculativeContextPointer>(store, 1, scPtr);
             finalSContext.push_back(store);
