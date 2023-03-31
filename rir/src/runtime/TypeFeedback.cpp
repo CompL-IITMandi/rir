@@ -80,12 +80,18 @@ void DeoptReason::record(SEXP val) const {
     case DeoptReason::DeadBranchReached: {
         assert(*pc() == Opcode::record_test_);
         ObservedTest* feedback = (ObservedTest*)(pc() + 1);
-        if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
-            for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
-                *f = nullptr;
+        // R_TrueValue -> true
+        // R_FalseValue -> false
+        // other: Both
+        bool stateChange = feedback->record(R_NilValue);
+        if (stateChange) {
+            if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
+                    *f = nullptr;
+                }
             }
+            srcCode()->function()->stateVal++;
         }
-        feedback->seen = ObservedTest::Both;
         break;
     }
     case DeoptReason::Typecheck: {
@@ -93,12 +99,15 @@ void DeoptReason::record(SEXP val) const {
         if (val == symbol::UnknownDeoptTrigger)
             break;
         ObservedValues* feedback = (ObservedValues*)(pc() + 1);
-        if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
-            for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
-                *f = nullptr;
+        bool stateChange = feedback->record(val);
+        if (stateChange) {
+            if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
+                    *f = nullptr;
+                }
             }
+            srcCode()->function()->stateVal++;
         }
-        feedback->record(val);
         if (TYPEOF(val) == PROMSXP) {
             if (PRVALUE(val) == R_UnboundValue &&
                 feedback->stateBeforeLastForce < ObservedValues::promise)
@@ -116,13 +125,16 @@ void DeoptReason::record(SEXP val) const {
         assert(*pc() == Opcode::record_call_);
         if (val == symbol::UnknownDeoptTrigger)
             break;
-        if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
-            for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
-                *f = nullptr;
-            }
-        }
         ObservedCallees* feedback = (ObservedCallees*)(pc() + 1);
-        feedback->record(srcCode(), val, true);
+        bool stateChange = feedback->record(srcCode(), val, true);
+        if (stateChange) {
+            if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
+                    *f = nullptr;
+                }
+            }
+            srcCode()->function()->stateVal++;
+        }
         assert(feedback->taken > 0);
         break;
     }

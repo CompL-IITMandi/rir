@@ -1001,8 +1001,8 @@ SEXP doCall(CallContext& call, bool popArgs) {
         if (pureSerializerRun) {
             fun = baselineFun;
             // Everytime the feedback state changes, recompile
-            if (table->lastCompilationState != fun->body()->stateVal) {
-                table->lastCompilationState = fun->body()->stateVal;
+            if (table->lastCompilationState != baselineFun->stateVal) {
+                table->lastCompilationState = baselineFun->stateVal;
                 SerializerDebug::infoMessage("(?) Serializer state: " + std::to_string(table->lastCompilationState), 0);
 
                 DoRecompile(fun, call.ast, call.callee, given);
@@ -2407,43 +2407,50 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         }
 
         INSTRUCTION(record_call_) {
-            if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
-                for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
-                    *f = nullptr;
-                }
-            }
+
             ObservedCallees* feedback = (ObservedCallees*)pc;
             SEXP callee = ostack_top();
             bool stateChange = feedback->record(c, callee);
-            if (stateChange) c->stateVal++;
+            if (stateChange) {
+                if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
+                    for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
+                        *f = nullptr;
+                    }
+                }
+                c->function()->stateVal++;
+            }
             pc += sizeof(ObservedCallees);
             NEXT();
         }
 
         INSTRUCTION(record_test_) {
-            if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
-                for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
-                    *f = nullptr;
-                }
-            }
             ObservedTest* feedback = (ObservedTest*)pc;
             SEXP t = ostack_top();
             bool stateChange = feedback->record(t);
-            if (stateChange) c->stateVal++;
+            if (stateChange) {
+                if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
+                    for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
+                        *f = nullptr;
+                    }
+                }
+                c->function()->stateVal++;
+            }
             pc += sizeof(ObservedTest);
             NEXT();
         }
 
         INSTRUCTION(record_type_) {
-            if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
-                for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
-                    *f = nullptr;
-                }
-            }
             ObservedValues* feedback = (ObservedValues*)pc;
             SEXP t = ostack_top();
             bool stateChange = feedback->record(t);
-            if (stateChange) c->stateVal++;
+            if (stateChange) {
+                if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
+                    for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
+                        *f = nullptr;
+                    }
+                }
+                c->function()->stateVal++;
+            }
             pc += sizeof(ObservedValues);
             NEXT();
         }

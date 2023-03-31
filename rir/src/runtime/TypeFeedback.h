@@ -54,23 +54,31 @@ struct ObservedTest {
         bool changed = false;
         if (e == R_TrueValue) {
             if (seen == None) {
-                seen = OnlyTrue;
-                changed = true;
+                if (seen != OnlyTrue) {
+                    seen = OnlyTrue;
+                    changed = true;
+                }
             }
             else if (seen != OnlyTrue) {
-                seen = Both;
-                changed = true;
+                if (seen != Both) {
+                    seen = Both;
+                    changed = true;
+                }
             }
             return changed;
         }
         if (e == R_FalseValue) {
             if (seen == None) {
-                seen = OnlyFalse;
-                changed = true;
+                if (seen != OnlyFalse) {
+                    seen = OnlyFalse;
+                    changed = true;
+                }
             }
             else if (seen != OnlyFalse) {
-                seen = Both;
-                changed = true;
+                if (seen != Both) {
+                    seen = Both;
+                    changed = true;
+                }
             }
             return changed;
         }
@@ -136,7 +144,7 @@ struct ObservedValues {
         }
     }
 
-    inline bool record(SEXP e) {
+        inline bool record(SEXP e) {
 
         // Set attribs flag for every object even if the SEXP does  not
         // have attributes. The assumption used to be that e having no

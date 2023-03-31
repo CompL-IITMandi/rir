@@ -151,8 +151,6 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
 
     SEXP argOrderingVec = nullptr; /// callArglist order, raw
 
-    size_t stateVal = 0; // Incremented everytime a state update in the feedback happens
-
     bool usesSerializedBinary = false; /// If we are using a serialized binary, we skip the expensive LLVM opt passes.
 
     uint8_t data[]; /// the instructions

@@ -195,6 +195,7 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
         assert(!isOptimized());
         return deadCallReached_;
     }
+    size_t stateVal = 0; // Incremented everytime a state update in the feedback happens
 
   private:
     unsigned numArgs_;
