@@ -2,6 +2,11 @@
 #include "L2Dispatch.h"
 #include "runtime/DispatchTable.h"
 #include <sstream>
+
+#include <chrono>
+
+using namespace std;
+
 namespace rir {
 
 
@@ -196,27 +201,43 @@ bool L2Feedback::operator==(const L2Feedback& other) {
 Function * L2Dispatch::dispatch() {
 	auto fallback = getFallback();
 	if (_last == -1) {
-		if (EventLogger::logLevel >= 2) {
-			std::stringstream eventDataJSON;
-			eventDataJSON << "{"
-				<< "\"case\": " << "\"" << "empty" << "\"" << ","
-				<< "\"hast\": " << "\"" << (fallback->vtab->hast ? CHAR(PRINTNAME(fallback->vtab->hast)) : "NULL")  << "\"" << ","
-				<< "\"hastOffset\": " << "\"" << fallback->vtab->offsetIdx << "\"" << ","
-				<< "\"function\": " << "\"" << fallback << "\"" << ","
-				<< "\"context\": " << "\"" << fallback->context() << "\"" << ","
-				<< "\"vtab\": " << "\"" << fallback->vtab << "\"" << ","
-				<< "\"l2Info\": " << "{" << getInfo() << "}"
-				<< "}";
+		assert(false && "Empty L2 dispatch");
+		// if (EventLogger::logLevel >= 2) {
+		// 	std::stringstream eventDataJSON;
+		// 	eventDataJSON << "{"
+		// 		<< "\"case\": " << "\"" << "empty" << "\"" << ","
+		// 		<< "\"hast\": " << "\"" << (fallback->vtab->hast ? CHAR(PRINTNAME(fallback->vtab->hast)) : "NULL")  << "\"" << ","
+		// 		<< "\"hastOffset\": " << "\"" << fallback->vtab->offsetIdx << "\"" << ","
+		// 		<< "\"function\": " << "\"" << fallback << "\"" << ","
+		// 		<< "\"context\": " << "\"" << fallback->context() << "\"" << ","
+		// 		<< "\"vtab\": " << "\"" << fallback->vtab << "\"" << ","
+		// 		<< "\"l2Info\": " << "{" << getInfo() << "}"
+		// 		<< "}";
 
-			EventLogger::logUntimedEvent(
-				"l2Error",
-				eventDataJSON.str()
-			);
-		}
+		// 	EventLogger::logUntimedEvent(
+		// 		"l2Error",
+		// 		eventDataJSON.str()
+		// 	);
+		// }
 		return fallback;
 	}
 
 	if (lastDispatch && !lastDispatch->disabled()) {
+
+		if (EventLogger::logLevel) {
+				using namespace std::chrono;
+				std::stringstream streamctx;
+				streamctx << lastDispatch->context();
+
+				std::stringstream streamname;
+				streamname << lastDispatch;
+
+				auto start = std::chrono::high_resolution_clock::now();
+
+				EventLogger::logStats("l2Fast", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+		}
+
+
 		if (EventLogger::logLevel >= 2) {
 			std::stringstream eventDataJSON;
 			eventDataJSON << "{"
@@ -241,6 +262,21 @@ Function * L2Dispatch::dispatch() {
 		auto currFun = getFunction(i);
 		if (!currFun->disabled() && currFun->matchSpeculativeContext()) {
 			lastDispatch = currFun;
+
+			if (EventLogger::logLevel) {
+				using namespace std::chrono;
+				std::stringstream streamctx;
+				streamctx << lastDispatch->context();
+
+				std::stringstream streamname;
+				streamname << lastDispatch;
+
+				auto start = std::chrono::high_resolution_clock::now();
+
+				EventLogger::logStats("l2Slow", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+			}
+
+
 			if (EventLogger::logLevel >= 2) {
 				std::stringstream eventDataJSON;
 				eventDataJSON << "{"
@@ -261,6 +297,20 @@ Function * L2Dispatch::dispatch() {
 			return currFun;
 		}
 	}
+
+	if (EventLogger::logLevel) {
+			using namespace std::chrono;
+			std::stringstream streamctx;
+			streamctx << fallback->context();
+
+			std::stringstream streamname;
+			streamname << fallback;
+
+			auto start = std::chrono::high_resolution_clock::now();
+
+			EventLogger::logStats("l2Miss", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+	}
+
 
 	if (EventLogger::logLevel >= 2) {
 		std::stringstream eventDataJSON;

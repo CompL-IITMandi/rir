@@ -342,11 +342,16 @@ namespace rir {
 
         std::ofstream outfile;
         outfile.open(statsFullPath, std::ios_base::app);
+
         auto contextSafe = context;
         findAndReplaceAll(contextSafe, ",", " ");
 
+        auto nameSafe = name;
+        findAndReplaceAll(nameSafe, ",", " ");
+
+
         outfile << event
-                << "," << name
+                << "," << nameSafe
                 << "," << timeInMS
                 << "," << timeStamp.time_since_epoch().count()
                 << "," << contextSafe

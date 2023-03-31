@@ -875,9 +875,14 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
         timeInPirCompiler+= durationCount;
 
 
-
-
         if (EventLogger::logLevel) {
+            std::stringstream streamctx;
+            streamctx << c->context();
+            EventLogger::logStats("pirCompilation", name,  durationCount, pirOptStart, streamctx.str(), c->owner()->rirClosure(), c->numInstrs());
+        }
+
+
+        if (EventLogger::logLevel >= 2) {
 
             std::stringstream streamctx;
             streamctx << c->context();
