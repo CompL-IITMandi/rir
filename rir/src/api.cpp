@@ -888,9 +888,6 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
 
         if (EventLogger::logLevel >= 2) {
 
-            std::stringstream streamctx;
-            streamctx << c->context();
-            EventLogger::logStats("pirCompilation", name,  durationCount, pirOptStart, streamctx.str(), c->owner()->rirClosure(), c->numInstrs());
 
             auto vt = DispatchTable::unpack(BODY(c->owner()->rirClosure()));
             std::stringstream eventDataJSON;

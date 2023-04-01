@@ -363,7 +363,6 @@ NativeCode Code::lazyCompile() {
 
 
     if (EventLogger::logLevel >= 2) {
-        EventLogger::logStats("llvmCompilation", "",  durationCount, startCompileTimeCounter, "", nullptr,0);
 
         EventLogger::logTimedEvent(
             startCompileTimeCounter,
