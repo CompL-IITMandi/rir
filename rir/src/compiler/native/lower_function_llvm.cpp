@@ -4023,12 +4023,13 @@ void LowerFunctionLLVM::compile() {
                 auto calli = StaticCall::Cast(i);
                 calli->eachArg([](Value* v) { assert(!ExpandDots::Cast(v)); });
                 auto target = calli->tryDispatch();
-                auto bestTarget = calli->tryOptimisticDispatch();
+                // L2 BROKEN
+                // auto bestTarget = calli->tryOptimisticDispatch();
                 std::vector<Value*> args;
                 calli->eachCallArg([&](Value* v) { args.push_back(v); });
                 Context asmpt = calli->inferAvailableAssumptions();
 
-                static bool nativeCallTrampoline = getenv("NATIVE_CALL_TRAMPOLINE") ? getenv("NATIVE_CALL_TRAMPOLINE")[0] == '1' : true;
+                // static bool nativeCallTrampoline = getenv("NATIVE_CALL_TRAMPOLINE") ? getenv("NATIVE_CALL_TRAMPOLINE")[0] == '1' : true;
 
                 auto callId = ArglistOrder::NOT_REORDERED;
                 if (calli->isReordered())
@@ -4051,58 +4052,58 @@ void LowerFunctionLLVM::compile() {
                     break;
                 }
 
-                if (nativeCallTrampoline && target == bestTarget) {
-                    auto callee = target->owner()->rirClosure();
-                    auto dt = DispatchTable::check(BODY(callee));
-                    rir::Function* nativeTarget = nullptr;
-                    for (size_t i = 0; i < dt->size(); i++) {
-                        auto entry = dt->get(i);
-                        if (entry->context() == target->context() &&
-                            entry->signature().numArguments >= args.size()) {
-                            nativeTarget = entry;
-                        }
-                    }
-                    if (nativeTarget) {
-                        assert(
-                            asmpt.includes(Assumption::StaticallyArgmatched));
-                        auto idx = Pool::makeSpace();
-                        NativeBuiltins::targetCaches.push_back(idx);
-                        Pool::patch(idx, nativeTarget->container());
-                        auto missAsmptStore =
-                            Rf_allocVector(RAWSXP, sizeof(Context));
-                        auto missAsmptIdx = Pool::insert(missAsmptStore);
-                        new (DATAPTR(missAsmptStore))
-                            Context(nativeTarget->context() - asmpt);
-                        assert(asmpt.smaller(nativeTarget->context()));
-                        auto res = withCallFrame(args, [&]() {
-                            return call(
-                                NativeBuiltins::get(
-                                    NativeBuiltins::Id::nativeCallTrampoline),
-                                {
-                                    c(callId),
-                                    paramCode(),
-                                    /*
-                                        SER-TODO
-                                    */
-                                    constant(callee, t::SEXP),
-                                    /*
-                                        SER-TODO
-                                    */
-                                    c(idx),
-                                    /*
-                                        SER-DONE: cpool
-                                    */
-                                    srcIdxPatch(calli->srcIdx, false),
-                                    loadSxp(calli->env()),
-                                    c(args.size()),
-                                    c(asmpt.toI()),
-                                    c(missAsmptIdx),
-                                });
-                        });
-                        setVal(i, res);
-                        break;
-                    }
-                }
+                // if (nativeCallTrampoline && target == bestTarget) {
+                //     auto callee = target->owner()->rirClosure();
+                //     auto dt = DispatchTable::check(BODY(callee));
+                //     rir::Function* nativeTarget = nullptr;
+                //     for (size_t i = 0; i < dt->size(); i++) {
+                //         auto entry = dt->get(i);
+                //         if (entry->context() == target->context() &&
+                //             entry->signature().numArguments >= args.size()) {
+                //             nativeTarget = entry;
+                //         }
+                //     }
+                //     if (nativeTarget) {
+                //         assert(
+                //             asmpt.includes(Assumption::StaticallyArgmatched));
+                //         auto idx = Pool::makeSpace();
+                //         NativeBuiltins::targetCaches.push_back(idx);
+                //         Pool::patch(idx, nativeTarget->container());
+                //         auto missAsmptStore =
+                //             Rf_allocVector(RAWSXP, sizeof(Context));
+                //         auto missAsmptIdx = Pool::insert(missAsmptStore);
+                //         new (DATAPTR(missAsmptStore))
+                //             Context(nativeTarget->context() - asmpt);
+                //         assert(asmpt.smaller(nativeTarget->context()));
+                //         auto res = withCallFrame(args, [&]() {
+                //             return call(
+                //                 NativeBuiltins::get(
+                //                     NativeBuiltins::Id::nativeCallTrampoline),
+                //                 {
+                //                     c(callId),
+                //                     paramCode(),
+                //                     /*
+                //                         SER-TODO
+                //                     */
+                //                     constant(callee, t::SEXP),
+                //                     /*
+                //                         SER-TODO
+                //                     */
+                //                     c(idx),
+                //                     /*
+                //                         SER-DONE: cpool
+                //                     */
+                //                     srcIdxPatch(calli->srcIdx, false),
+                //                     loadSxp(calli->env()),
+                //                     c(args.size()),
+                //                     c(asmpt.toI()),
+                //                     c(missAsmptIdx),
+                //                 });
+                //         });
+                //         setVal(i, res);
+                //         break;
+                //     }
+                // }
 
                 assert(asmpt.includes(Assumption::StaticallyArgmatched));
 

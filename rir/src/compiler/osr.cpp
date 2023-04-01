@@ -31,6 +31,7 @@ Function* OSR::compile(SEXP closure, rir::Code* c,
 
     delete module;
 
+    logger.title("Compiled continuation");
     return fun;
 }
 

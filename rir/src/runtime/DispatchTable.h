@@ -24,14 +24,15 @@ struct DispatchTable
 
     size_t size() const { return size_; }
 
-    Function* get(size_t i) const;
-
-    rir::Context getContext(size_t i) const;
 
     Function* best() const {
-        if (size() > 1)
-            return get(1);
-        return get(0);
+        assert(false && "--- L2 BROKEN FEATURE ---");
+        // BROKEN
+        // if (size() > 1) {
+        //     return get(1);
+        // }
+
+        return baseline();
     }
     Function* baseline() const {
         auto f = Function::unpack(getEntry(0));
@@ -45,116 +46,7 @@ struct DispatchTable
     }
 
     Function* dispatchConsideringDisabled(Context a, Function** disabledFunc,
-                                          bool ignorePending = true) const {
-        if (!a.smaller(userDefinedContext_)) {
-#ifdef DEBUG_DISPATCH
-            std::cout << "DISPATCH trying: " << a
-                      << " vs annotation: " << userDefinedContext_ << "\n";
-#endif
-            Rf_error("Provided context does not satisfy user defined context");
-        }
-
-        auto outputDisabledFunc = (disabledFunc != nullptr);
-
-        auto b = baseline();
-
-        if (outputDisabledFunc)
-            *disabledFunc = b;
-
-        for (size_t i = 1; i < size(); ++i) {
-#ifdef DEBUG_DISPATCH
-            std::cout << "DISPATCH trying: " << a << " vs " << get(i)->context()
-                      << "\n";
-#endif
-            auto eCon = getContext(i);
-            if (a.smaller(eCon)) {
-                if (EventLogger::logLevel >= 2) {
-                    std::stringstream eventDataJSON;
-                    eventDataJSON << "{"
-                        << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
-                        << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
-                        << "\"inferred\": " << "\"" << a << "\"" << ","
-                        << "\"context\": " << "\"" << eCon << "\"" << ","
-                        << "\"vtab\": " << "\"" << this << "\""
-                        << "}";
-
-                    EventLogger::logUntimedEvent(
-                        "dispatchTrying",
-                        eventDataJSON.str()
-                    );
-                }
-
-                auto e = get(i);
-                if (ignorePending || !e->pendingCompilation()) {
-                    if (!e->disabled()) {
-                        if (!e->l2Dispatcher) {
-                            if (EventLogger::logLevel >= 2) {
-                                std::stringstream eventDataJSON;
-                                eventDataJSON << "{"
-                                    << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
-                                    << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
-                                    << "\"inferred\": " << "\"" << a << "\"" << ","
-                                    << "\"function\": " << "\"" << e << "\"" << ","
-                                    << "\"context\": " << "\"" << e->context() << "\"" << ","
-                                    << "\"vtab\": " << "\"" << this << "\""
-                                    << "}";
-
-                                EventLogger::logUntimedEvent(
-                                    "dispatch",
-                                    eventDataJSON.str()
-                                );
-                            }
-                        } else {
-                            if (EventLogger::logLevel >= 2) {
-                                std::stringstream eventDataJSON;
-                                eventDataJSON << "{"
-                                    << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
-                                    << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
-                                    << "\"inferred\": " << "\"" << a << "\"" << ","
-                                    << "\"function\": " << "\"" << e << "\"" << ","
-                                    << "\"context\": " << "\"" << e->context() << "\"" << ","
-                                    << "\"vtab\": " << "\"" << this << "\"" << ","
-                                    << "\"l2vtab\": " << "\"" << e->l2Dispatcher << "\"" << ","
-                                    << "\"l2Info\": " << "{" << e->l2Dispatcher->getInfo() << "}"
-                                    << "}";
-
-                                EventLogger::logUntimedEvent(
-                                    "dispatchL2",
-                                    eventDataJSON.str()
-                                );
-                            }
-                        }
-                        return e;
-                    } else {
-                        // There exists a disabled binary for this context
-                        if (outputDisabledFunc && a == eCon)
-                            *disabledFunc = e;
-                    }
-                }
-            }
-        }
-
-
-
-        if (EventLogger::logLevel >= 2) {
-            std::stringstream eventDataJSON;
-            eventDataJSON << "{"
-                << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
-                << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
-                << "\"inferred\": " << "\"" << a << "\"" << ","
-                << "\"function\": " << "\"" << b << "\"" << ","
-                << "\"context\": " << "\"" << "baseline" << "\"" << ","
-                << "\"vtab\": " << "\"" << this << "\""
-                << "}";
-
-            EventLogger::logUntimedEvent(
-                "dispatch",
-                eventDataJSON.str()
-            );
-        }
-
-        return b;
-    }
+                                          bool ignorePending = true) const;
 
     void baseline(Function* f) {
         assert(f->signature().optimization ==
@@ -167,17 +59,73 @@ struct DispatchTable
         setEntry(0, f->container());
     }
 
-    bool contains(const Context& assumptions) const {
-        for (size_t i = 0; i < size(); ++i)
-            if (get(i)->context() == assumptions)
-                return !get(i)->disabled();
+    bool containsL1Context(const Context& assumptions) const {
+        for (size_t i = 1; i < size(); ++i) {
+            // auto eCon = getContext(i);
+            auto funContainer = getEntry(i);
+            Context currContext;
+
+            if (L2Dispatch::check(funContainer)) {
+                L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+                currContext = l2vt->getContext();
+            } else {
+                assert(Function::check(funContainer));
+                currContext = Function::unpack(funContainer)->context();
+            }
+
+            if (currContext == assumptions) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool containsDispatchableL1(const Context& assumptions) const {
+        for (size_t i = 1; i < size(); ++i) {
+            // auto eCon = getContext(i);
+            auto funContainer = getEntry(i);
+            Context currContext;
+
+            if (L2Dispatch::check(funContainer)) {
+                L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+                currContext = l2vt->getContext();
+            } else {
+                assert(Function::check(funContainer));
+                currContext = Function::unpack(funContainer)->context();
+            }
+
+            if (currContext == assumptions) {
+                Function * currFun;
+                if (L2Dispatch::check(funContainer)) {
+                    L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+                    currFun = l2vt->dispatch();
+                } else {
+                    assert(Function::check(funContainer));
+                    currFun = Function::unpack(funContainer);
+                }
+
+                if (currFun) {
+                    return !currFun->disabled();
+                }
+                return false;
+            }
+        }
         return false;
     }
 
     void remove(Code* funCode) {
         size_t i = 1;
         for (; i < size(); ++i) {
-            if (get(i)->body() == funCode)
+            SEXP funContainer = getEntry(i);
+            Function * currFun;
+            if (L2Dispatch::check(funContainer)) {
+                L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+                currFun = l2vt->dispatch();
+            } else {
+                assert(Function::check(funContainer));
+                currFun = Function::unpack(funContainer);
+            }
+            if (currFun->body() == funCode)
                 break;
         }
         if (i == size())
@@ -185,7 +133,13 @@ struct DispatchTable
         for (; i < size() - 1; ++i) {
             setEntry(i, getEntry(i + 1));
         }
-        setEntry(i, nullptr);
+        SEXP funContainer = getEntry(i);
+        if (L2Dispatch::check(funContainer)) {
+            L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+            l2vt->setFallback(R_NilValue);
+        } else {
+            setEntry(i, nullptr);
+        }
         size_--;
     }
 
@@ -234,17 +188,18 @@ struct DispatchTable
 
         auto clone = create(this->capacity());
         clone->setEntry(0, this->getEntry(0));
+        assert(false && "--- L2 BROKEN FEATURE ---");
+        // BROKEN
+        // auto j = 1;
+        // for (size_t i = 1; i < size(); i++) {
+        //     if (get(i)->context().smaller(udc)) {
+        //         clone->setEntry(j, getEntry(i));
+        //         j++;
+        //     }
+        // }
 
-        auto j = 1;
-        for (size_t i = 1; i < size(); i++) {
-            if (get(i)->context().smaller(udc)) {
-                clone->setEntry(j, getEntry(i));
-                j++;
-            }
-        }
-
-        clone->size_ = j;
-        clone->userDefinedContext_ = udc;
+        // clone->size_ = j;
+        // clone->userDefinedContext_ = udc;
         return clone;
     }
 

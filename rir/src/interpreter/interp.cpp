@@ -2414,7 +2414,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             if (stateChange) {
                 if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
                     for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
-                        *f = nullptr;
+                        f->valid = false;
+                        f->fun = nullptr;
                     }
                 }
                 c->function()->stateVal++;
@@ -2430,7 +2431,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             if (stateChange) {
                 if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
                     for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
-                        *f = nullptr;
+                        f->valid = false;
+                        f->fun = nullptr;
                     }
                 }
                 c->function()->stateVal++;
@@ -2446,7 +2448,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             if (stateChange) {
                 if (Hast::l2FastcaseInvalidationCache.count(pc) > 0) {
                     for (auto & f : Hast::l2FastcaseInvalidationCache[pc]) {
-                        *f = nullptr;
+                        f->valid = false;
+                        f->fun = nullptr;
                     }
                 }
                 c->function()->stateVal++;

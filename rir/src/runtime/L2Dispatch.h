@@ -16,6 +16,11 @@ struct FeedbackValue {
 	unsigned srcIdx;
 };
 
+struct LastDispatchFastcaseHolder {
+	bool valid = false;
+	Function * fun = nullptr;
+};
+
 struct L2Feedback {
 	// TAG:
 	// 0 -> Type Feedback Val
@@ -128,21 +133,22 @@ struct L2Function {
 struct L2Dispatch
     : public RirRuntimeObject<L2Dispatch, L2_DISPATCH_MAGIC> {
 	// Constructor
-	static L2Dispatch* create(Function* fallback, Protect & p) {
+	static L2Dispatch* create(Context context, Protect & p) {
 		size_t sz =
 			sizeof(L2Dispatch) + (ENTRIES_SIZE * sizeof(SEXP));
 		SEXP s;
 		p(s = Rf_allocVector(EXTERNALSXP, sz));
-		return new (INTEGER(s)) L2Dispatch(fallback);
+		return new (INTEGER(s)) L2Dispatch(context);
 	}
 
 	// SLOT 0: FALLBACK_FN
-	void setFallback(Function * f) {
-		setEntry(FALLBACK_FN, f->container());
+	void setFallback(SEXP funContainer) {
+		setEntry(FALLBACK_FN, funContainer);
 	}
 
 	Function * getFallback() {
 		SEXP fallbackContainer = getEntry(FALLBACK_FN);
+		if (fallbackContainer == R_NilValue) return nullptr;
 		assert(Function::check(fallbackContainer));
 		return Function::unpack(fallbackContainer);
 	}
@@ -157,6 +163,9 @@ struct L2Dispatch
 		return Function::unpack(fun);
 	}
 
+	Context getContext() {
+		return _context;
+	}
 
 	Function * dispatch();
 
@@ -168,13 +177,14 @@ struct L2Dispatch
 	void print(std::ostream& out, const int & space = 0);
 	std::string getInfo();
   private:
+	Context _context;
 
 	int _last = -1;
-	Function * lastDispatch = nullptr;
+	LastDispatchFastcaseHolder lastDispatch;
 
 	L2Dispatch() = delete;
 
-	explicit L2Dispatch(Function* fallback);
+	explicit L2Dispatch(Context context);
 	// Expands the function list by GROWTH_RATE
 	void expandStorage();
 

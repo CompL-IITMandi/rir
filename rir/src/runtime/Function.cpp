@@ -235,7 +235,7 @@ void Function::registerDeopt() {
 
 }
 
-void Function::addFastcaseInvalidationConditions(Function ** f) {
+void Function::addFastcaseInvalidationConditions(LastDispatchFastcaseHolder * f) {
     assert(speculativeContextIdx != -1);
     SEXP speculativeContext = body()->getExtraPoolEntry(speculativeContextIdx);
 

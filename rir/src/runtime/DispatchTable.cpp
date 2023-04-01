@@ -7,52 +7,29 @@
 
 namespace rir {
 
-Function* DispatchTable::get(size_t i) const {
-    assert(i < capacity());
-    // If there exists a L2 dispatch table at this index,
-    // then check if there is a possible dispatch available
-    SEXP funContainer = getEntry(i);
-
-    if (L2Dispatch::check(funContainer)) {
-        L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
-        // print(std::cout);
-        return l2vt->dispatch();
-    }
-    return Function::unpack(getEntry(i));
-}
-
-rir::Context DispatchTable::getContext(size_t i) const {
-    assert(i < capacity());
-    SEXP funContainer = getEntry(i);
-    if (L2Dispatch::check(funContainer)) {
-        L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
-        return l2vt->getFallback()->context();
-    }
-    return Function::unpack(getEntry(i))->context();
-}
-
 void DispatchTable::print(std::ostream& out, const int & space) const {
-    printSpace(space, out);
-    out << "=== Printing Dispatch table (" << this << ") ===" << std::endl;
-    // out << std::endl;
-    // out << "Full Runtime speculative context" << std::endl;
-    // Hast::printRawFeedback(this, out, space);
-    // out << std::endl;
-    for (size_t i = 1; i < size(); ++i) {
-        SEXP funContainer = getEntry(i);
+    assert(false && "--- L2 BROKEN FEATURE ---");
+    // printSpace(space, out);
+    // out << "=== Printing Dispatch table (" << this << ") ===" << std::endl;
+    // // out << std::endl;
+    // // out << "Full Runtime speculative context" << std::endl;
+    // // Hast::printRawFeedback(this, out, space);
+    // // out << std::endl;
+    // for (size_t i = 1; i < size(); ++i) {
+    //     SEXP funContainer = getEntry(i);
 
-        if (L2Dispatch::check(funContainer)) {
-            L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
-            // auto fun = l2vt->dispatch();
-            printSpace(space+2, out);
-            out << "(" << i << "): " << l2vt->getFallback()->context() << std::endl;
-            l2vt->print(out, space+4);
-        } else {
-            auto fun = Function::unpack(funContainer);
-            printSpace(space+2, out);
-            out << "(" << i << ")[" << (fun->disabled() ? "D" : "") << "]: " << fun->context() << std::endl;
-        }
-    }
+    //     if (L2Dispatch::check(funContainer)) {
+    //         // L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+    //         // // auto fun = l2vt->dispatch();
+    //         // printSpace(space+2, out);
+    //         // out << "(" << i << "): " << l2vt->getFallback()->context() << std::endl;
+    //         // l2vt->print(out, space+4);
+    //     } else {
+    //         auto fun = Function::unpack(funContainer);
+    //         printSpace(space+2, out);
+    //         out << "(" << i << ")[" << (fun->disabled() ? "D" : "") << "]: " << fun->context() << std::endl;
+    //     }
+    // }
 }
 
 void DispatchTable::insertL2(Function* fun) {
@@ -66,24 +43,15 @@ void DispatchTable::insertL2(Function* fun) {
 
     if (idxContainer == R_NilValue) {
         Protect p;
-        std::vector<SEXP> defaultArgs;
-        size_t functionSize = sizeof(Function);
-        SEXP store;
-        p(store = Rf_allocVector(EXTERNALSXP, functionSize));
-        void* payload = INTEGER(store);
-        Function* dummy = new (payload) Function(functionSize, baseline()->body()->container(),
-                                            defaultArgs, fun->signature(), fun->context());
-        dummy->registerDeopt();
-        dummy->vtab = this;
-        L2Dispatch * l2vt = L2Dispatch::create(dummy, p);
+        L2Dispatch * l2vt = L2Dispatch::create(fun->context(), p);
         l2vt->insert(fun);
         fun->l2Dispatcher = l2vt;
         setEntry(idx, l2vt->container());
     } else {
         if (Function::check(idxContainer)) {
             Protect p;
-            Function * old = Function::unpack(idxContainer);
-            L2Dispatch * l2vt = L2Dispatch::create(old, p);
+            L2Dispatch * l2vt = L2Dispatch::create(fun->context(), p);
+            l2vt->setFallback(idxContainer);
             l2vt->insert(fun);
             fun->l2Dispatcher = l2vt;
             setEntry(idx, l2vt->container());
@@ -116,13 +84,14 @@ void DispatchTable::insert(Function* fun) {
                 Function * old = Function::unpack(idxContainer);
                 fun->addDeoptCount(old->deoptCount());
                 setEntry(idx, fun->container());
-                assert(get(idx) == fun);
             }
         } else if (L2Dispatch::check(idxContainer)) {
             L2Dispatch * l2vt = L2Dispatch::unpack(idxContainer);
             Function * old = l2vt->getFallback();
-            fun->addDeoptCount(old->deoptCount());
-            l2vt->setFallback(fun);
+            if (old) {
+                fun->addDeoptCount(old->deoptCount());
+            }
+            l2vt->setFallback(fun->container());
         } else {
             Rf_error("Dispatch table insertion error, corrupted slot!!");
         }
@@ -133,28 +102,39 @@ int DispatchTable::negotiateSlot(const Context& assumptions) {
     assert(size() > 0);
     size_t i;
     for (i = size() - 1; i > 0; --i) {
-        auto old = get(i);
-        if (old->context() == assumptions) {
+        auto funContainer = getEntry(i);
+        Context currContext;
+
+        if (L2Dispatch::check(funContainer)) {
+            L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+            currContext = l2vt->getContext();
+        } else {
+            assert(Function::check(funContainer));
+            currContext = Function::unpack(funContainer)->context();
+        }
+
+        if (currContext == assumptions) {
             // We already gave this context, dont delete it, just return the index
             return i;
         }
-        if (!(assumptions < get(i)->context())) {
+        if (!(assumptions < currContext)) {
             break;
         }
     }
     i++;
-    assert(!contains(assumptions));
+    assert(!containsL1Context(assumptions));
     if (size() == capacity()) {
-#ifdef DEBUG_DISPATCH
-        std::cout << "Tried to insert into a full Dispatch table. Have: \n";
-        for (size_t i = 0; i < size(); ++i) {
-            auto e = getEntry(i);
-            std::cout << "* " << Function::unpack(e)->context() << "\n";
-        }
-        std::cout << "\n";
-        std::cout << "Tried to insert: " << assumptions << "\n";
-        Rf_error("dispatch table overflow");
-#endif
+// #ifdef DEBUG_DISPATCH
+//         assert(false && "--- L2 BROKEN FEATURE ---");
+//         std::cout << "Tried to insert into a full Dispatch table. Have: \n";
+//         for (size_t i = 0; i < size(); ++i) {
+//             auto e = getEntry(i);
+//             std::cout << "* " << Function::unpack(e)->context() << "\n";
+//         }
+//         std::cout << "\n";
+//         std::cout << "Tried to insert: " << assumptions << "\n";
+//         Rf_error("dispatch table overflow");
+// #endif
         // Evict one element and retry
         auto pos = 1 + (Random::singleton()() % (size() - 1));
         size_--;
@@ -174,20 +154,150 @@ int DispatchTable::negotiateSlot(const Context& assumptions) {
     setEntry(i, R_NilValue);
     return i;
 
+// #ifdef DEBUG_DISPATCH
+//     assert(false && "--- L2 BROKEN FEATURE ---");
+//     std::cout << "Added version to DT, new order is: \n";
+//     for (size_t i = 0; i < size(); ++i) {
+//         auto e = getEntry(i);
+//         std::cout << "* " << Function::unpack(e)->context() << "\n";
+//     }
+//     std::cout << "\n";
+//     for (size_t i = 0; i < size() - 1; ++i) {
+//         assert(get(i)->context() < get(i + 1)->context());
+//         assert(get(i)->context() != get(i + 1)->context());
+//         assert(!(get(i + 1)->context() < get(i)->context()));
+//     }
+//     assert(contains(fun->context()));
+// #endif
+}
+
+Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disabledFunc, bool ignorePending) const {
+    if (!a.smaller(userDefinedContext_)) {
 #ifdef DEBUG_DISPATCH
-    std::cout << "Added version to DT, new order is: \n";
-    for (size_t i = 0; i < size(); ++i) {
-        auto e = getEntry(i);
-        std::cout << "* " << Function::unpack(e)->context() << "\n";
-    }
-    std::cout << "\n";
-    for (size_t i = 0; i < size() - 1; ++i) {
-        assert(get(i)->context() < get(i + 1)->context());
-        assert(get(i)->context() != get(i + 1)->context());
-        assert(!(get(i + 1)->context() < get(i)->context()));
-    }
-    assert(contains(fun->context()));
+        std::cout << "DISPATCH trying: " << a
+                    << " vs annotation: " << userDefinedContext_ << "\n";
 #endif
+        Rf_error("Provided context does not satisfy user defined context");
+    }
+
+    auto outputDisabledFunc = (disabledFunc != nullptr);
+
+    auto b = baseline();
+
+    if (outputDisabledFunc)
+        *disabledFunc = b;
+
+    for (size_t i = 1; i < size(); ++i) {
+        // auto eCon = getContext(i);
+        auto funContainer = getEntry(i);
+        Context currContext;
+
+        if (L2Dispatch::check(funContainer)) {
+            L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+            currContext = l2vt->getContext();
+        } else {
+            assert(Function::check(funContainer));
+            currContext = Function::unpack(funContainer)->context();
+        }
+#ifdef DEBUG_DISPATCH
+        std::cout << "DISPATCH trying: " << a << " vs " << currContext
+                    << "\n";
+#endif
+        if (a.smaller(currContext)) {
+            if (EventLogger::logLevel >= 2) {
+                std::stringstream eventDataJSON;
+                eventDataJSON << "{"
+                    << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+                    << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+                    << "\"inferred\": " << "\"" << a << "\"" << ","
+                    << "\"context\": " << "\"" << currContext << "\"" << ","
+                    << "\"vtab\": " << "\"" << this << "\""
+                    << "}";
+
+                EventLogger::logUntimedEvent(
+                    "dispatchTrying",
+                    eventDataJSON.str()
+                );
+            }
+
+            Function * currFun;
+            if (L2Dispatch::check(funContainer)) {
+                L2Dispatch * l2vt = L2Dispatch::unpack(funContainer);
+                currFun = l2vt->dispatch();
+            } else {
+                assert(Function::check(funContainer));
+                currFun = Function::unpack(funContainer);
+            }
+
+            // L2 dispatcher can return a nullptr, in that case we continue looking to smaller context
+            if (currFun == nullptr) continue;
+
+            if (ignorePending || !currFun->pendingCompilation()) {
+                if (!currFun->disabled()) {
+                    if (EventLogger::logLevel >= 2) {
+                        if (currFun->l2Dispatcher) {
+                            std::stringstream eventDataJSON;
+                            eventDataJSON << "{"
+                                << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+                                << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+                                << "\"inferred\": " << "\"" << a << "\"" << ","
+                                << "\"function\": " << "\"" << currFun << "\"" << ","
+                                << "\"context\": " << "\"" << currFun->context() << "\"" << ","
+                                << "\"vtab\": " << "\"" << this << "\"" << ","
+                                << "\"l2vtab\": " << "\"" << currFun->l2Dispatcher << "\"" << ","
+                                << "\"l2Info\": " << "{" << currFun->l2Dispatcher->getInfo() << "}"
+                                << "}";
+
+                            EventLogger::logUntimedEvent(
+                                "dispatchL2",
+                                eventDataJSON.str()
+                            );
+                        } else {
+                            std::stringstream eventDataJSON;
+                            eventDataJSON << "{"
+                                << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+                                << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+                                << "\"inferred\": " << "\"" << a << "\"" << ","
+                                << "\"function\": " << "\"" << currFun << "\"" << ","
+                                << "\"context\": " << "\"" << currFun->context() << "\"" << ","
+                                << "\"vtab\": " << "\"" << this << "\""
+                                << "}";
+
+                            EventLogger::logUntimedEvent(
+                                "dispatch",
+                                eventDataJSON.str()
+                            );
+                        }
+                    }
+
+                    // Dispatch selected function
+                    return currFun;
+                } else {
+                    if (outputDisabledFunc && a == currContext)
+                        *disabledFunc = currFun;
+                }
+            }
+        }
+    }
+
+    if (EventLogger::logLevel >= 2) {
+        std::stringstream eventDataJSON;
+        eventDataJSON << "{"
+            << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+            << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+            << "\"inferred\": " << "\"" << a << "\"" << ","
+            << "\"function\": " << "\"" << b << "\"" << ","
+            << "\"context\": " << "\"" << "baseline" << "\"" << ","
+            << "\"vtab\": " << "\"" << this << "\""
+            << "}";
+
+        EventLogger::logUntimedEvent(
+            "dispatch",
+            eventDataJSON.str()
+        );
+    }
+
+    return b;
 }
 
 } // namespace rir

@@ -16,6 +16,7 @@ typedef SEXP FunctionSEXP;
 
 struct L2Dispatch;
 struct DispatchTable;
+struct LastDispatchFastcaseHolder;
 // Function magic constant is designed to help to distinguish between Function
 // objects and normal EXTERNALSXPs. Normally this is not necessary, but a very
 // creative user might try to assign arbitrary EXTERNAL to a closure which we
@@ -165,7 +166,7 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
                 flags.set(flag);
     }
 
-    void addFastcaseInvalidationConditions(Function ** f);
+    void addFastcaseInvalidationConditions(LastDispatchFastcaseHolder * f);
     void clearDisabledAssumptions(Context& given) const;
 
     unsigned nargs() const { return numArgs_; }

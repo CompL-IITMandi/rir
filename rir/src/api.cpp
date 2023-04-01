@@ -90,11 +90,17 @@ REXPORT SEXP rirDisassemble(SEXP what, SEXP verbose) {
 
     std::cout << "== closure " << what << " (dispatch table " << t << ", env "
               << CLOENV(what) << ") ==\n";
-    for (size_t entry = 0; entry < t->size(); ++entry) {
-        Function* f = t->get(entry);
-        std::cout << "= version " << entry << " (" << f << ") =\n";
-        f->disassemble(std::cout);
-    }
+    assert(false && "--- L2 BROKEN FEATURE ---");
+    // --- L2 BROKEN FEATURE ---
+    // for (size_t entry = 0; entry < t->size(); ++entry) {
+    //     Function* f = t->get(entry);
+    //     std::cout << "= version " << entry << " (" << f << ") =\n";
+    //     f->disassemble(std::cout);
+    // }
+
+    Function* f = t->baseline();
+    std::cout << "= version " << 0 << " (" << f << ") =\n";
+    f->disassemble(std::cout);
 
     return R_NilValue;
 }
@@ -308,85 +314,83 @@ REXPORT SEXP rirMarkFunction(SEXP what, SEXP which, SEXP reopt_,
                              SEXP disableArgumentTypeSpecialization_,
                              SEXP disableNumArgumentSpecialization_,
                              SEXP depromiseArgs_) {
-    if (!isValidClosureSEXP(what))
-        Rf_error("Not rir compiled code");
-    if (TYPEOF(which) != INTSXP || LENGTH(which) != 1)
-        Rf_error("index not an integer");
-    auto i = INTEGER(which)[0];
-    SEXP b = BODY(what);
-    DispatchTable* dt = DispatchTable::unpack(b);
-    if (i < 0 || (size_t)i > dt->size())
-        Rf_error("version with this number does not exist");
-
-    auto getBool = [](SEXP v) {
-        if (TYPEOF(v) != LGLSXP) {
-            Rf_warning("non-boolean flag");
-            return NA_LOGICAL;
-        }
-        if (LENGTH(v) == 0)
-            return NA_LOGICAL;
-        return LOGICAL(v)[0];
-    };
-
-    auto reopt = getBool(reopt_);
-    auto forceInline = getBool(forceInline_);
-    auto disableInline = getBool(disableInline_);
-    auto disableSpecialization = getBool(disableSpecialization_);
-    auto disableNumArgumentSpecialization =
-        getBool(disableNumArgumentSpecialization_);
-    auto disableArgumentTypeSpecialization =
-        getBool(disableArgumentTypeSpecialization_);
-    auto depromiseArgs = getBool(depromiseArgs_);
-
-    Function* fun = dt->get(i);
-    if (reopt != NA_LOGICAL) {
-        if (reopt) {
-            fun->flags.set(Function::MarkOpt);
-            fun->flags.reset(Function::NotOptimizable);
-        } else {
-            fun->flags.reset(Function::MarkOpt);
-        }
-    }
-    if (forceInline != NA_LOGICAL) {
-        if (forceInline)
-            fun->flags.set(Function::ForceInline);
-        else
-            fun->flags.reset(Function::ForceInline);
-    }
-    if (disableInline != NA_LOGICAL) {
-        if (disableInline)
-            fun->flags.set(Function::DisableInline);
-        else
-            fun->flags.reset(Function::DisableInline);
-    }
-    if (disableSpecialization != NA_LOGICAL) {
-        if (disableSpecialization)
-            fun->flags.set(Function::DisableAllSpecialization);
-        else
-            fun->flags.reset(Function::DisableAllSpecialization);
-    }
-    if (disableArgumentTypeSpecialization != NA_LOGICAL) {
-        if (disableArgumentTypeSpecialization)
-            fun->flags.set(Function::DisableArgumentTypeSpecialization);
-        else
-            fun->flags.reset(Function::DisableArgumentTypeSpecialization);
-    }
-    if (disableNumArgumentSpecialization != NA_LOGICAL) {
-        if (disableNumArgumentSpecialization)
-            fun->flags.set(Function::DisableNumArgumentsSpezialization);
-        else
-            fun->flags.reset(Function::DisableNumArgumentsSpezialization);
-    }
-
-    bool DISABLE_ANNOTATIONS = getenv("PIR_DISABLE_ANNOTATIONS") ? true : false;
-    if (!DISABLE_ANNOTATIONS) {
-        if (depromiseArgs != NA_LOGICAL) {
-            if (depromiseArgs)
-                fun->flags.set(Function::DepromiseArgs);
-            else
-                fun->flags.reset(Function::DepromiseArgs);
-        }
-    }
+    assert(false && "--- L2 BROKEN FEATURE ---");
+    // --- L2 BROKEN FEATURE ---
+    // if (!isValidClosureSEXP(what))
+    //     Rf_error("Not rir compiled code");
+    // if (TYPEOF(which) != INTSXP || LENGTH(which) != 1)
+    //     Rf_error("index not an integer");
+    // auto i = INTEGER(which)[0];
+    // SEXP b = BODY(what);
+    // DispatchTable* dt = DispatchTable::unpack(b);
+    // if (i < 0 || (size_t)i > dt->size())
+    //     Rf_error("version with this number does not exist");
+    // auto getBool = [](SEXP v) {
+    //     if (TYPEOF(v) != LGLSXP) {
+    //         Rf_warning("non-boolean flag");
+    //         return NA_LOGICAL;
+    //     }
+    //     if (LENGTH(v) == 0)
+    //         return NA_LOGICAL;
+    //     return LOGICAL(v)[0];
+    // };
+    // auto reopt = getBool(reopt_);
+    // auto forceInline = getBool(forceInline_);
+    // auto disableInline = getBool(disableInline_);
+    // auto disableSpecialization = getBool(disableSpecialization_);
+    // auto disableNumArgumentSpecialization =
+    //     getBool(disableNumArgumentSpecialization_);
+    // auto disableArgumentTypeSpecialization =
+    //     getBool(disableArgumentTypeSpecialization_);
+    // auto depromiseArgs = getBool(depromiseArgs_);
+    // Function* fun = dt->get(i);
+    // if (reopt != NA_LOGICAL) {
+    //     if (reopt) {
+    //         fun->flags.set(Function::MarkOpt);
+    //         fun->flags.reset(Function::NotOptimizable);
+    //     } else {
+    //         fun->flags.reset(Function::MarkOpt);
+    //     }
+    // }
+    // if (forceInline != NA_LOGICAL) {
+    //     if (forceInline)
+    //         fun->flags.set(Function::ForceInline);
+    //     else
+    //         fun->flags.reset(Function::ForceInline);
+    // }
+    // if (disableInline != NA_LOGICAL) {
+    //     if (disableInline)
+    //         fun->flags.set(Function::DisableInline);
+    //     else
+    //         fun->flags.reset(Function::DisableInline);
+    // }
+    // if (disableSpecialization != NA_LOGICAL) {
+    //     if (disableSpecialization)
+    //         fun->flags.set(Function::DisableAllSpecialization);
+    //     else
+    //         fun->flags.reset(Function::DisableAllSpecialization);
+    // }
+    // if (disableArgumentTypeSpecialization != NA_LOGICAL) {
+    //     if (disableArgumentTypeSpecialization)
+    //         fun->flags.set(Function::DisableArgumentTypeSpecialization);
+    //     else
+    //         fun->flags.reset(Function::DisableArgumentTypeSpecialization);
+    // }
+    // if (disableNumArgumentSpecialization != NA_LOGICAL) {
+    //     if (disableNumArgumentSpecialization)
+    //         fun->flags.set(Function::DisableNumArgumentsSpezialization);
+    //     else
+    //         fun->flags.reset(Function::DisableNumArgumentsSpezialization);
+    // }
+    // bool DISABLE_ANNOTATIONS = getenv("PIR_DISABLE_ANNOTATIONS") ? true : false;
+    // if (!DISABLE_ANNOTATIONS) {
+    //     if (depromiseArgs != NA_LOGICAL) {
+    //         if (depromiseArgs)
+    //             fun->flags.set(Function::DepromiseArgs);
+    //         else
+    //             fun->flags.reset(Function::DepromiseArgs);
+    //     }
+    // }
 
     return R_NilValue;
 }
@@ -999,7 +1003,7 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                     auto cls = c->owner()->rirClosure();
                     auto body = BODY(cls);
                     auto dt = DispatchTable::unpack(body);
-                    if (dt->contains(c->context())) {
+                    if (dt->containsDispatchableL1(c->context())) {
                         // Dispatch also to versions with pending compilation
                         // since we're not evaluating
                         auto other = dt->dispatch(c->context(), false);
@@ -1043,17 +1047,18 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
 int * RTConsts::R_jit_enabled = nullptr;
 
 REXPORT SEXP rirInvocationCount(SEXP what) {
-    if (!isValidClosureSEXP(what)) {
-        Rf_error("not a compiled closure");
-    }
-    auto dt = DispatchTable::check(BODY(what));
-    assert(dt);
-
-    SEXP res = Rf_allocVector(INTSXP, dt->size());
-    for (size_t i = 0; i < dt->size(); ++i)
-        INTEGER(res)[i] = dt->get(i)->invocationCount();
-
-    return res;
+    assert(false && "--- L2 BROKEN FEATURE ---");
+    // BROKEN
+    // if (!isValidClosureSEXP(what)) {
+    //     Rf_error("not a compiled closure");
+    // }
+    // auto dt = DispatchTable::check(BODY(what));
+    // assert(dt);
+    // SEXP res = Rf_allocVector(INTSXP, dt->size());
+    // for (size_t i = 0; i < dt->size(); ++i)
+    //     INTEGER(res)[i] = dt->get(i)->invocationCount();
+    // return res;
+    return R_NilValue;
 }
 
 REXPORT SEXP pirCompileWrapper(SEXP what, SEXP name, SEXP debugFlags,

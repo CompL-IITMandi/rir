@@ -87,7 +87,8 @@ void DeoptReason::record(SEXP val) const {
         if (stateChange) {
             if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
                 for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
-                    *f = nullptr;
+                    f->valid = false;
+                    f->fun = nullptr;
                 }
             }
             srcCode()->function()->stateVal++;
@@ -103,7 +104,8 @@ void DeoptReason::record(SEXP val) const {
         if (stateChange) {
             if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
                 for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
-                    *f = nullptr;
+                    f->valid = false;
+                    f->fun = nullptr;
                 }
             }
             srcCode()->function()->stateVal++;
@@ -130,7 +132,8 @@ void DeoptReason::record(SEXP val) const {
         if (stateChange) {
             if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
                 for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
-                    *f = nullptr;
+                    f->valid = false;
+                    f->fun = nullptr;
                 }
             }
             srcCode()->function()->stateVal++;

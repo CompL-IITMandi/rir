@@ -3,6 +3,7 @@ benchmarks/*.rds
 xml/*
 local/*
 *.Rprofile
+build*
 build/*
 gnur/*
 *.swp
