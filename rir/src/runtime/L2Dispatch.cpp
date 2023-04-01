@@ -210,18 +210,18 @@ Function * L2Dispatch::dispatch() {
 		if (EventLogger::logLevel) {
 			using namespace std::chrono;
 			std::stringstream streamctx;
-			streamctx << lastDispatch.fun ? lastDispatch.fun->context() : Context(0ul);
-
 			std::stringstream streamname;
-			if (lastDispatch.fun) {
-				streamname << lastDispatch.fun;
-			} else {
-				streamname << "NULL";
-			}
 
 			auto start = std::chrono::high_resolution_clock::now();
-
-			EventLogger::logStats("l2Fast", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+			if (lastDispatch.fun) {
+				streamctx << lastDispatch.fun->context();
+				streamname << lastDispatch.fun;
+				EventLogger::logStats("l2FastGood", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+			} else {
+				streamctx << "NULL";
+				streamname << "NULL";
+				EventLogger::logStats("l2FastBad", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+			}
 		}
 		// Alert: this CAN be null
 		return lastDispatch.fun;
