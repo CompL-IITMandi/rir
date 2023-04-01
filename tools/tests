@@ -44,8 +44,8 @@ function run_test {
   R="${R_HOME}/bin/R"
   VALGRIND=""
 
-  if [[ "$ENABLE_VALGRIND" == "1" ]]; then
-      VALGRIND="-d valgrind --debugger-args=--error-exitcode=13 --debugger-args=--suppressions=$ROOT_DIR/.valgrind_suppressions"
+  if [[ "$ENABLE_VALGRIND" == "1" ]]; then-d valgrind
+      VALGRIND=" --debugger-args=--error-exitcode=13 --debugger-args=--suppressions=$ROOT_DIR/.valgrind_suppressions"
   fi
 
   if test "$(uname)" = "Darwin"; then
