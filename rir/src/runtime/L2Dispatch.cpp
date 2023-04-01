@@ -216,7 +216,11 @@ Function * L2Dispatch::dispatch() {
 			if (lastDispatch.fun) {
 				streamctx << lastDispatch.fun->context();
 				streamname << lastDispatch.fun;
-				EventLogger::logStats("l2FastGood", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+				if (lastDispatch.fun->l2Dispatcher) {
+					EventLogger::logStats("l2FastCached", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+				} else {
+					EventLogger::logStats("l2FastJIT", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+				}
 			} else {
 				streamctx << "NULL";
 				streamname << "NULL";
