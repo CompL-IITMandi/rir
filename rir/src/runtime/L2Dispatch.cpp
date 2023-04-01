@@ -210,10 +210,14 @@ Function * L2Dispatch::dispatch() {
 		if (EventLogger::logLevel) {
 			using namespace std::chrono;
 			std::stringstream streamctx;
-			streamctx << lastDispatch.fun->context();
+			streamctx << lastDispatch.fun ? lastDispatch.fun->context() : Context(0ul);
 
 			std::stringstream streamname;
-			streamname << lastDispatch.fun;
+			if (lastDispatch.fun) {
+				streamname << lastDispatch.fun;
+			} else {
+				streamname << "NULL";
+			}
 
 			auto start = std::chrono::high_resolution_clock::now();
 
