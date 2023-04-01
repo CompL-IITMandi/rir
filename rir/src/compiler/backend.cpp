@@ -815,6 +815,7 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
         c.second->function(function.function());
 
     function.function()->inheritFlags(cls->owner()->rirFunction());
+    // TODO: Pool::insert(function.function()->container());
     return function.function();
 }
 

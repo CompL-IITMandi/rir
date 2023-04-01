@@ -186,6 +186,11 @@ void Function::registerDeopt() {
     // Deopt counts are kept on the optimized versions
     assert(isOptimized());
 
+    if (l2Dispatcher) {
+        l2Dispatcher->lastDispatch.valid = false;
+        l2Dispatcher->lastDispatch.fun = nullptr;
+    }
+
     if (!disabled()) {
         flags.set(Flag::Deopt);
         if (l2Dispatcher) {
@@ -233,6 +238,15 @@ void Function::registerDeopt() {
     if (deoptCount_ < UINT_MAX)
         deoptCount_++;
 
+}
+
+void Function::registerDeoptReason(DeoptReason::Reason r) {
+    // Deopt reasons are counted in the baseline
+    assert(!isOptimized());
+    if (r == DeoptReason::DeadCall)
+        deadCallReached_++;
+    if (r == DeoptReason::EnvStubMaterialized)
+        flags.set(NeedsFullEnv);
 }
 
 void Function::addFastcaseInvalidationConditions(LastDispatchFastcaseHolder * f) {

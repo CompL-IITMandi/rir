@@ -183,14 +183,7 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
 
     void registerDeopt();
 
-    void registerDeoptReason(DeoptReason::Reason r) {
-        // Deopt reasons are counted in the baseline
-        assert(!isOptimized());
-        if (r == DeoptReason::DeadCall)
-            deadCallReached_++;
-        if (r == DeoptReason::EnvStubMaterialized)
-            flags.set(NeedsFullEnv);
-    }
+    void registerDeoptReason(DeoptReason::Reason r);
 
     size_t deadCallReached() const {
         assert(!isOptimized());
