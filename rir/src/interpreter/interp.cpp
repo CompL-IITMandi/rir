@@ -112,7 +112,7 @@ std::vector<std::string> res;
     // Print stack
     printingStackSize = true;
     // File << "#; Stack:\n";
-    res.push_back("#; Stack:");
+    //res.push_back("#; Stack:");
     for (int i = 0;; i++) {
         auto typ = ostack_cell_at(i)->tag;
         SEXP sexp = ostack_at(i);
