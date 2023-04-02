@@ -1,5 +1,6 @@
 #include "Function.h"
 #include "L2Dispatch.h"
+#include "utils/Hast.h"
 #include "runtime/DispatchTable.h"
 #include <sstream>
 
@@ -207,32 +208,44 @@ Function * L2Dispatch::dispatch() {
 	assert(_last != -1 && "Empty L2 dispatch");
 
 	if (l2FastcaseEnabled && lastDispatch.valid) {
-		if (EventLogger::logLevel) {
+		if (EventLogger::logLevel >=2) {
 			using namespace std::chrono;
 			std::stringstream streamctx;
 			std::stringstream streamname;
 
 			auto start = std::chrono::high_resolution_clock::now();
 			if (lastDispatch.fun) {
+				auto clos = Hast::hastMap[lastDispatch.fun->vtab->hast].clos;
+				std::string hast = CHAR(PRINTNAME(lastDispatch.fun->vtab->hast));
+
+
 				streamctx << lastDispatch.fun->context();
 				streamname << lastDispatch.fun;
 				if (lastDispatch.fun->l2Dispatcher) {
 					if (lastDispatch.fun->disabled()) {
-						EventLogger::logStats("l2FastCachedDisabled", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+						EventLogger::logStats("l2FastCachedDisabled", streamname.str(), hast, 0, start, streamctx.str(), clos, 0,"");
 					} else {
-						EventLogger::logStats("l2FastCached", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+						EventLogger::logStats("l2FastCached", streamname.str(), hast, 0, start, streamctx.str(), clos, 0,"");
 					}
 				} else {
 					if (lastDispatch.fun->disabled()) {
-						EventLogger::logStats("l2FastJITDisabled", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+						EventLogger::logStats("l2FastJITDisabled", streamname.str(),hast,  0, start, streamctx.str(), clos, 0,"");
 					} else {
-						EventLogger::logStats("l2FastJIT", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+						EventLogger::logStats("l2FastJIT", streamname.str(),hast,  0, start, streamctx.str(), clos, 0,"");
 					}
 				}
 			} else {
+				Function* funTmp = nullptr;
+				if (getFallback())
+					funTmp = getFallback();
+				SEXP clos = funTmp ? Hast::hastMap[funTmp->vtab->hast].clos : nullptr;
+
+				std::string hast = funTmp  ? CHAR(PRINTNAME(funTmp->vtab->hast)) : "NULL";
+
+
 				streamctx << "NULL";
 				streamname << "NULL";
-				EventLogger::logStats("l2FastBad", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+				EventLogger::logStats("l2FastBad", streamname.str(), hast, 0, start, streamctx.str(), clos, 0,"");
 			}
 		}
 		// Alert: this CAN be null
@@ -271,7 +284,7 @@ Function * L2Dispatch::dispatch() {
 				lastDispatch.fun = currFun;
 			}
 
-			if (EventLogger::logLevel) {
+			if (EventLogger::logLevel >= 2) {
 				using namespace std::chrono;
 				std::stringstream streamctx;
 				streamctx << lastDispatch.fun->context();
@@ -280,8 +293,10 @@ Function * L2Dispatch::dispatch() {
 				streamname << lastDispatch.fun;
 
 				auto start = std::chrono::high_resolution_clock::now();
+				auto clos = Hast::hastMap[currFun->vtab->hast].clos;
+				std::string hast = CHAR(PRINTNAME(currFun->vtab->hast));
 
-				EventLogger::logStats("l2Slow", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+				EventLogger::logStats("l2Slow", streamname.str(),hast,  0, start, streamctx.str(), clos, 0,"");
 			}
 
 
@@ -308,7 +323,7 @@ Function * L2Dispatch::dispatch() {
 
 	auto fallback = getFallback();
 
-	if (EventLogger::logLevel) {
+	if (EventLogger::logLevel >= 2) {
 			using namespace std::chrono;
 			std::stringstream streamctx;
 			streamctx << fallback ? fallback->context() : Context(0ul);
@@ -322,7 +337,16 @@ Function * L2Dispatch::dispatch() {
 
 			auto start = std::chrono::high_resolution_clock::now();
 
-			EventLogger::logStats("l2Miss", streamname.str(),  0, start, streamctx.str(), nullptr, 0);
+			Function* funTmp = nullptr;
+			if (lastDispatch.fun)
+				funTmp = lastDispatch.fun;
+			if (fallback)
+				funTmp = fallback;
+
+			SEXP clos = funTmp ? Hast::hastMap[funTmp->vtab->hast].clos : nullptr;
+			std::string hast = funTmp ?  CHAR(PRINTNAME(funTmp->vtab->hast)) : "NULL";
+
+			EventLogger::logStats("l2Miss", streamname.str(),hast,  0, start, streamctx.str(), clos, 0,"");
 	}
 
 

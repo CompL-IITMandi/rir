@@ -985,7 +985,21 @@ SEXP doCall(CallContext& call, bool popArgs) {
 
         Function * baselineFun = table->baseline();
 
+
         inferCurrentContext(call, baselineFun->signature().formalNargs());
+
+        if (EventLogger::logLevel >= 2) {
+            using namespace std::chrono;
+			auto now  = std::chrono::high_resolution_clock::now();
+			std::string hast = table->hast ?  CHAR(PRINTNAME(table->hast)) : "";
+
+			std::stringstream streamctx;
+			streamctx << call.givenContext;
+
+        	EventLogger::logStats("dispatchStarted", "" ,hast,  0, now, streamctx.str(), call.callee, 0,"");
+
+        }
+
         Function* disabledFun = baselineFun;
         auto fun =
             table->dispatchConsideringDisabled(call.givenContext, &disabledFun);

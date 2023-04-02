@@ -358,7 +358,7 @@ NativeCode Code::lazyCompile() {
     BitcodeLinkUtil::llvmLoweringTime += durationCount;
 
     if (EventLogger::logLevel) {
-        EventLogger::logStats("llvmCompilation", "",  durationCount, startCompileTimeCounter, "", nullptr,0);
+        EventLogger::logStats("llvmCompilation", "",  "", durationCount, startCompileTimeCounter, "", nullptr,0,"");
     }
 
 

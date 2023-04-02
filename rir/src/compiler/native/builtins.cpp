@@ -1005,7 +1005,7 @@ static SEXP deoptSentinelContainer = []() {
         Function(0, c->container(), {}, deoptSentinelSig, Context());
     deoptSentinel->registerDeopt();
     UNPROTECT(1);
-    return store;
+return store;
 }();
 
 void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
@@ -1016,6 +1016,15 @@ void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
     deoptReason->record(deoptTrigger);
 
     if (EventLogger::logLevel >= 2) {
+        using namespace std::chrono;
+        auto now = high_resolution_clock::now();
+
+        std::stringstream streamdeoptReason;
+        streamdeoptReason << *deoptReason;
+        EventLogger::logStats("deoptInfo", "", "", 0, now, "", cls, 0, streamdeoptReason.str());
+
+
+
         std::stringstream eventDataJSON;
         eventDataJSON << "{";
 

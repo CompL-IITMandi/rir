@@ -317,7 +317,7 @@ namespace rir {
             // header
             std::ofstream outfile;
             outfile.open(statsFullPath, std::ios_base::app);
-            outfile << "event,functionName,timeInMS,timestamp,context,closure,size,pid";
+            outfile << "event,functionName,hast,timeInMS,timestamp,context,closure,size,additionalInfo,pid";
             outfile << "\n";
             outfile.close();
 
@@ -329,11 +329,14 @@ namespace rir {
     void EventLogger::logStats(
             std::string event,
             std::string name,
+            std::string hast,
             double timeInMS,
             std::chrono::_V2::system_clock::time_point& timeStamp,
             std::string context,
             SEXP closure,
-            size_t  size)
+            size_t  size,
+            std::string additionalInfo
+            )
     {
 
 
@@ -349,14 +352,19 @@ namespace rir {
         auto nameSafe = name;
         findAndReplaceAll(nameSafe, ",", " ");
 
+        auto additionalInfoSafe = additionalInfo;
+        findAndReplaceAll(additionalInfoSafe, ",", " ");
+
 
         outfile << event
                 << "," << nameSafe
+                << "," << hast
                 << "," << timeInMS
                 << "," << timeStamp.time_since_epoch().count()
                 << "," << contextSafe
                 << "," << closure
                 << "," << size
+                << "," << additionalInfoSafe
                 << "," << getpid();
         outfile << "\n";
         outfile.close();

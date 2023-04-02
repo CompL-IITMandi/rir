@@ -25,11 +25,14 @@ class EventLogger {
         );
 
 
-        static void logStats(std::string event, std::string name, double timeInMS,
+        static void logStats(std::string event, std::string name,
+            std::string hast,
+            double timeInMS,
             std::chrono::_V2::system_clock::time_point& timeStamp,
             std::string context,
             SEXP closure,
-            size_t size
+            size_t size,
+            std::string additionalInfo
         );
 
         static int logLevel;

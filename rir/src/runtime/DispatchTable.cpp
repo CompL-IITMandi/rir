@@ -205,6 +205,15 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
 #endif
         if (a.smaller(currContext)) {
             if (EventLogger::logLevel >= 2) {
+
+                std::stringstream streamctx;
+                streamctx << currContext;
+
+                using namespace std::chrono;
+                auto now = high_resolution_clock::now();
+                EventLogger::logStats("dispatchTrying", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0, "");
+
+
                 std::stringstream eventDataJSON;
                 eventDataJSON << "{"
                     << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
@@ -233,9 +242,22 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
             if (currFun == nullptr) continue;
 
             if (ignorePending || !currFun->pendingCompilation()) {
+
                 if (!currFun->disabled()) {
                     if (EventLogger::logLevel >= 2) {
+                        std::stringstream streamctx;
+                        streamctx << currFun->context();
+
+                        using namespace std::chrono;
+                        auto now = high_resolution_clock::now();
+
+                        EventLogger::logStats("functionIsEnabled", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0, "");
+
                         if (currFun->l2Dispatcher) {
+
+                            EventLogger::logStats("dispatchL2", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0,"");
+
+
                             std::stringstream eventDataJSON;
                             eventDataJSON << "{"
                                 << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
@@ -253,6 +275,16 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
                                 eventDataJSON.str()
                             );
                         } else {
+
+                            std::stringstream streamctx;
+                            streamctx << currFun->context();
+
+                            using namespace std::chrono;
+                            auto now = high_resolution_clock::now();
+                            EventLogger::logStats("dispatch", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0,"");
+
+
+
                             std::stringstream eventDataJSON;
                             eventDataJSON << "{"
                                 << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
@@ -273,6 +305,17 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
                     // Dispatch selected function
                     return currFun;
                 } else {
+
+                    if (EventLogger::logLevel >= 2) {
+                        std::stringstream streamctx;
+                        streamctx << currFun->context();
+
+                        using namespace std::chrono;
+                        auto now = high_resolution_clock::now();
+
+                        EventLogger::logStats("functionIsDisabled", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0,"");
+                    }
+
                     if (outputDisabledFunc && a == currContext)
                         *disabledFunc = currFun;
                 }
@@ -281,6 +324,14 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
     }
 
     if (EventLogger::logLevel >= 2) {
+
+
+
+        using namespace std::chrono;
+        auto now = high_resolution_clock::now();
+        EventLogger::logStats("dispatch", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, "baseline", nullptr, 0,"");
+
+
         std::stringstream eventDataJSON;
         eventDataJSON << "{"
             << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","

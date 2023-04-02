@@ -195,6 +195,11 @@ void Function::registerDeopt() {
         flags.set(Flag::Deopt);
         if (l2Dispatcher) {
             if (EventLogger::logLevel >= 2) {
+                using namespace std::chrono;
+                auto now = high_resolution_clock::now();
+                EventLogger::logStats("deoptL2", "", CHAR(PRINTNAME(vtab->hast)), 0, now, "baseline", nullptr, 0,  l2Dispatcher->getInfo());
+
+
                 std::stringstream eventDataJSON;
                 eventDataJSON << "{"
                     << "\"hast\": " << "\"" << CHAR(PRINTNAME(vtab->hast))  << "\"" << ","
@@ -213,6 +218,14 @@ void Function::registerDeopt() {
 
         } else if (vtab) {
             if (EventLogger::logLevel >= 2) {
+                std::stringstream streamctx;
+                streamctx << context();
+
+                using namespace std::chrono;
+                auto now = high_resolution_clock::now();
+                EventLogger::logStats("deopt", "", (vtab->hast ? CHAR(PRINTNAME(vtab->hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0,"");
+
+
                 std::stringstream eventDataJSON;
                 eventDataJSON << "{"
                     << "\"hast\": " << "\"" << (vtab->hast ? CHAR(PRINTNAME(vtab->hast)) : "NULL")  << "\"" << ","
