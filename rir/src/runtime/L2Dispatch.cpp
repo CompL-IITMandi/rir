@@ -30,7 +30,8 @@ std::string L2Dispatch::getInfo() {
 		for (int i = _last; i >= 0; i--) {
 			auto currFun = getFunction(i);
 			total++;
-			ss << "\"" << currFun << "(" << (currFun->disabled() ? "Disabled" : "Enabled") << ")\": " << currFun->matchSpeculativeContext();
+			std::string failReason;
+			ss << "\"" << currFun << "(" << (currFun->disabled() ? "Disabled" : "Enabled") << ")\": " << currFun->matchSpeculativeContext(failReason);
 			ss << ",";
 			if (currFun->disabled()) {
 				disabled++;
@@ -286,9 +287,11 @@ Function * L2Dispatch::dispatch() {
 	// 	return lastDispatch;
 	// }
 
+	std::string missReason = "";
 	for (int i = _last; i >= 0; i--) {
 		auto currFun = getFunction(i);
-		if (!currFun->disabled() && currFun->matchSpeculativeContext()) {
+		std::string matchSpecFailureReason = "isDisabled=" + std::to_string(currFun->disabled());
+		if (!currFun->disabled() && currFun->matchSpeculativeContext(matchSpecFailureReason)) {
 			if (l2FastcaseEnabled) {
 				lastDispatch.valid = true;
 				lastDispatch.fun = currFun;
@@ -311,7 +314,7 @@ Function * L2Dispatch::dispatch() {
 
 
 
-				EventLogger::logStats("l2Slow", streamname.str(),hastFull,  0, start, streamctx.str(), clos, 0,"");
+				EventLogger::logStats("l2Slow", streamname.str(),hastFull,  0, start, streamctx.str(), clos, 0,matchSpecFailureReason);
 			}
 
 
@@ -334,6 +337,7 @@ Function * L2Dispatch::dispatch() {
 			// }
 			return currFun;
 		}
+		missReason += "|" + matchSpecFailureReason;
 	}
 
 	auto fallback = getFallback();
@@ -367,7 +371,7 @@ Function * L2Dispatch::dispatch() {
 			  hastFull = hastFull+ "_" +  std::to_string(funTmp->vtab->offsetIdx);
 
 
-			EventLogger::logStats("l2Miss", streamname.str(),hastFull,  0, start, streamctx.str(), clos, 0,"");
+			EventLogger::logStats("l2Miss", streamname.str(),hastFull,  0, start, streamctx.str(), clos, 0,missReason);
 	}
 
 

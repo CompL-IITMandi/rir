@@ -68,7 +68,7 @@ struct Function : public RirRuntimeObject<Function, FUNCTION_MAGIC> {
         speculativeContextIdx = body()->addExtraPoolEntry(speculativeContext);
     }
 
-    bool matchSpeculativeContext();
+    bool matchSpeculativeContext(std::string& failureReason);
     void printSpeculativeContext(std::ostream& out, const int & space);
 
     static Function* deserialize(SEXP refTable, R_inpstream_t inp);

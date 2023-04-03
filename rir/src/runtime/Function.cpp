@@ -5,7 +5,8 @@
 #include "utils/Hast.h"
 namespace rir {
 
-bool Function::matchSpeculativeContext() {
+bool Function::matchSpeculativeContext(std::string& failureReason) {
+    failureReason = "beforeSpec";
     assert(speculativeContextIdx != -1);
     SEXP speculativeContext = body()->getExtraPoolEntry(speculativeContextIdx);
     for (int i = 0; i < Rf_length(speculativeContext); i++) {
@@ -17,13 +18,19 @@ bool Function::matchSpeculativeContext() {
             case 0: {
                 ObservedValues* feedback = (ObservedValues*)(sPtr->pc + 1);
                 uint32_t storedVal = *((uint32_t*) feedback);
-                if (storedVal != sVal->uIntVal) return false;
+                if (storedVal != sVal->uIntVal) {
+                    failureReason = "tag 0";
+                    return false;
+                }
                 break;
             }
             case 1: {
                 ObservedTest* feedback = (ObservedTest*)(sPtr->pc + 1);
                 uint32_t storedVal = *((uint32_t*) feedback);
-                if (storedVal != sVal->uIntVal) return false;
+                if (storedVal != sVal->uIntVal) {
+                    failureReason = "tag 1";
+                    return false;
+                }
                 break;
             }
             case 2: {
@@ -32,8 +39,14 @@ bool Function::matchSpeculativeContext() {
 
                 if (TYPEOF(val) == INTSXP && INTEGER(val)[0] > 0) {
                     // Check specialsxp
-                    if (feedback->invalid) return false;
-                    if (feedback->numTargets == 0) return false;
+                    if (feedback->invalid) {
+                        failureReason = "tag 2 - case 1 - invalid";
+                        return false;
+                    }
+                    if (feedback->numTargets == 0) {
+                        failureReason = "tag 2 - case 1 - numTargets == 0";
+                        return false;
+                    }
                     bool match = false;
                     for (int j = 0; j < feedback->numTargets; ++j) {
                         auto target = feedback->getTarget(sPtr->code, j);
@@ -41,11 +54,20 @@ bool Function::matchSpeculativeContext() {
                             match = target->u.primsxp.offset == INTEGER(val)[0];
                         }
                     }
-                    if (!match) return false;
+                    if (!match) {
+                        failureReason = "tag 2 - case 1 - !match";
+                        return false;
+                    }
                 } else if (TYPEOF(val) == SYMSXP) {
                     // Check callee
-                    if (feedback->invalid) return false;
-                    if (feedback->numTargets == 0) return false;
+                    if (feedback->invalid) {
+                        failureReason = "tag 2 - case 2 - invalid";
+                        return false;
+                    }
+                    if (feedback->numTargets == 0) {
+                        failureReason = "tag 2 - case 2- numTargets == 0";
+                        return false;
+                    }
                     bool match = false;
                     for (int j = 0; j < feedback->numTargets; ++j) {
                         auto target = feedback->getTarget(sPtr->code, j);
@@ -59,7 +81,10 @@ bool Function::matchSpeculativeContext() {
                             }
                         }
                     }
-                    if (!match) return false;
+                    if (!match) {
+                        failureReason = "tag 2 - case 2 - !match";
+                        return false;
+                    }
                 } else {
                     // std::cerr << "TYPEOF(val): " << TYPEOF(val) << std::endl;
                     assert(TYPEOF(val) == INTSXP);
@@ -69,12 +94,18 @@ bool Function::matchSpeculativeContext() {
             }
             case 3: {
                 uint32_t runtimeValue = sPtr->code->flags.to_i();
-                if (runtimeValue != sVal->uIntVal) return false;
+                if (runtimeValue != sVal->uIntVal) {
+                    failureReason = "tag 3";
+                    return false;
+                }
                 break;
             }
             case 4: {
                 uint32_t runtimeValue = sPtr->code->function()->flags.to_i();
-                if (runtimeValue != sVal->uIntVal) return false;
+                if (runtimeValue != sVal->uIntVal) {
+                    failureReason = "tag 4";
+                    return false;
+                }
                 break;
             }
             default:
