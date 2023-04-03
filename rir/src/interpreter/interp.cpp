@@ -124,16 +124,16 @@ std::vector<std::string> res;
         }
         std::stringstream File;
         if (typ == 0) {
-            File << "    >>> " << Print::dumpSexp(sexp) << " <<<";
+            File <<  Print::dumpSexp(sexp);
 
         } else if (typ == INTSXP || typ == LGLSXP) {
-            File << "    int/lgl >>> " << ostack_cell_at(i)->u.ival
-                      << " <<<\n";
+            File << "    int/lgl " << ostack_cell_at(i)->u.ival
+                      << " \n";
         } else if (typ == REALSXP) {
-            File << "    real >>> " << ostack_cell_at(i)->u.dval
-                      << " <<<\n";
+            File << "    real " << ostack_cell_at(i)->u.dval
+                      << " \n";
         } else if (typ == INTSEQSXP) {
-            File << "    intseq >>> " << Print::dumpSexp(sexp) << " <<<";
+            File << "    intseq " << Print::dumpSexp(sexp);
         }
         res.push_back(File.str());
     }
@@ -2185,8 +2185,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     ss << "[";
                     SEXP currAst = src_pool_at(c->src);
                     // char resolved_path[PATH_MAX];
-                    // char *a = realpath("../../../viz_tmp.txt", resolved_path);
-                    // SEXP where = PROTECT(Rf_mkString(a));
+                    // char *a = realpath("../../../viz_tmp.txt",
+                    // resolved_path); SEXP where = PROTECT(Rf_mkString(a));
                     // printASTToSink(currAst,where);
                     // UNPROTECT(1);
                     // std::ifstream tmpFile("/home/aayush/viz_tmp.txt");
@@ -2197,8 +2197,9 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     //     tmpFile.close();
                     // }
                     // std::cout << Rf_isObject(currAst) << std::endl;
-                    ss << "\"" << Print::dumpSexp(currAst).substr(1) << "\"," << '\n';
-
+                    std::string s = Print::dumpSexp(currAst);
+                    if(s.size() > 0 and s[0] == '{') s = s.substr(1);
+                    ss << "\"" << s << "\"," << '\n';
                     ss << "\"\"]";
                     someData = ss.str();
                 } else if(requestId == "context"){

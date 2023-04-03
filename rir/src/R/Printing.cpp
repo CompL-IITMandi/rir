@@ -89,7 +89,8 @@ std::string Print::dumpPROMSXP(SEXP s) {
         ss << " val=" << dumpSexp(PRVALUE(s));
     ss << " " << dumpSexp(PRCODE(s));
     // No PRENV(s) because we don't want to materialize if lazy
-    ss << " env=" << dumpSexp(s->u.promsxp.env) << ">";
+    // ss << " env=" << dumpSexp(s->u.promsxp.env) << ">";
+    ss << " >";
     return ss.str();
 }
 
@@ -107,7 +108,7 @@ std::string Print::dumpCLOSXP(SEXP s) {
             ss << ", ";
     }
     ss << ") " << dumpSexp(BODY(s));
-    ss << " env=" << dumpSexp(CLOENV(s));
+    // ss << " env=" << dumpSexp(CLOENV(s));
     return ss.str();
 }
 
