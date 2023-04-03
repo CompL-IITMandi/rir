@@ -2264,7 +2264,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                     //std::cout << TYPEOF(env) << std::endl;
                     if(TYPEOF(env) == ENVSXP){
                         REnvHandler env_h(env);
-                        std::unordered_map<std::string,SEXP> mapp;
+                        std::unordered_map<std::string,std::pair<SEXP,std::string>> mapp;
                         env_h.iterate([&](std::string key,SEXP val){
                             //SEXP where = PROTECT(Rf_mkString("/home/aayush/viz_env.txt"));
                             //if already evaluated promise
@@ -2281,15 +2281,14 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                             // }
                             // tmpFile.close();
                             // }
-                            mapp[key] = val;
+                            std::string t = Print::sexptype2char(TYPEOF(val));
+                            mapp[key] = {val,t};
 
                         });
                         ss << "[";
                         for(auto it : mapp){
-                            ss << "{" << "\"" << it.first << "\":" << "\"" << Print::dumpSexp(it.second) << "\"" << "}" << "," << '\n';
-                            std::cout << it.first << " ---> " << Print::dumpSexp(it.second) << std::endl;
-                            // if(it.first == "a") env_h.set(it.first,Rf_ScalarLogical(1));
-                            std::cout << TYPEOF(it.second) << std::endl;
+                            ss << "{" << "\"" << it.first << "\":[" << "\"" << Print::dumpSexp(it.second.first) << "\"," << "\"" << it.second.second << "\"]}" << "," << '\n';
+                            // std::cout << it.second.second << " ---> " << Print::dumpSexp(it.second.first) << std::endl;
                         }
                         ss << "\"\"]";
                         std::cout << "-----------" << std::endl;
