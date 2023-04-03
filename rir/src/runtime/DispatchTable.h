@@ -213,6 +213,8 @@ struct DispatchTable
 
     SEXP hast = nullptr;
     int offsetIdx = -1;
+    SEXP tmpCallee = nullptr; // only used for logging purposes!!
+
   private:
     DispatchTable() = delete;
     explicit DispatchTable(size_t cap)
@@ -224,6 +226,7 @@ struct DispatchTable
 
     size_t size_ = 0;
     Context userDefinedContext_;
+
 
 };
 

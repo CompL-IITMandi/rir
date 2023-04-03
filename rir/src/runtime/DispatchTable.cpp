@@ -211,7 +211,11 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
 
                 using namespace std::chrono;
                 auto now = high_resolution_clock::now();
-                EventLogger::logStats("dispatchTrying", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0, "");
+
+                auto hastFull = std::string(hast ? CHAR(PRINTNAME(hast)) : "NULL");
+                hastFull = hastFull + "_" +  std::to_string(offsetIdx);
+                auto clos = this->tmpCallee;
+                EventLogger::logStats("dispatchTrying", "", hastFull, 0, now, streamctx.str(), clos, 0, "");
 
 
                 std::stringstream eventDataJSON;
@@ -251,11 +255,15 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
                         using namespace std::chrono;
                         auto now = high_resolution_clock::now();
 
-                        EventLogger::logStats("functionIsEnabled", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0, "");
+                        auto hastFull = std::string(hast ? CHAR(PRINTNAME(hast)) : "NULL");
+                        hastFull = hastFull + "_" +  std::to_string(offsetIdx);
+
+                        auto clos = this->tmpCallee;
+                        EventLogger::logStats("functionIsEnabled", "", hastFull, 0, now, streamctx.str(), clos, 0, "");
 
                         if (currFun->l2Dispatcher) {
 
-                            EventLogger::logStats("dispatchL2", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0,"");
+                            EventLogger::logStats("dispatchL2", "", hastFull, 0, now, streamctx.str(), clos, 0,"");
 
 
                             std::stringstream eventDataJSON;
@@ -281,7 +289,13 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
 
                             using namespace std::chrono;
                             auto now = high_resolution_clock::now();
-                            EventLogger::logStats("dispatch", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0,"");
+
+
+                            auto hastFull = std::string(hast ? CHAR(PRINTNAME(hast)) : "NULL");
+                            hastFull = hastFull + "_" +  std::to_string(offsetIdx);
+
+                            auto clos = this->tmpCallee;
+                            EventLogger::logStats("dispatch", "", hastFull, 0, now, streamctx.str(), clos, 0,"");
 
 
 
@@ -312,8 +326,8 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
 
                         using namespace std::chrono;
                         auto now = high_resolution_clock::now();
-
-                        EventLogger::logStats("functionIsDisabled", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0,"");
+                        auto clos = this->tmpCallee;
+                        EventLogger::logStats("functionIsDisabled", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, streamctx.str(), clos, 0,"");
                     }
 
                     if (outputDisabledFunc && a == currContext)
@@ -329,7 +343,12 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
 
         using namespace std::chrono;
         auto now = high_resolution_clock::now();
-        EventLogger::logStats("dispatch", "", (hast ? CHAR(PRINTNAME(hast)) : "NULL"), 0, now, "baseline", nullptr, 0,"");
+
+
+        auto hastFull = std::string(hast ? CHAR(PRINTNAME(hast)) : "NULL");
+        hastFull = hastFull + "_" +  std::to_string(offsetIdx);
+        auto clos = this->tmpCallee;
+        EventLogger::logStats("dispatch", "", hastFull, 0, now, "baseline", clos, 0,"");
 
 
         std::stringstream eventDataJSON;

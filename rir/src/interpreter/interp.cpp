@@ -992,6 +992,8 @@ SEXP doCall(CallContext& call, bool popArgs) {
             using namespace std::chrono;
 			auto now  = std::chrono::high_resolution_clock::now();
 			std::string hast = table->hast ?  CHAR(PRINTNAME(table->hast)) : "";
+            hast = hast + "_" +  std::to_string(table->offsetIdx);
+
 
 			std::stringstream streamctx;
 			streamctx << call.givenContext;
@@ -1001,6 +1003,7 @@ SEXP doCall(CallContext& call, bool popArgs) {
         }
 
         Function* disabledFun = baselineFun;
+        table->tmpCallee = call.callee;
         auto fun =
             table->dispatchConsideringDisabled(call.givenContext, &disabledFun);
 
@@ -1087,6 +1090,9 @@ SEXP doCall(CallContext& call, bool popArgs) {
             }
         }
         fun->registerInvocation();
+        table->tmpCallee = nullptr;
+
+
         // if (!firstInterpCall && RuntimeFlags::contextualCompilationSkip == false && !isDeoptimizing() && RecompileHeuristic(fun, disabledFun)) {
         //     Context given = call.givenContext;
         //     // addDynamicAssumptionForOneTarget compares arguments with the

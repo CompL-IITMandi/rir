@@ -197,7 +197,14 @@ void Function::registerDeopt() {
             if (EventLogger::logLevel >= 2) {
                 using namespace std::chrono;
                 auto now = high_resolution_clock::now();
-                EventLogger::logStats("deoptL2", "", CHAR(PRINTNAME(vtab->hast)), 0, now, "baseline", nullptr, 0,  l2Dispatcher->getInfo());
+
+
+                auto hastFull = std::string(CHAR(PRINTNAME(vtab->hast)));
+                hastFull = hastFull + "_" +  std::to_string(vtab->offsetIdx);
+
+                auto clos = vtab->tmpCallee;
+
+                EventLogger::logStats("deoptL2", "", hastFull, 0, now, "baseline", clos, 0,  l2Dispatcher->getInfo());
 
 
                 std::stringstream eventDataJSON;
@@ -223,7 +230,13 @@ void Function::registerDeopt() {
 
                 using namespace std::chrono;
                 auto now = high_resolution_clock::now();
-                EventLogger::logStats("deopt", "", (vtab->hast ? CHAR(PRINTNAME(vtab->hast)) : "NULL"), 0, now, streamctx.str(), nullptr, 0,"");
+
+                auto hastFull = std::string(vtab->hast ? CHAR(PRINTNAME(vtab->hast)) : "NULL");
+                hastFull = hastFull + "_" +  std::to_string(vtab->offsetIdx);
+
+
+                auto clos = vtab->tmpCallee;
+                EventLogger::logStats("deopt", "", hastFull, 0, now, streamctx.str(), clos, 0,"");
 
 
                 std::stringstream eventDataJSON;

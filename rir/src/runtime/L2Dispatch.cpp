@@ -215,37 +215,47 @@ Function * L2Dispatch::dispatch() {
 
 			auto start = std::chrono::high_resolution_clock::now();
 			if (lastDispatch.fun) {
-				auto clos = Hast::hastMap[lastDispatch.fun->vtab->hast].clos;
+				//auto clos = Hast::hastMap[lastDispatch.fun->vtab->hast].clos;
+				auto clos = lastDispatch.fun->vtab->tmpCallee;
 				std::string hast = CHAR(PRINTNAME(lastDispatch.fun->vtab->hast));
+
+                auto hastFull = hast;
+                hastFull = hastFull + "_" +  std::to_string(lastDispatch.fun->vtab->offsetIdx);
+
 
 
 				streamctx << lastDispatch.fun->context();
 				streamname << lastDispatch.fun;
 				if (lastDispatch.fun->l2Dispatcher) {
 					if (lastDispatch.fun->disabled()) {
-						EventLogger::logStats("l2FastCachedDisabled", streamname.str(), hast, 0, start, streamctx.str(), clos, 0,"");
+						EventLogger::logStats("l2FastCachedDisabled", streamname.str(), hastFull, 0, start, streamctx.str(), clos, 0,"");
 					} else {
-						EventLogger::logStats("l2FastCached", streamname.str(), hast, 0, start, streamctx.str(), clos, 0,"");
+						EventLogger::logStats("l2FastCached", streamname.str(), hastFull, 0, start, streamctx.str(), clos, 0,"");
 					}
 				} else {
 					if (lastDispatch.fun->disabled()) {
-						EventLogger::logStats("l2FastJITDisabled", streamname.str(),hast,  0, start, streamctx.str(), clos, 0,"");
+						EventLogger::logStats("l2FastJITDisabled", streamname.str(),hastFull,  0, start, streamctx.str(), clos, 0,"");
 					} else {
-						EventLogger::logStats("l2FastJIT", streamname.str(),hast,  0, start, streamctx.str(), clos, 0,"");
+						EventLogger::logStats("l2FastJIT", streamname.str(),hastFull,  0, start, streamctx.str(), clos, 0,"");
 					}
 				}
 			} else {
 				Function* funTmp = nullptr;
 				if (getFallback())
 					funTmp = getFallback();
-				SEXP clos = funTmp ? Hast::hastMap[funTmp->vtab->hast].clos : nullptr;
+				//SEXP clos = funTmp ? Hast::hastMap[funTmp->vtab->hast].clos : nullptr;
+				auto clos =  funTmp ? funTmp->vtab->tmpCallee : nullptr;
 
 				std::string hast = funTmp  ? CHAR(PRINTNAME(funTmp->vtab->hast)) : "NULL";
+
+				auto hastFull = hast;
+				if (funTmp)
+					hastFull = hastFull+ "_" +  std::to_string(funTmp->vtab->offsetIdx);
 
 
 				streamctx << "NULL";
 				streamname << "NULL";
-				EventLogger::logStats("l2FastBad", streamname.str(), hast, 0, start, streamctx.str(), clos, 0,"");
+				EventLogger::logStats("l2FastBad", streamname.str(), hastFull, 0, start, streamctx.str(), clos, 0,"");
 			}
 		}
 		// Alert: this CAN be null
@@ -293,10 +303,15 @@ Function * L2Dispatch::dispatch() {
 				streamname << lastDispatch.fun;
 
 				auto start = std::chrono::high_resolution_clock::now();
-				auto clos = Hast::hastMap[currFun->vtab->hast].clos;
+				//auto clos = Hast::hastMap[currFun->vtab->hast].clos;
+				auto clos = currFun->vtab->tmpCallee;
 				std::string hast = CHAR(PRINTNAME(currFun->vtab->hast));
 
-				EventLogger::logStats("l2Slow", streamname.str(),hast,  0, start, streamctx.str(), clos, 0,"");
+                auto hastFull = hast  + "_" +  std::to_string(currFun->vtab->offsetIdx);
+
+
+
+				EventLogger::logStats("l2Slow", streamname.str(),hastFull,  0, start, streamctx.str(), clos, 0,"");
 			}
 
 
@@ -343,10 +358,16 @@ Function * L2Dispatch::dispatch() {
 			if (fallback)
 				funTmp = fallback;
 
-			SEXP clos = funTmp ? Hast::hastMap[funTmp->vtab->hast].clos : nullptr;
+			//SEXP clos = funTmp ? Hast::hastMap[funTmp->vtab->hast].clos : nullptr;
+			auto clos = funTmp ? funTmp ->vtab->tmpCallee : nullptr;
 			std::string hast = funTmp ?  CHAR(PRINTNAME(funTmp->vtab->hast)) : "NULL";
 
-			EventLogger::logStats("l2Miss", streamname.str(),hast,  0, start, streamctx.str(), clos, 0,"");
+			auto hastFull = hast;
+			if (funTmp)
+			  hastFull = hastFull+ "_" +  std::to_string(funTmp->vtab->offsetIdx);
+
+
+			EventLogger::logStats("l2Miss", streamname.str(),hastFull,  0, start, streamctx.str(), clos, 0,"");
 	}
 
 

@@ -54,8 +54,10 @@ void Compiler::compileClosure(SEXP closure, const std::string& name,
     auto pirClosure = module->getOrDeclareRirClosure(closureName, closure, fun,
                                                      tbl->userDefinedContext());
     Context context(assumptions);
+    tbl->tmpCallee = closure;
     compileClosure(pirClosure, tbl->dispatch(assumptions), context, root,
                    success, fail, outerFeedback);
+    tbl->tmpCallee = nullptr;
 }
 
 void Compiler::compileFunction(rir::DispatchTable* src, const std::string& name,

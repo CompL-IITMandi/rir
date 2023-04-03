@@ -884,6 +884,8 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
             streamctx << c->context();
             auto vt = DispatchTable::unpack(BODY(c->owner()->rirClosure()));
             std::string hast = ((vt->hast) ? CHAR(PRINTNAME(vt->hast))  : "NULL");
+            hast = hast + "_" +  std::to_string(vt->offsetIdx);
+
             EventLogger::logStats("pirCompilation", name, hast, durationCount, pirOptStart,
                 streamctx.str(), c->owner()->rirClosure(), c->numInstrs(), "");
         }
@@ -935,7 +937,10 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                             Rf_error("Recursive serialization unsupported!");
                         }
                         serializerOnline = true;
-                        SerializerDebug::infoMessage("(>) Serializer Started", 0);
+
+            			std::stringstream streammsg;
+                        streammsg << "(>) Serializer Started for HAST " <<  CHAR(PRINTNAME(hastInfo.hast));
+                        SerializerDebug::infoMessage(streammsg.str(), 0);
 
                         // Disable compilation temporarily? is this needed
                         bool oldVal = RuntimeFlags::contextualCompilationSkip;
@@ -1002,10 +1007,13 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
                     auto cls = c->owner()->rirClosure();
                     auto body = BODY(cls);
                     auto dt = DispatchTable::unpack(body);
+
                     if (dt->containsDispatchableL1(c->context())) {
                         // Dispatch also to versions with pending compilation
                         // since we're not evaluating
+                        dt->tmpCallee = cls;
                         auto other = dt->dispatch(c->context(), false);
+                        dt->tmpCallee = nullptr;
                         assert(other != dt->baseline());
                         assert(other->context() == c->context());
                         if (other->body()->isCompiled())

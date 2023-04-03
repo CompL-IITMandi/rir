@@ -132,6 +132,8 @@ struct L2Function {
 #pragma pack(1)
 struct L2Dispatch
     : public RirRuntimeObject<L2Dispatch, L2_DISPATCH_MAGIC> {
+
+
 	// Constructor
 	static L2Dispatch* create(Context context, Protect & p) {
 		size_t sz =
@@ -143,6 +145,7 @@ struct L2Dispatch
 
 	// SLOT 0: FALLBACK_FN
 	void setFallback(SEXP funContainer) {
+		lastDispatch.valid = false;
 		setEntry(FALLBACK_FN, funContainer);
 	}
 
