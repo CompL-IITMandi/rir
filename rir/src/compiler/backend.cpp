@@ -815,7 +815,8 @@ rir::Function* Backend::doCompile(ClosureVersion* cls, ClosureLog& log) {
         c.second->function(function.function());
 
     function.function()->inheritFlags(cls->owner()->rirFunction());
-    // TODO: Pool::insert(function.function()->container());
+    // TODO: Hacky fix for now
+    Pool::insert(function.function()->container());
     return function.function();
 }
 
@@ -837,7 +838,24 @@ rir::Function* Backend::getOrCompile(ClosureVersion* cls) {
 
     auto& log = logger.get(cls);
     done[cls] = nullptr;
+
+
+    using namespace std::chrono;
+    logger.flushAll();
+    auto pir2LLVMStart = high_resolution_clock::now();
+
     auto fun = doCompile(cls, log);
+
+    auto pir2LLVMEnd = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(pir2LLVMEnd - pir2LLVMStart);
+    auto durationCount = duration.count();
+
+
+    if (EventLogger::logLevel) {
+        EventLogger::logStats("pir2LLVMCompilation", "",  "", durationCount, pir2LLVMStart, "", nullptr,0,"");
+    }
+
+
     done[cls] = fun;
     log.flush();
 

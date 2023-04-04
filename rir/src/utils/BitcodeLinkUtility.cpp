@@ -121,6 +121,9 @@ static void doUnlockingElement(SEXP uEleContainer, size_t & linkTime) {
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     linkTime += duration.count();
+    if (EventLogger::logLevel) {
+        EventLogger::logStats("deserialization", "",  "", duration.count(), start, "", nullptr,0,"");
+    }
 }
 
 static std::vector<SEXP> getActiveDependencies(SEXP rMap) {

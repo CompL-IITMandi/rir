@@ -158,12 +158,12 @@ REXPORT SEXP stopSerializer() {
 }
 
 REXPORT SEXP startCapturingStats() {
-    // SerializerFlags::captureCompileStats = true;
+    EventLogger::logLevel = 1;
     return R_NilValue;
 }
 
 REXPORT SEXP stopCapturingStats() {
-    // SerializerFlags::captureCompileStats = false;
+    EventLogger::logLevel = 0;
     return R_NilValue;
 }
 
@@ -257,6 +257,9 @@ REXPORT SEXP loadBitcodes(SEXP pathToBc) {
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(stop - start);
     metadataLoadTime = duration.count();
+    if (EventLogger::logLevel) {
+        EventLogger::logStats("metadataLoadTime", "",  "", duration.count(), start, "", nullptr,0,"");
+    }
     if (success) {
         if (DeserializerDebug::level > 1) {
             GeneralWorklist::print(std::cout, 0);
@@ -284,10 +287,10 @@ REXPORT SEXP rirCompile(SEXP what, SEXP env) {
     //
     // Is there a better place to do this? this is kind of a hack we have for now
     //
-    static bool initializeBitcodes = false;
-    if (!initializeBitcodes && DeserializerConsts::earlyBitcodes) {
+    static bool initializedBitcodes = false;
+    if (!initializedBitcodes && DeserializerConsts::earlyBitcodes) {
         loadBitcodes(R_NilValue);
-        initializeBitcodes = true;
+        initializedBitcodes = true;
     }
     // if (usesUseMethod(BODY(what))) return what;
     if (TYPEOF(what) == CLOSXP) {

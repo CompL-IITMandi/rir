@@ -25,13 +25,13 @@ f.printSpeculativeContext <- function(fn) {
     invisible(.Call("printSpeculativeContext", fn))
 }
 
-# f.startCapturingStats <- function() {
-#     invisible(.Call("startCapturingStats"))
-# }
+f.startCapturingStats <- function() {
+    invisible(.Call("startCapturingStats"))
+}
 
-# f.stopCapturingStats <- function() {
-#     invisible(.Call("stopCapturingStats"))
-# }
+f.stopCapturingStats <- function() {
+    invisible(.Call("stopCapturingStats"))
+}
 
 rir.clearFeedbackAtOffset <- function(what, offset) {
     invisible(.Call("clearFeedbackAtOffset", what, offset))

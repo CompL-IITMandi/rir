@@ -18,6 +18,18 @@ bool Function::matchSpeculativeContext(std::string& failureReason) {
             case 0: {
                 ObservedValues* feedback = (ObservedValues*)(sPtr->pc + 1);
                 uint32_t storedVal = *((uint32_t*) feedback);
+                // // Template for adding inclusion tests
+                // if (sVal->uIntVal == 3333) { // Expected [integer (s) | value]
+                //     if (storedVal == 3329) { // Has [integer (s)]
+                //         continue;
+                //     }
+                //     if (storedVal == 3341) { // Has [integer (s) | promise]
+                //         continue;
+                //     }
+                //     if (storedVal == 3337) { // Has [integer (s) | evaluatedPromise]
+                //         continue;
+                //     }
+                // }
                 if (storedVal != sVal->uIntVal) {
                     failureReason = "tag 0";
                     return false;

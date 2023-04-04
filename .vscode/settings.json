@@ -129,6 +129,8 @@
     "charconv": "cpp",
     "scoped_allocator": "cpp",
     "valarray": "cpp",
-    "cuchar": "cpp"
-  }
+    "cuchar": "cpp",
+    "__availability": "cpp"
+  },
+  "cmake.configureOnOpen": false
 }
