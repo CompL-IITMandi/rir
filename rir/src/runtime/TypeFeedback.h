@@ -118,6 +118,37 @@ struct ObservedValues {
 
     void reset() { *this = ObservedValues(); }
 
+    static bool arePropertiesCompatible(ObservedValues & expected, ObservedValues & observed) {
+        // This is a breaking property as code may be optimized assuming a scalar
+        if (expected.notScalar == 1 && observed.notScalar != 1) return false;
+        if (expected.attribs == 1 && observed.attribs != 1) return false;
+        if (expected.object == 1 && observed.object != 1) return false;
+        if (expected.notFastVecelt == 1 && observed.notFastVecelt != 1) return false;
+        return true;
+    }
+
+    static bool isCompatible(ObservedValues & expected, ObservedValues & observed) {
+        if (expected.numTypes == 0) {
+            return true;
+        }
+        // 1. Case when only one type is expected
+        if (expected.numTypes == 1) {
+            if (observed.numTypes == 0) {
+                // Runtime has not yet seen this slot, be conservative and let this slot get updated before dispatch
+                return false;
+            }
+            if (observed.numTypes == 1) {
+                bool isObservedTypeSame = expected.seen[0] == observed.seen[0];
+                if (!isObservedTypeSame) return false;
+                return arePropertiesCompatible(expected, observed);
+            }
+            // If the expectation is a single type but runtime has seen more, its a good idea to dispatch to more generic versions
+            return false;
+        }
+        // If more than one type are seen, we probably don't optimize on type but on the basis of their properties
+        return arePropertiesCompatible(expected, observed);
+    }
+
     void print(std::ostream& out) const {
         if (numTypes) {
             for (size_t i = 0; i < numTypes; ++i) {

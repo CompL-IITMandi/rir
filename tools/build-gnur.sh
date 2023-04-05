@@ -39,6 +39,9 @@ function build_r {
         sleep 1
     fi
 
+    cp ${SRC_DIR}/rsync-recommended ${R_DIR}/tools
+    cp ${SRC_DIR}/recommended/* ${R_DIR}/src/library/Recommended
+
     tools/rsync-recommended
 
     # There is a test that times out due to the compiler triggering in the

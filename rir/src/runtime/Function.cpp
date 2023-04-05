@@ -16,8 +16,12 @@ bool Function::matchSpeculativeContext(std::string& failureReason) {
 
         switch (sVal->tag) {
             case 0: {
-                ObservedValues* feedback = (ObservedValues*)(sPtr->pc + 1);
-                uint32_t storedVal = *((uint32_t*) feedback);
+                ObservedValues* observed = (ObservedValues*)(sPtr->pc + 1);
+                ObservedValues* expected = (ObservedValues*)&sVal->uIntVal;
+
+                if (!ObservedValues::isCompatible(*expected, *observed)) return false;
+
+                // uint32_t storedVal = *((uint32_t*) feedback);
                 // // Template for adding inclusion tests
                 // if (sVal->uIntVal == 3333) { // Expected [integer (s) | value]
                 //     if (storedVal == 3329) { // Has [integer (s)]
@@ -30,10 +34,11 @@ bool Function::matchSpeculativeContext(std::string& failureReason) {
                 //         continue;
                 //     }
                 // }
-                if (storedVal != sVal->uIntVal) {
-                    failureReason = "tag 0";
-                    return false;
-                }
+
+                // if (storedVal != sVal->uIntVal) {
+                //     failureReason = "tag 0";
+                //     return false;
+                // }
                 break;
             }
             case 1: {
