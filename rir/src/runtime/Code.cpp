@@ -236,7 +236,7 @@ void Code::disassemble(std::ostream& out, const std::string& prefix) const {
 
             const size_t OFFSET_WIDTH = 7;
             out << std::right << std::setw(OFFSET_WIDTH)
-                << ((uintptr_t)pc - (uintptr_t)code()) << std::left;
+                << ((uintptr_t)pc - (uintptr_t)code()) << " " << pc << std::left;
 
             unsigned s = getSrcIdxAt(pc, true);
             if (s != 0)

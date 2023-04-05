@@ -120,15 +120,27 @@ struct ObservedValues {
 
     static bool arePropertiesCompatible(ObservedValues & expected, ObservedValues & observed) {
         // This is a breaking property as code may be optimized assuming a scalar
-        if (expected.notScalar == 1 && observed.notScalar != 1) return false;
-        if (expected.attribs == 1 && observed.attribs != 1) return false;
-        if (expected.object == 1 && observed.object != 1) return false;
-        if (expected.notFastVecelt == 1 && observed.notFastVecelt != 1) return false;
+
+        // expected is scalar and  observed != scalar
+        if (expected.notScalar == 0 && observed.notScalar == 1) return false;
+
+        //if (expected.notScalar == 1 && observed.notScalar != 1) return false;
+
+        // we are expecting something to not have attributes and we get something that might have
+        if (expected.attribs == 0 && observed.attribs == 1) return false;
+
+
+        // we are expecting something not to be an object and we get an object
+        if (expected.object == 0 && observed.object == 1) return false;
+
+        if (expected.notFastVecelt == 0 && observed.notFastVecelt == 1) return false;
+
+
         return true;
     }
 
     static bool isCompatible(ObservedValues & expected, ObservedValues & observed) {
-        if (expected.numTypes == 0) {
+        if (expected.numTypes == 0) { // we have not speculated on any values, so anything should match.
             return true;
         }
         // 1. Case when only one type is expected
