@@ -2,7 +2,7 @@
  * in low level.
  */
 
-#include "api.h"
+#include "api.h" 
 #include "R/Serialize.h"
 #include "bc/BC.h"
 #include "bc/Compiler.h"
@@ -55,6 +55,7 @@ static unsigned oldSerializeChaos = false;
 static size_t oldDeoptChaos = false;
 
 bool parseDebugStyle(const char* str, pir::DebugStyle& s) {
+
 #define V(style)                                                               \
     if (strcmp(str, #style) == 0) {                                            \
         s = pir::DebugStyle::style;                                            \
