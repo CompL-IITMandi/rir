@@ -26,6 +26,7 @@ std::unordered_map<Opcode*, std::set<LastDispatchFastcaseHolder*>> Hast::l2Fastc
 std::unordered_map<int, SEXP> Hast::debugMap;
 int Hast::debugIdx;
 
+
 static size_t charToInt(const char* p, size_t & hast) {
     for (size_t i = 0; i < strlen(p); ++i) {
         hast = ((hast << 5) + hast) + p[i];
