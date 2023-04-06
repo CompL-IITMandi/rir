@@ -2,7 +2,7 @@
  * in low level.
  */
 
-#include "api.h" 
+#include "api.h"
 #include "R/Serialize.h"
 #include "bc/BC.h"
 #include "bc/Compiler.h"
@@ -146,6 +146,15 @@ static void loadMetadata(std::string metaDataPath) {
     // DeserializerDebug::infoMessage("Loading bitcode done", 0);
 
     RuntimeFlags::contextualCompilationSkip = oldVal;
+}
+
+REXPORT SEXP useBitcodes(SEXP v) {
+    if (v == R_FalseValue) {
+        CodeCache::useBitcodes = false;
+    } else {
+        CodeCache::useBitcodes = true;
+    }
+    return R_NilValue;
 }
 
 REXPORT SEXP startSerializer() {

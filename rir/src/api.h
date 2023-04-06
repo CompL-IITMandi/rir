@@ -36,6 +36,8 @@ REXPORT SEXP loadBitcodes(SEXP path);
 REXPORT SEXP rirSetUserContext(SEXP f, SEXP udc);
 REXPORT SEXP rirCreateSimpleIntContext();
 
+REXPORT SEXP useBitcodes(SEXP v);
+
 void printAST(int space, SEXP ast);
 void printAST(int space, int val);
 

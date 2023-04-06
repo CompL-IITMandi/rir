@@ -19,6 +19,10 @@ f.stopSerializer <- function() {
     invisible(.Call("stopSerializer"))
 }
 
+f.useBitcodes <- function(v=TRUE) {
+    invisible(.Call("useBitcodes",v))
+}
+
 # Debugging help
 
 f.printSpeculativeContext <- function(fn) {

@@ -38,6 +38,8 @@
 #include "utils/DeserializerDebug.h"
 #include <chrono>
 
+#include "utils/CodeCache.h"
+
 namespace rir {
 namespace pir {
 
@@ -398,13 +400,12 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
     DeserializerConsts::serializedPools[epoch] = Pool::insert(cPool);
 
-    static bool usingBC = getenv("USE_BITCODE") ? getenv("USE_BITCODE")[0] == '1' : false;
     using namespace llvm;
     using namespace llvm::orc;
 
     std::stringstream fp;
 
-    if (usingBC) {
+    if (CodeCache::useBitcodes) {
         fp << DeserializerConsts::bitcodesPath << "/" << pathPrefix.str() << ".bc";
         llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> error_or_buffer = MemoryBuffer::getFile(fp.str());
         std::error_code std_error_code = error_or_buffer.getError();
