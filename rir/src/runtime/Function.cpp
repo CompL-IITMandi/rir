@@ -19,7 +19,7 @@ bool Function::matchSpeculativeContext(std::string& failureReason) {
                 ObservedValues* observed = (ObservedValues*)(sPtr->pc + 1);
                 ObservedValues* expected = (ObservedValues*)&sVal->uIntVal;
 
-                if (!ObservedValues::isCompatible(*expected, *observed)) {
+                if (!ObservedValues::isCompatible(*expected, *observed, failureReason)) {
                     failureReason = "tag 0";
                     return false;
                 }

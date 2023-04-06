@@ -118,28 +118,40 @@ struct ObservedValues {
 
     void reset() { *this = ObservedValues(); }
 
-    static bool arePropertiesCompatible(ObservedValues & expected, ObservedValues & observed) {
+    static bool arePropertiesCompatible(ObservedValues & expected, ObservedValues & observed, std::string& failureReason) {
         // This is a breaking property as code may be optimized assuming a scalar
 
         // expected is scalar and  observed != scalar
-        if (expected.notScalar == 0 && observed.notScalar == 1) return false;
+        if (expected.notScalar == 0 && observed.notScalar == 1) {
+            failureReason += " expected.notScalar == 0 && observed.notScalar == 1";
+            return false;
+        }
 
         //if (expected.notScalar == 1 && observed.notScalar != 1) return false;
 
         // we are expecting something to not have attributes and we get something that might have
-        if (expected.attribs == 0 && observed.attribs == 1) return false;
+        if (expected.attribs == 0 && observed.attribs == 1) {
+            failureReason += " expected.attribs == 0 && observed.attribs == 1";
+            return false;
+        }
 
 
         // we are expecting something not to be an object and we get an object
-        if (expected.object == 0 && observed.object == 1) return false;
+        if (expected.object == 0 && observed.object == 1) {
+            failureReason += " expected.object == 0 && observed.object == 1";
+            return false;
+        }
 
-        if (expected.notFastVecelt == 0 && observed.notFastVecelt == 1) return false;
+        if (expected.notFastVecelt == 0 && observed.notFastVecelt == 1)  {
+            failureReason += " expected.notFastVecelt == 0 && observed.notFastVecelt == 1";
+            return false;
+        }
 
 
         return true;
     }
 
-    static bool isCompatible(ObservedValues & expected, ObservedValues & observed) {
+    static bool isCompatible(ObservedValues & expected, ObservedValues & observed, std::string& failureReason) {
         if (expected.numTypes == 0) { // we have not speculated on any values, so anything should match.
             return true;
         }
@@ -147,18 +159,23 @@ struct ObservedValues {
         if (expected.numTypes == 1) {
             if (observed.numTypes == 0) {
                 // Runtime has not yet seen this slot, be conservative and let this slot get updated before dispatch
+                failureReason += " expected.numTypes == 1 && observed.numTypes == 0";
                 return false;
             }
             if (observed.numTypes == 1) {
                 bool isObservedTypeSame = expected.seen[0] == observed.seen[0];
-                if (!isObservedTypeSame) return false;
-                return arePropertiesCompatible(expected, observed);
+                if (!isObservedTypeSame) {
+                    failureReason += " !isObservedTypeSame";
+                    return false;
+                }
+                return arePropertiesCompatible(expected, observed, failureReason);
             }
             // If the expectation is a single type but runtime has seen more, its a good idea to dispatch to more generic versions
+            failureReason += " expected.numTypes == 1 DEFAULT";
             return false;
         }
         // If more than one type are seen, we probably don't optimize on type but on the basis of their properties
-        return arePropertiesCompatible(expected, observed);
+        return arePropertiesCompatible(expected, observed, failureReason);
     }
 
     void print(std::ostream& out) const {
