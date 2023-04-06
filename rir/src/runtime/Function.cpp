@@ -19,7 +19,10 @@ bool Function::matchSpeculativeContext(std::string& failureReason) {
                 ObservedValues* observed = (ObservedValues*)(sPtr->pc + 1);
                 ObservedValues* expected = (ObservedValues*)&sVal->uIntVal;
 
-                if (!ObservedValues::isCompatible(*expected, *observed)) return false;
+                if (!ObservedValues::isCompatible(*expected, *observed)) {
+                    failureReason = "tag 0";
+                    return false;
+                }
 
                 // uint32_t storedVal = *((uint32_t*) feedback);
                 // // Template for adding inclusion tests
