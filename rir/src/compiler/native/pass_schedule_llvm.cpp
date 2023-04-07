@@ -47,7 +47,7 @@ operator()(llvm::orc::ThreadSafeModule TSM,
         verify();
 #endif
         if (DeserializerConsts::skipLLVMPasses) {
-            PMQuick->run(M);
+            PM->run(M);
         } else {
             PM->run(M);
         }
