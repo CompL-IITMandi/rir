@@ -17,31 +17,31 @@ bool Function::matchSpeculativeContext(std::string& failureReason) {
         switch (sVal->tag) {
             case 0: {
                 ObservedValues* observed = (ObservedValues*)(sPtr->pc + 1);
-                ObservedValues* expected = (ObservedValues*)&sVal->uIntVal;
+                //ObservedValues* expected = (ObservedValues*)&sVal->uIntVal;
 
-                if (!ObservedValues::isCompatible(*expected, *observed, failureReason)) {
-                    failureReason = "tag 0";
-                    return false;
-                }
-
-                // uint32_t storedVal = *((uint32_t*) feedback);
-                // // Template for adding inclusion tests
-                // if (sVal->uIntVal == 3333) { // Expected [integer (s) | value]
-                //     if (storedVal == 3329) { // Has [integer (s)]
-                //         continue;
-                //     }
-                //     if (storedVal == 3341) { // Has [integer (s) | promise]
-                //         continue;
-                //     }
-                //     if (storedVal == 3337) { // Has [integer (s) | evaluatedPromise]
-                //         continue;
-                //     }
-                // }
-
-                // if (storedVal != sVal->uIntVal) {
+                // if (!ObservedValues::isCompatible(*expected, *observed, failureReason)) {
                 //     failureReason = "tag 0";
                 //     return false;
                 // }
+
+                uint32_t storedVal = *((uint32_t*) observed);
+                // // // Template for adding inclusion tests
+                // // if (sVal->uIntVal == 3333) { // Expected [integer (s) | value]
+                // //     if (storedVal == 3329) { // Has [integer (s)]
+                // //         continue;
+                // //     }
+                // //     if (storedVal == 3341) { // Has [integer (s) | promise]
+                // //         continue;
+                // //     }
+                // //     if (storedVal == 3337) { // Has [integer (s) | evaluatedPromise]
+                // //         continue;
+                // //     }
+                // // }
+
+                if (storedVal != sVal->uIntVal) {
+                    failureReason = "tag 0";
+                    return false;
+                }
                 break;
             }
             case 1: {

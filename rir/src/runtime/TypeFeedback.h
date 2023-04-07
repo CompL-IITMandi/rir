@@ -118,42 +118,74 @@ struct ObservedValues {
 
     void reset() { *this = ObservedValues(); }
 
-    static bool arePropertiesCompatible(ObservedValues & expected, ObservedValues & observed, std::string& failureReason) {
+    // static bool arePropertiesCompatible(ObservedValues & expected, ObservedValues & observed, std::string& failureReason) {
+    //     // This is a breaking property as code may be optimized assuming a scalar
+
+    //     // expected is scalar and  observed != scalar
+    //     if (expected.notScalar == 0 && observed.notScalar == 1) {
+    //         failureReason += " expected.notScalar == 0 && observed.notScalar == 1";
+    //         return false;
+    //     }
+
+    //     //if (expected.notScalar == 1 && observed.notScalar != 1) return false;
+
+    //     // we are expecting something to not have attributes and we get something that might have
+    //     if (expected.attribs == 0 && observed.attribs == 1) {
+    //         failureReason += " expected.attribs == 0 && observed.attribs == 1";
+    //         return false;
+    //     }
+
+
+    //     // we are expecting something not to be an object and we get an object
+    //     if (expected.object == 0 && observed.object == 1) {
+    //         failureReason += " expected.object == 0 && observed.object == 1";
+    //         return false;
+    //     }
+
+    //     if (expected.notFastVecelt == 0 && observed.notFastVecelt == 1)  {
+    //         failureReason += " expected.notFastVecelt == 0 && observed.notFastVecelt == 1";
+    //         return false;
+    //     }
+
+
+    //     return true;
+    // }
+
+   static bool arePropertiesCompatible(ObservedValues & expected, ObservedValues & observed, std::string& failureReason) {
         // This is a breaking property as code may be optimized assuming a scalar
 
         // expected is scalar and  observed != scalar
-        if (expected.notScalar == 0 && observed.notScalar == 1) {
-            failureReason += " expected.notScalar == 0 && observed.notScalar == 1";
+        if (expected.notScalar !=  observed.notScalar ) {
+            failureReason += " expected.notScalar !=  observed.notScalar";
             return false;
         }
 
         //if (expected.notScalar == 1 && observed.notScalar != 1) return false;
 
         // we are expecting something to not have attributes and we get something that might have
-        if (expected.attribs == 0 && observed.attribs == 1) {
-            failureReason += " expected.attribs == 0 && observed.attribs == 1";
+        if (expected.attribs != observed.attribs) {
+            failureReason += " expected.attribs != observed.attribs";
             return false;
         }
 
 
         // we are expecting something not to be an object and we get an object
-        if (expected.object == 0 && observed.object == 1) {
-            failureReason += " expected.object == 0 && observed.object == 1";
+        if (expected.object != observed.object) {
+            failureReason += " expected.object != observed.object";
             return false;
         }
 
-        if (expected.notFastVecelt == 0 && observed.notFastVecelt == 1)  {
-            failureReason += " expected.notFastVecelt == 0 && observed.notFastVecelt == 1";
+        if (expected.notFastVecelt != observed.notFastVecelt)  {
+            failureReason += " expected.notFastVecelt != observed.notFastVecelt";
             return false;
         }
-
 
         return true;
     }
 
     static bool isCompatible(ObservedValues & expected, ObservedValues & observed, std::string& failureReason) {
         if (expected.numTypes == 0) { // we have not speculated on any values, so anything should match.
-            return true;
+            return false;
         }
         // 1. Case when only one type is expected
         if (expected.numTypes == 1) {
