@@ -406,6 +406,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     std::stringstream fp;
 
     if (CodeCache::useBitcodes) {
+        DeserializerDebug::infoMessage("Deserializer loading bitcodes", 2);
         fp << DeserializerConsts::bitcodesPath << "/" << pathPrefix.str() << ".bc";
         llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> error_or_buffer = MemoryBuffer::getFile(fp.str());
         std::error_code std_error_code = error_or_buffer.getError();
@@ -423,6 +424,8 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         ExitOnErr(JIT->addIRModule(std::move(TSM)));
 
     } else {
+        DeserializerDebug::infoMessage("Deserializer loading objs", 2);
+
         fp << DeserializerConsts::bitcodesPath << "/" << pathPrefix.str() << ".o";
         llvm::ErrorOr<std::unique_ptr<MemoryBuffer>> error_or_buffer = MemoryBuffer::getFile(fp.str());
         std::error_code std_error_code = error_or_buffer.getError();

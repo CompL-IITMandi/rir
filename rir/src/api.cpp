@@ -149,10 +149,13 @@ static void loadMetadata(std::string metaDataPath) {
 }
 
 REXPORT SEXP useBitcodes(SEXP v) {
-    if (v == R_FalseValue) {
+    assert(TYPEOF(v) == LGLSXP && "useBitcodes called with a non-bool");
+    if (LOGICAL(v)[0] == 0) {
         CodeCache::useBitcodes = false;
-    } else {
+    } else if (LOGICAL(v)[0] == 1) {
         CodeCache::useBitcodes = true;
+    } else {
+        assert(false);
     }
     return R_NilValue;
 }
