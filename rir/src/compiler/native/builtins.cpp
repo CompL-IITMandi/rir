@@ -1025,28 +1025,28 @@ void deoptImpl(rir::Code* c, SEXP cls, DeoptMetadata* m, R_bcstack_t* args,
 
 
 
-        std::stringstream eventDataJSON;
-        eventDataJSON << "{";
+        // std::stringstream eventDataJSON;
+        // eventDataJSON << "{";
 
-        if (Hast::sPoolHastMap.count(deoptReason->srcCode()->src) > 0) {
-            auto data = Hast::sPoolHastMap[deoptReason->srcCode()->src];
-            eventDataJSON << "\"hast\": " << "\"" << CHAR(PRINTNAME(data.hast)) << "\"" << ",";
-            eventDataJSON << "\"hastOffset\": " << "\"" << data.offsetIndex << "\"" << ",";
-        } else {
-            eventDataJSON << "\"hast\": " << "\"" << "NULL" << "\"" << ",";
-            eventDataJSON << "\"hastOffset\": " << "\"" << "-1" << "\"" << ",";
-        }
-        eventDataJSON << "\"deoptTrigger(TYPEOF)\": " << "\"" << TYPEOF(deoptTrigger) << "\"" << ",";
-        eventDataJSON << "\"deoptReason\": " << "\"";
-        eventDataJSON << *deoptReason;
-        eventDataJSON << "\"";
+        // if (Hast::sPoolHastMap.count(deoptReason->srcCode()->src) > 0) {
+        //     auto data = Hast::sPoolHastMap[deoptReason->srcCode()->src];
+        //     eventDataJSON << "\"hast\": " << "\"" << CHAR(PRINTNAME(data.hast)) << "\"" << ",";
+        //     eventDataJSON << "\"hastOffset\": " << "\"" << data.offsetIndex << "\"" << ",";
+        // } else {
+        //     eventDataJSON << "\"hast\": " << "\"" << "NULL" << "\"" << ",";
+        //     eventDataJSON << "\"hastOffset\": " << "\"" << "-1" << "\"" << ",";
+        // }
+        // eventDataJSON << "\"deoptTrigger(TYPEOF)\": " << "\"" << TYPEOF(deoptTrigger) << "\"" << ",";
+        // eventDataJSON << "\"deoptReason\": " << "\"";
+        // eventDataJSON << *deoptReason;
+        // eventDataJSON << "\"";
 
-        eventDataJSON << "}";
+        // eventDataJSON << "}";
 
-        EventLogger::logUntimedEvent(
-            "deoptInfo",
-            eventDataJSON.str()
-        );
+        // EventLogger::logUntimedEvent(
+        //     "deoptInfo",
+        //     eventDataJSON.str()
+        // );
     }
     assert(m->numFrames >= 1);
     size_t stackHeight = 0;

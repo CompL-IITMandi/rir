@@ -218,19 +218,19 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
                 EventLogger::logStats("dispatchTrying", "", hastFull, 0, now, streamctx.str(), clos, 0, "");
 
 
-                std::stringstream eventDataJSON;
-                eventDataJSON << "{"
-                    << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
-                    << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
-                    << "\"inferred\": " << "\"" << a << "\"" << ","
-                    << "\"context\": " << "\"" << currContext << "\"" << ","
-                    << "\"vtab\": " << "\"" << this << "\""
-                    << "}";
+                // std::stringstream eventDataJSON;
+                // eventDataJSON << "{"
+                //     << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+                //     << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+                //     << "\"inferred\": " << "\"" << a << "\"" << ","
+                //     << "\"context\": " << "\"" << currContext << "\"" << ","
+                //     << "\"vtab\": " << "\"" << this << "\""
+                //     << "}";
 
-                EventLogger::logUntimedEvent(
-                    "dispatchTrying",
-                    eventDataJSON.str()
-                );
+                // EventLogger::logUntimedEvent(
+                //     "dispatchTrying",
+                //     eventDataJSON.str()
+                // );
             }
 
             Function * currFun;
@@ -266,22 +266,22 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
                             EventLogger::logStats("dispatchL2", "", hastFull, 0, now, streamctx.str(), clos, 0,"");
 
 
-                            std::stringstream eventDataJSON;
-                            eventDataJSON << "{"
-                                << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
-                                << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
-                                << "\"inferred\": " << "\"" << a << "\"" << ","
-                                << "\"function\": " << "\"" << currFun << "\"" << ","
-                                << "\"context\": " << "\"" << currFun->context() << "\"" << ","
-                                << "\"vtab\": " << "\"" << this << "\"" << ","
-                                << "\"l2vtab\": " << "\"" << currFun->l2Dispatcher << "\"" << ","
-                                << "\"l2Info\": " << "{" << currFun->l2Dispatcher->getInfo() << "}"
-                                << "}";
+                            // std::stringstream eventDataJSON;
+                            // eventDataJSON << "{"
+                            //     << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+                            //     << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+                            //     << "\"inferred\": " << "\"" << a << "\"" << ","
+                            //     << "\"function\": " << "\"" << currFun << "\"" << ","
+                            //     << "\"context\": " << "\"" << currFun->context() << "\"" << ","
+                            //     << "\"vtab\": " << "\"" << this << "\"" << ","
+                            //     << "\"l2vtab\": " << "\"" << currFun->l2Dispatcher << "\"" << ","
+                            //     << "\"l2Info\": " << "{" << currFun->l2Dispatcher->getInfo() << "}"
+                            //     << "}";
 
-                            EventLogger::logUntimedEvent(
-                                "dispatchL2",
-                                eventDataJSON.str()
-                            );
+                            // EventLogger::logUntimedEvent(
+                            //     "dispatchL2",
+                            //     eventDataJSON.str()
+                            // );
                         } else {
 
                             std::stringstream streamctx;
@@ -351,20 +351,20 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
         EventLogger::logStats("dispatch", "", hastFull, 0, now, "baseline", clos, 0,"");
 
 
-        std::stringstream eventDataJSON;
-        eventDataJSON << "{"
-            << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
-            << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
-            << "\"inferred\": " << "\"" << a << "\"" << ","
-            << "\"function\": " << "\"" << b << "\"" << ","
-            << "\"context\": " << "\"" << "baseline" << "\"" << ","
-            << "\"vtab\": " << "\"" << this << "\""
-            << "}";
+        // std::stringstream eventDataJSON;
+        // eventDataJSON << "{"
+        //     << "\"hast\": " << "\"" << (hast ? CHAR(PRINTNAME(hast)) : "NULL")  << "\"" << ","
+        //     << "\"hastOffset\": " << "\"" << offsetIdx << "\"" << ","
+        //     << "\"inferred\": " << "\"" << a << "\"" << ","
+        //     << "\"function\": " << "\"" << b << "\"" << ","
+        //     << "\"context\": " << "\"" << "baseline" << "\"" << ","
+        //     << "\"vtab\": " << "\"" << this << "\""
+        //     << "}";
 
-        EventLogger::logUntimedEvent(
-            "dispatch",
-            eventDataJSON.str()
-        );
+        // EventLogger::logUntimedEvent(
+        //     "dispatch",
+        //     eventDataJSON.str()
+        // );
     }
 
     return b;

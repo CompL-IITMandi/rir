@@ -908,25 +908,25 @@ SEXP pirCompile(SEXP what, const Context& assumptions, const std::string& name,
 
 
         if (EventLogger::logLevel >= 2) {
-            auto vt = DispatchTable::unpack(BODY(c->owner()->rirClosure()));
+            // auto vt = DispatchTable::unpack(BODY(c->owner()->rirClosure()));
 
-            std::stringstream eventDataJSON;
-            eventDataJSON << "{"
-                << "\"hast\": " << "\"" << ((vt->hast) ? CHAR(PRINTNAME(vt->hast)) : "NULL")  << "\"" << ","
-                << "\"hastOffset\": " << "\"" << vt->offsetIdx  << "\"" << ","
-                << "\"functionName\": " << "\"" << name << "\"" << ","
-                << "\"context\": " << "\"" << c->context() << "\"" << ","
-                << "\"closure\": " << "\"" << c->owner()->rirClosure() << "\"" << ","
-                << "\"vtab\": " << "\"" << vt << "\"" << ","
-                << "\"size\": " << c->numInstrs()
-                << "}";
+            // std::stringstream eventDataJSON;
+            // eventDataJSON << "{"
+            //     << "\"hast\": " << "\"" << ((vt->hast) ? CHAR(PRINTNAME(vt->hast)) : "NULL")  << "\"" << ","
+            //     << "\"hastOffset\": " << "\"" << vt->offsetIdx  << "\"" << ","
+            //     << "\"functionName\": " << "\"" << name << "\"" << ","
+            //     << "\"context\": " << "\"" << c->context() << "\"" << ","
+            //     << "\"closure\": " << "\"" << c->owner()->rirClosure() << "\"" << ","
+            //     << "\"vtab\": " << "\"" << vt << "\"" << ","
+            //     << "\"size\": " << c->numInstrs()
+            //     << "}";
 
-            EventLogger::logTimedEvent(
-                pirOptStart,
-                "pirCompilation",
-                durationCount,
-                eventDataJSON.str()
-            );
+            // EventLogger::logTimedEvent(
+            //     pirOptStart,
+            //     "pirCompilation",
+            //     durationCount,
+            //     eventDataJSON.str()
+            // );
         }
 
         if (dryRun)

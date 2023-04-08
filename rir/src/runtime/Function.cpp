@@ -258,20 +258,20 @@ void Function::registerDeopt() {
                 EventLogger::logStats("deoptL2", "", hastFull, 0, now, "baseline", clos, 0,  l2Dispatcher->getInfo());
 
 
-                std::stringstream eventDataJSON;
-                eventDataJSON << "{"
-                    << "\"hast\": " << "\"" << CHAR(PRINTNAME(vtab->hast))  << "\"" << ","
-                    << "\"hastOffset\": " << "\"" << vtab->offsetIdx << "\"" << ","
-                    << "\"function\": " << "\"" << this << "\"" << ","
-                    << "\"context\": " << "\"" << context() << "\"" << ","
-                    << "\"vtab\": " << "\"" << vtab << "\"" << ","
-                    << "\"l2Info\": " << "{" << l2Dispatcher->getInfo() << "}"
-                    << "}";
+                // std::stringstream eventDataJSON;
+                // eventDataJSON << "{"
+                //     << "\"hast\": " << "\"" << CHAR(PRINTNAME(vtab->hast))  << "\"" << ","
+                //     << "\"hastOffset\": " << "\"" << vtab->offsetIdx << "\"" << ","
+                //     << "\"function\": " << "\"" << this << "\"" << ","
+                //     << "\"context\": " << "\"" << context() << "\"" << ","
+                //     << "\"vtab\": " << "\"" << vtab << "\"" << ","
+                //     << "\"l2Info\": " << "{" << l2Dispatcher->getInfo() << "}"
+                //     << "}";
 
-                EventLogger::logUntimedEvent(
-                    "deoptL2",
-                    eventDataJSON.str()
-                );
+                // EventLogger::logUntimedEvent(
+                //     "deoptL2",
+                //     eventDataJSON.str()
+                // );
             }
 
         } else if (vtab) {
@@ -290,19 +290,19 @@ void Function::registerDeopt() {
                 EventLogger::logStats("deopt", "", hastFull, 0, now, streamctx.str(), clos, 0,"");
 
 
-                std::stringstream eventDataJSON;
-                eventDataJSON << "{"
-                    << "\"hast\": " << "\"" << (vtab->hast ? CHAR(PRINTNAME(vtab->hast)) : "NULL")  << "\"" << ","
-                    << "\"hastOffset\": " << "\"" << vtab->offsetIdx << "\"" << ","
-                    << "\"context\": " << "\"" << context() << "\"" << ","
-                    << "\"function\": " << "\"" << this << "\"" << ","
-                    << "\"vtab\": " << "\"" << vtab << "\""
-                    << "}";
+                // std::stringstream eventDataJSON;
+                // eventDataJSON << "{"
+                //     << "\"hast\": " << "\"" << (vtab->hast ? CHAR(PRINTNAME(vtab->hast)) : "NULL")  << "\"" << ","
+                //     << "\"hastOffset\": " << "\"" << vtab->offsetIdx << "\"" << ","
+                //     << "\"context\": " << "\"" << context() << "\"" << ","
+                //     << "\"function\": " << "\"" << this << "\"" << ","
+                //     << "\"vtab\": " << "\"" << vtab << "\""
+                //     << "}";
 
-                EventLogger::logUntimedEvent(
-                    "deopt",
-                    eventDataJSON.str()
-                );
+                // EventLogger::logUntimedEvent(
+                //     "deopt",
+                //     eventDataJSON.str()
+                // );
             }
         }
         // else {
