@@ -1196,30 +1196,71 @@ void recordTypefeedbackImpl(Opcode* pos, rir::Code* code, SEXP value) {
     switch (*pos) {
     case Opcode::record_test_: {
         ObservedTest* feedback = (ObservedTest*)(pos + 1);
-        feedback->record(value);
+        auto stateChange = feedback->record(value);
+
+        if (stateChange) {
+            if (Hast::l2FastcaseInvalidationCache.count(pos + 1) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pos + 1]) {
+                    f->valid = false;
+                    f->fun = nullptr;
+                }
+            }
+            code->function()->stateVal++;
+        }
+
         break;
     }
     case Opcode::record_type_: {
         assert(*pos == Opcode::record_type_);
         ObservedValues* feedback = (ObservedValues*)(pos + 1);
-        feedback->record(value);
+        auto stateChange = feedback->record(value);
+
         if (TYPEOF(value) == PROMSXP) {
             if (PRVALUE(value) == R_UnboundValue &&
-                feedback->stateBeforeLastForce < ObservedValues::promise)
+                feedback->stateBeforeLastForce < ObservedValues::promise) {
                 feedback->stateBeforeLastForce = ObservedValues::promise;
+                stateChange = true;
+            }
             else if (feedback->stateBeforeLastForce <
-                     ObservedValues::evaluatedPromise)
+                     ObservedValues::evaluatedPromise) {
                 feedback->stateBeforeLastForce =
                     ObservedValues::evaluatedPromise;
+                    stateChange = true;
+            }
         } else {
-            if (feedback->stateBeforeLastForce < ObservedValues::value)
+            if (feedback->stateBeforeLastForce < ObservedValues::value) {
                 feedback->stateBeforeLastForce = ObservedValues::value;
+                stateChange = true;
+            }
         }
+
+        if (stateChange) {
+            if (Hast::l2FastcaseInvalidationCache.count(pos + 1) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pos + 1]) {
+                    f->valid = false;
+                    f->fun = nullptr;
+                }
+            }
+            code->function()->stateVal++;
+        }
+
         break;
     }
     case Opcode::record_call_: {
         ObservedCallees* feedback = (ObservedCallees*)(pos + 1);
-        feedback->record(code, value);
+        auto stateChange = feedback->record(code, value);
+
+        if (stateChange) {
+            if (Hast::l2FastcaseInvalidationCache.count(pos + 1) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pos + 1]) {
+                    f->valid = false;
+                    f->fun = nullptr;
+                }
+            }
+            code->function()->stateVal++;
+        }
+
+
         break;
     }
     default:

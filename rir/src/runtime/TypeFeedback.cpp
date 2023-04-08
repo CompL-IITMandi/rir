@@ -101,6 +101,21 @@ void DeoptReason::record(SEXP val) const {
             break;
         ObservedValues* feedback = (ObservedValues*)(pc() + 1);
         bool stateChange = feedback->record(val);
+
+        if (TYPEOF(val) == PROMSXP) { // we have a promise
+            if (PRVALUE(val) == R_UnboundValue && // val  is an unevaluated promise and we saw unk, value, evaluated promise
+                feedback->stateBeforeLastForce < ObservedValues::promise) {
+                feedback->stateBeforeLastForce = ObservedValues::promise;
+                stateChange = true;
+            }
+            else if (feedback->stateBeforeLastForce <
+                     ObservedValues::evaluatedPromise) {
+                feedback->stateBeforeLastForce =
+                    ObservedValues::evaluatedPromise;
+                stateChange = true;
+            }
+        }
+
         if (stateChange) {
             if (Hast::l2FastcaseInvalidationCache.count(pc() + 1) > 0) {
                 for (auto & f : Hast::l2FastcaseInvalidationCache[pc() + 1]) {
@@ -109,15 +124,6 @@ void DeoptReason::record(SEXP val) const {
                 }
             }
             srcCode()->function()->stateVal++;
-        }
-        if (TYPEOF(val) == PROMSXP) {
-            if (PRVALUE(val) == R_UnboundValue &&
-                feedback->stateBeforeLastForce < ObservedValues::promise)
-                feedback->stateBeforeLastForce = ObservedValues::promise;
-            else if (feedback->stateBeforeLastForce <
-                     ObservedValues::evaluatedPromise)
-                feedback->stateBeforeLastForce =
-                    ObservedValues::evaluatedPromise;
         }
         break;
     }

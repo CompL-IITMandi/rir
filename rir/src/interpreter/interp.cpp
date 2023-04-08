@@ -2117,9 +2117,22 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                 state = ObservedValues::StateBeforeLastForce::promise;
         }
 
+        auto stateChange = false;
         ObservedValues* feedback = (ObservedValues*)(pc + 1);
-        if (feedback->stateBeforeLastForce < state)
+        if (feedback->stateBeforeLastForce < state) {
             feedback->stateBeforeLastForce = state;
+            stateChange = true;
+        }
+
+        if (stateChange) {
+            if (Hast::l2FastcaseInvalidationCache.count(pc + 1) > 0) {
+                for (auto & f : Hast::l2FastcaseInvalidationCache[pc + 1]) {
+                    f->valid = false;
+                    f->fun = nullptr;
+                }
+            }
+            c->function()->stateVal++;
+        }
     };
 
     // main loop
