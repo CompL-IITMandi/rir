@@ -204,7 +204,7 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
                     << "\n";
 #endif
         if (a.smaller(currContext)) {
-            if (EventLogger::logLevel >= 2) {
+            if (EventLogger::logLevel >= 3) {
 
                 std::stringstream streamctx;
                 streamctx << currContext;
@@ -248,7 +248,7 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
             if (ignorePending || !currFun->pendingCompilation()) {
 
                 if (!currFun->disabled()) {
-                    if (EventLogger::logLevel >= 2) {
+                    if (EventLogger::logLevel >= 3) {
                         std::stringstream streamctx;
                         streamctx << currFun->context();
 
@@ -320,7 +320,7 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
                     return currFun;
                 } else {
 
-                    if (EventLogger::logLevel >= 2) {
+                    if (EventLogger::logLevel >= 3) {
                         std::stringstream streamctx;
                         streamctx << currFun->context();
 
@@ -337,7 +337,7 @@ Function* DispatchTable::dispatchConsideringDisabled(Context a, Function** disab
         }
     }
 
-    if (EventLogger::logLevel >= 2) {
+    if (EventLogger::logLevel >= 3) {
 
 
 

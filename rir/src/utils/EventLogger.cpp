@@ -73,6 +73,8 @@ namespace rir {
         size_t timeInMS,
         const std::string & eventDataInJson
         ) {
+
+        return;
         setLogPathIfNeeded();
 
         std::string jsonFullPathOuter ="";

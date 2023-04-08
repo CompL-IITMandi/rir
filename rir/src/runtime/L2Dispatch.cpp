@@ -209,7 +209,7 @@ Function * L2Dispatch::dispatch() {
 	assert(_last != -1 && "Empty L2 dispatch");
 
 	if (l2FastcaseEnabled && lastDispatch.valid) {
-		if (EventLogger::logLevel >=2) {
+		if (EventLogger::logLevel >=3) {
 			using namespace std::chrono;
 			std::stringstream streamctx;
 			std::stringstream streamname;

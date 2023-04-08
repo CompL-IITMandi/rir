@@ -988,7 +988,7 @@ SEXP doCall(CallContext& call, bool popArgs) {
 
         inferCurrentContext(call, baselineFun->signature().formalNargs());
 
-        if (EventLogger::logLevel >= 2) {
+        if (EventLogger::logLevel >= 3) {
             using namespace std::chrono;
 			auto now  = std::chrono::high_resolution_clock::now();
 			std::string hast = table->hast ?  CHAR(PRINTNAME(table->hast)) : "";
