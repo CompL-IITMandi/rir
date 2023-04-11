@@ -36,6 +36,7 @@
 #include "utils/BitcodeLinkUtility.h"
 #include "utils/deserializerRuntime.h"
 #include "utils/DeserializerDebug.h"
+#include "runtime/RuntimeFlags.h"
 #include <chrono>
 
 #include "utils/CodeCache.h"
@@ -361,6 +362,19 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     if (*RTConsts::R_jit_enabled == 0) return ;
 
 
+    // Disable compilation temporarily? is this needed
+    bool oldVal = RuntimeFlags::contextualCompilationSkip;
+    RuntimeFlags::contextualCompilationSkip = true;
+
+    int oldVal2 = *RTConsts::R_jit_enabled;
+    *RTConsts::R_jit_enabled = 0;
+
+    auto finalize = [&](){
+        // Restore compilation behaviour
+        RuntimeFlags::contextualCompilationSkip = oldVal;
+        *RTConsts::R_jit_enabled = oldVal2;
+    };
+
 
     unsigned long con = deserializedMetadata::getContext(uEleContainer);
 
@@ -368,6 +382,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
     if (!DispatchTable::check(vtabContainer)) {
         DeserializerDebug::infoMessage("Deserializer quietly failing, vtab is corrupted!", 0);
+        finalize();
         return;
     }
 
@@ -389,12 +404,18 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
     if (!reader) {
         DeserializerDebug::infoMessage("Deserializer quietly failing, unable to open pool file!", 0);
+        finalize();
         return;
     }
     Protect protecc;
 
     SEXP result;
+
+
+
     protecc(result= R_LoadFromFile(reader, 0));
+
+
 
     SEXP cPool = SerializedPool::getCpool(result);
     // SEXP sPool = SerializedPool::getSpool(result);
@@ -417,11 +438,13 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         std::error_code std_error_code = error_or_buffer.getError();
         if( std_error_code ) {
             DeserializerDebug::infoMessage("Deserializer quietly failing, bitcode file buffer failed to load!", 0);
+            finalize();
             return;
         }
         llvm::Expected<std::unique_ptr<llvm::Module>> llModuleHolder = llvm::parseBitcodeFile(error_or_buffer->get()->getMemBufferRef(), this->getContext());
         if (std::error_code ec = errorToErrorCode(llModuleHolder.takeError())) {
             DeserializerDebug::infoMessage("Deserializer quietly failing, error reading module from bitcode!", 0);
+            finalize();
             return;
         }
 
@@ -436,6 +459,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
         std::error_code std_error_code = error_or_buffer.getError();
         if( std_error_code ) {
             DeserializerDebug::infoMessage("Deserializer quietly failing, object file failed to load!", 0);
+            finalize();
             return;
         }
         std::unique_ptr<MemoryBuffer> memory_buffer(
@@ -569,6 +593,7 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
 
         currFun->addSpeculativeContext(scStore);
         vtab->insertL2(currFun);
+
     }
 
     // static bool naiveL2 = getenv("NAIVE_L2") ? getenv("NAIVE_L2")[0] == '1' : false;
@@ -596,6 +621,9 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     if (eagerBC) {
         res->nativeCode();
     }
+
+    finalize();
+
 }
 
 void PirJitLLVM::serializeModule(SEXP cData, rir::Code * code, SEXP serializedPoolData, std::vector<std::string> & relevantNames, const std::string & mainFunName) {

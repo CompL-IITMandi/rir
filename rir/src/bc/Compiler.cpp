@@ -2049,7 +2049,7 @@ void Compiler::compileClosure(SEXP inClosure) {
 
 
     if (CodeCache::safeSerializer) {
-        Pool::insert(dt->container());
+        Pool::insert(inClosure);
     }
 
 
