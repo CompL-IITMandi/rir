@@ -12,6 +12,7 @@
 #include "interpreter/safe_force.h"
 #include "simple_instruction_list.h"
 #include "utils/Pool.h"
+#include "utils/CodeCache.h"
 
 #include <stack>
 
@@ -2045,6 +2046,12 @@ void Compiler::compileClosure(SEXP inClosure) {
 
     // Set the closure fields.
     SET_BODY(inClosure, dt->container());
+
+
+    if (CodeCache::safeSerializer) {
+        Pool::insert(dt->container());
+    }
+
 
     if (hast != R_NilValue) {
         // Check if the hast is already seen

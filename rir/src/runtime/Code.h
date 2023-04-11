@@ -80,7 +80,7 @@ struct Code : public RirRuntimeObject<Code, CODE_MAGIC> {
                              size_t locals, size_t bindingCache);
     static Code* NewNative(Immediate ast);
 
-    constexpr static size_t MAX_CODE_HANDLE_LENGTH = 64;
+    constexpr static size_t MAX_CODE_HANDLE_LENGTH = 80;
 
     char lazyCodeHandle_[MAX_CODE_HANDLE_LENGTH] = "\0";
   private:

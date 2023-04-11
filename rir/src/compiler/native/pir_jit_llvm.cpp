@@ -357,6 +357,11 @@ void PirJitLLVM::finalize() {
 }
 
 void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
+    // GCBUG
+    if (*RTConsts::R_jit_enabled == 0) return ;
+
+
+
     unsigned long con = deserializedMetadata::getContext(uEleContainer);
 
     SEXP vtabContainer = deserializedMetadata::getVTab(uEleContainer);
@@ -508,6 +513,11 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     auto currFun = function.function();
     protecc(currFun->container());
 
+    // GCBUG
+    if (CodeCache::safeDeserializer) {
+        Pool::insert(currFun->container());
+    }
+
     SEXP speculativeContext = deserializedMetadata::getSpeculativeContext(uEleContainer);
 
     if (speculativeContext == R_NilValue) {
@@ -534,6 +544,10 @@ void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
             assert(Hast::hastMap.count(hastOfCrit) > 0);
             SEXP vtc = Hast::hastMap[hastOfCrit].vtabContainer;
             assert(vtc && DispatchTable::check(vtc));
+
+            if (CodeCache::safeSerializer) {
+                Pool::insert(Hast::hastMap[hastOfCrit].clos);
+            }
             DispatchTable * vt = DispatchTable::unpack(vtc);
             size_t critOffset = desSElement::getOffset(curr);
 
@@ -1264,6 +1278,10 @@ void PirJitLLVM::initializeLLVM() {
 
                     rir::DispatchTable * resTab = Hast::getVtableObjectAtOffset(Rf_install(hast.c_str()), offsetIndex);
 
+                    if (CodeCache::safeSerializer) {
+                        rir::DispatchTable * resTabParent =  Hast::getVtableObjectAtOffset(Rf_install(hast.c_str()), 0);
+                        Pool::insert(resTabParent->container());
+                    }
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(resTab->container())),
@@ -1276,6 +1294,10 @@ void PirJitLLVM::initializeLLVM() {
                     int offsetIndex = std::stoi(n.substr(secondDel + 1));
 
                     rir::Code * resolvedCode = Hast::getCodeObjectAtOffset(Rf_install(hast.c_str()), offsetIndex);
+                    if (CodeCache::safeSerializer) {
+                        rir::Code* resolvedCodeParent =  Hast::getCodeObjectAtOffset(Rf_install(hast.c_str()), 0);
+                        Pool::insert(resolvedCodeParent->container());
+                    }
 
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
@@ -1301,7 +1323,9 @@ void PirJitLLVM::initializeLLVM() {
                     // }
 
                     assert(Hast::hastMap.count(hastSym) > 0);
-
+                    if (CodeCache::safeSerializer) {
+                        Pool::insert(Hast::hastMap[hastSym].clos);
+                    }
                     NewSymbols[Name] = JITEvaluatedSymbol(
                         static_cast<JITTargetAddress>(
                             reinterpret_cast<uintptr_t>(Hast::hastMap[hastSym].clos)),

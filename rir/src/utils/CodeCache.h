@@ -5,6 +5,8 @@ namespace rir {
     public:
         static bool serializer;
         static bool useBitcodes;
+        static bool safeSerializer;
+        static bool safeDeserializer;
         // static bool captureCompileStats;
     };
 }
