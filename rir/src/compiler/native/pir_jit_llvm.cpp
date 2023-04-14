@@ -359,22 +359,23 @@ void PirJitLLVM::finalize() {
 
 void PirJitLLVM::deserializeAndPopulateBitcode(SEXP uEleContainer) {
     // GCBUG
-    if (*RTConsts::R_jit_enabled == 0) return ;
-
+    if (CodeCache::safeDeserializer && *RTConsts::R_jit_enabled == 0) return ;
 
     // Disable compilation temporarily? is this needed
     bool oldVal = RuntimeFlags::contextualCompilationSkip;
-    RuntimeFlags::contextualCompilationSkip = true;
-
     int oldVal2 = *RTConsts::R_jit_enabled;
-    *RTConsts::R_jit_enabled = 0;
+    if (CodeCache::safeDeserializer) {
+        RuntimeFlags::contextualCompilationSkip = true;
+        *RTConsts::R_jit_enabled = 0;
+    }
 
     auto finalize = [&](){
-        // Restore compilation behaviour
-        RuntimeFlags::contextualCompilationSkip = oldVal;
-        *RTConsts::R_jit_enabled = oldVal2;
+        if (CodeCache::safeDeserializer) {
+            // Restore compilation behaviour
+            RuntimeFlags::contextualCompilationSkip = oldVal;
+            *RTConsts::R_jit_enabled = oldVal2;
+        }
     };
-
 
     unsigned long con = deserializedMetadata::getContext(uEleContainer);
 
