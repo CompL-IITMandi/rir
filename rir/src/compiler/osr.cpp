@@ -21,11 +21,30 @@ Function* OSR::compile(SEXP closure, rir::Code* c,
 
     pir::Backend backend(module, logger, "continuation");
 
+
     cmp.compileContinuation(
         closure, c->function(), &ctx,
         [&](Continuation* cnt) {
+            using namespace std::chrono;
+
+            auto now = high_resolution_clock::now();
+
             cmp.optimizeModule();
+
+            auto nowEnd = high_resolution_clock::now();
+            auto duration = duration_cast<milliseconds>(nowEnd - now);
+            auto durationCount = duration.count();
+
+
+            if (EventLogger::logLevel) {
+                EventLogger::logStats("pirOSRCompilation", "",  "", durationCount, now, "", nullptr,0,"");
+            }
+
+
             fun = backend.getOrCompile(cnt);
+
+
+
         },
         [&]() { std::cerr << "Continuation compilation failed\n"; });
 
