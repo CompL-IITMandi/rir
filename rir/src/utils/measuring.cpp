@@ -9,60 +9,94 @@
 #include <unordered_map>
 
 #include "utils/measuring.h"
+#include "RshViz.h"
 
 std::string del = ",";
 RshJsonParser parser(del, 0);
-std::unordered_map<size_t,std::set<std::string>> mtoc;
-std::unordered_map<size_t, std::unordered_map<std::string,size_t>> mtocr;
+std::unordered_map<size_t, std::set<std::string>> mtoc;
+std::unordered_map<size_t, std::unordered_map<std::string, size_t>> mtocr;
 
-std::string & removeQuotes(std::string & str) {
-  str.erase(0, 1);
-  str.erase(str.size() - 1);
-  return str;
+std::string& removeQuotes(std::string& str) {
+    str.erase(0, 1);
+    str.erase(str.size() - 1);
+    return str;
 }
 
 std::ostream& operator<<(std::ostream& os, const RshMethod& m) {
-  std::string del = ",";
-  os << "id: " << m.id << del << " name: " << m.name << del << " context: "  << m.context << del
-    << " compiled: " << m.compiled << del
-    << " rir2pir: " <<  m.rir2pir << del << " opt: " << m.opt << del << " bb: " << m.bb << del << " p: " << m.p << del << " failed: " << m.failed << del << " runtime: " << m.runtime << del << " effect: " << m.effect << del << " hast: " << m.hast << del << " contextI: " << m.contextI;
-  return os;
+    std::string del = ",";
+    os << "id: " << m.id << del << " name: " << m.name << del
+       << " context: " << m.context << del << " compiled: " << m.compiled << del
+       << " rir2pir: " << m.rir2pir << del << " opt: " << m.opt << del
+       << " bb: " << m.bb << del << " p: " << m.p << del
+       << " failed: " << m.failed << del << " runtime: " << m.runtime << del
+       << " effect: " << m.effect << del << " hast: " << m.hast << del
+       << " contextI: " << m.contextI;
+    return os;
 }
 
-void(*singleLineObjectSerializer)(RshMethod &,std::ofstream &,std::string &) = [](RshMethod & m,std::ofstream & os, std::string & del) {
-  os << m.id << del << m.name << del << m.context << del
-    << m.compiled << del
-    << m.rir2pir << del << m.opt << del << m.bb << del << m.p << del << m.failed << del << m.runtime << del << m.effect << del << m.hast << del << m.contextI;
-  os << std::endl;
-};
+void (*singleLineObjectSerializer)(RshMethod&, std::ofstream&, std::string&) =
+    [](RshMethod& m, std::ofstream& os, std::string& del) {
+        os << m.id << del << m.name << del << m.context << del << m.compiled
+           << del << m.rir2pir << del << m.opt << del << m.bb << del << m.p
+           << del << m.failed << del << m.runtime << del << m.effect << del
+           << m.hast << del << m.contextI;
+        os << std::endl;
+    };
 
 double R_totalRuntime = 0.0;
 
-void(*lineToObjectParser)(RshMethod &,std::string &,std::string &) = [](RshMethod & method, std::string & tp, std::string & del) {
-  int start = 0;
-  int end = tp.find(del);
-  int index = 0;
-  while (end != -1) {
-    switch(index) {
-      case 0: method.id          = tp.substr(start, end - start);            break;
-      case 1: method.name        = tp.substr(start, end - start);            break;
-      case 2: method.context     = tp.substr(start, end - start);            break;
-      case 4: method.compiled    = std::stoi(tp.substr(start, end - start)); break;
-      case 5: method.rir2pir     = std::stod(tp.substr(start, end - start)); break;
-      case 6: method.opt         = std::stod(tp.substr(start, end - start)); break;
-      case 7: method.bb          = std::stoi(tp.substr(start, end - start)); break;
-      case 8: method.p           = std::stoi(tp.substr(start, end - start)); break;
-      case 9: method.failed      = std::stod(tp.substr(start, end - start)); break;
-      case 10: method.runtime    = std::stod(tp.substr(start, end - start)); break;
-      case 11: method.effect     = std::stod(tp.substr(start, end - start)); break;
-      case 12: method.hast       = tp.substr(start, end - start);            break;
-      case 13: method.contextI   = std::stoul(tp.substr(start, end - start));break;
-    }
-    start = end + del.size();
-    end = tp.find(del, start);
-    index++;
-  }
-};
+void (*lineToObjectParser)(RshMethod&, std::string&, std::string&) =
+    [](RshMethod& method, std::string& tp, std::string& del) {
+        int start = 0;
+        int end = tp.find(del);
+        int index = 0;
+        while (end != -1) {
+            switch (index) {
+            case 0:
+                method.id = tp.substr(start, end - start);
+                break;
+            case 1:
+                method.name = tp.substr(start, end - start);
+                break;
+            case 2:
+                method.context = tp.substr(start, end - start);
+                break;
+            case 4:
+                method.compiled = std::stoi(tp.substr(start, end - start));
+                break;
+            case 5:
+                method.rir2pir = std::stod(tp.substr(start, end - start));
+                break;
+            case 6:
+                method.opt = std::stod(tp.substr(start, end - start));
+                break;
+            case 7:
+                method.bb = std::stoi(tp.substr(start, end - start));
+                break;
+            case 8:
+                method.p = std::stoi(tp.substr(start, end - start));
+                break;
+            case 9:
+                method.failed = std::stod(tp.substr(start, end - start));
+                break;
+            case 10:
+                method.runtime = std::stod(tp.substr(start, end - start));
+                break;
+            case 11:
+                method.effect = std::stod(tp.substr(start, end - start));
+                break;
+            case 12:
+                method.hast = tp.substr(start, end - start);
+                break;
+            case 13:
+                method.contextI = std::stoul(tp.substr(start, end - start));
+                break;
+            }
+            start = end + del.size();
+            end = tp.find(del, start);
+            index++;
+        }
+    };
 
 namespace rir {
 
@@ -80,32 +114,39 @@ struct MeasuringImpl {
     std::unordered_map<std::string, size_t> events;
     std::chrono::time_point<std::chrono::high_resolution_clock> start;
     std::chrono::time_point<std::chrono::high_resolution_clock> end;
-    #if LOGG > 0
+#if LOGG > 0
     std::ofstream logg_stream;
     std::chrono::time_point<std::chrono::steady_clock> c_start, c_end;
-    #endif
+#endif
     size_t threshold = 0;
     const unsigned width = 40;
     bool shouldOutput = false;
 
     MeasuringImpl() : start(std::chrono::high_resolution_clock::now()) {
-        #if LOGG > 0
+#if LOGG > 0
         c_start = std::chrono::steady_clock::now();
 
-        if(getenv("LOGG") != NULL) {
+        if (getenv("LOGG") != NULL) {
             std::string binId = getenv("LOGG");
             logg_stream.open(binId + ".logg");
         } else {
-            time_t timenow = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            time_t timenow = std::chrono::system_clock::to_time_t(
+                std::chrono::system_clock::now());
             std::stringstream runId_ss;
-            runId_ss << std::put_time( localtime( &timenow ), "%FT%T%z" ) << ".logg";
+            runId_ss << std::put_time(localtime(&timenow), "%FT%T%z")
+                     << ".logg";
             logg_stream.open(runId_ss.str());
         }
 
-        #endif
+#endif
     }
 
     ~MeasuringImpl() {
+
+        RshViz::_eventLock.lock();
+        RshViz::current_socket->emit(RshViz::APP_END_PROG);
+        RshViz::_eventLock.unlock();
+        std::cout << "Program Ended..............."<< std::endl;
         end = std::chrono::high_resolution_clock::now();
         auto logfile = getenv("PIR_MEASURING_LOGFILE");
         if (logfile) {
@@ -120,20 +161,22 @@ struct MeasuringImpl {
         } else {
             dump(std::cerr);
         }
-        #if LOGG > 0
+#if LOGG > 0
         c_end = std::chrono::steady_clock::now();
         std::chrono::duration<double, std::milli> total = end - start;
         std::string str;
-        str =  "##," + std::to_string(total.count());
+        str = "##," + std::to_string(total.count());
         parser.processLine(str);
-        // std::string outputPath = "/home/aayush/rir_viz/rir/build/logg_json.json";
-        time_t timenow = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        // std::string outputPath =
+        // "/home/aayush/rir_viz/rir/build/logg_json.json";
+        time_t timenow = std::chrono::system_clock::to_time_t(
+            std::chrono::system_clock::now());
         std::stringstream runId_ss;
-        runId_ss << std::put_time( localtime( &timenow ), "%FT%T%z" ) << ".json";
+        runId_ss << std::put_time(localtime(&timenow), "%FT%T%z") << ".json";
         parser.saveVizJson(runId_ss.str());
         logg_stream << "##," << total.count();
         logg_stream.close();
-        #endif
+#endif
     }
 
     void dump(std::ostream& out) {
@@ -281,9 +324,7 @@ void Measuring::countEvent(const std::string& name, size_t n) {
 }
 
 #if LOGG > 0
-std::ofstream & Measuring::getLogStream() {
-    return m->logg_stream;
-}
+std::ofstream& Measuring::getLogStream() { return m->logg_stream; }
 #endif
 
 void Measuring::reset(bool outputOld) {

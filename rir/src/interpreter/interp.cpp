@@ -2095,9 +2095,50 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
     RshViz::mod_env = [&] (sio::event & event) {
 
         REnvHandler env_h(env);
-        std::cout << event.get_messages().at(0).get()->get_string() << std::endl;
-        std::cout << event.get_messages().at(1).get()->get_string() << std::endl;
-        env_h.set("a",Rf_ScalarInteger(5));
+        std::vector<sio::message::ptr> k = event.get_messages().at(0).get()->get_vector();
+        std::vector<sio::message::ptr> dt = event.get_messages().at(1).get()->get_vector();
+        std::vector<sio::message::ptr> v = event.get_messages().at(2).get()->get_vector();
+        size_t n = k.size();
+        for(size_t i = 0;i < n;i++){
+            std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << " ---> " << dt[i] -> get_string() << std::endl;
+        }
+
+        // const char *str = "1 + 2";
+
+        // R_ParseEvalString(str,env);
+        // int err = 0;
+        // // SEXP s = PROTECT(Rf_mkString(str));
+        // int status = 0;
+        // SEXP s = PROTECT(Rf_allocVector(STRSXP, 1));
+        // SEXP expr = PROTECT(R_ParseVector(s, -1, &status, R_NilValue));
+        // SET_STRING_ELT(s, 0, Rf_mkChar("1+2"));
+        // SEXP val = R_tryEvalSilent(s,env,&err);
+        //std::cout << TYPEOF(s) << std::endl;
+
+        // SEXP val = R_ParseEvalString("123L",env);
+        // std::cout << TYPEOF(val) << std::endl;
+        // size_t n = k.size();
+        for(size_t i = 0;i < n;i++){
+            std::string dtype = dt[i] -> get_string();
+            std::string key = k[i] -> get_string();
+            std::string value = v[i] -> get_string();
+            // std::cout << value << std::endl;
+            // double d = std::stod(value);
+            // env_h.set(key,Rf_ScalarReal(d));
+            SEXP result;
+            if(dtype == "real"){
+                result = PROTECT(Rf_ScalarReal(std::stod(value)));
+                env_h.set(key,result);
+                UNPROTECT(1);
+            }
+            else if(dtype == "int"){
+                result = PROTECT(Rf_ScalarInteger(std::stod(value)));
+                env_h.set(key,result);
+                UNPROTECT(1);
+            }
+
+
+        }
         std::cout << "Env Change Req" << std::endl;
     };
 

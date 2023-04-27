@@ -17,6 +17,7 @@ class RshViz {
     static std::string APP_TO_VIZ_DATA;
     static std::string APP_VIZ_SYNCED;
     static std::string APP_MOD_ENV;
+    static std::string APP_END_PROG;
     // static std::string END_OF_PROGRAM;
 
     static void init(const std::string & address);

@@ -89,4 +89,5 @@ std::string RshViz::VIZ_TO_APP_REQUEST = "viz-to-app-req";
 std::string RshViz::APP_TO_VIZ_DATA = "app-to-viz-data";
 std::string RshViz::APP_VIZ_SYNCED = "app-viz-ack";
 std::string RshViz::APP_MOD_ENV = "app-mod-env";
+std::string RshViz::APP_END_PROG = "app-end-prog";
 // std::string RshViz::END_OF_PROGRAM = "end-of-prog";
