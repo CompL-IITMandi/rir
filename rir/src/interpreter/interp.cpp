@@ -2779,7 +2779,11 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
 
         INSTRUCTION(record_type_) {
             ObservedValues* feedback = (ObservedValues*)pc;
+            // u_int32_t *a = (u_int32_t*)feedback;
+            // *a = 100;
+            // std::cout << ((uintptr_t)pc - (uintptr_t)c->code()) << std::endl;
             SEXP t = ostack_top();
+            // Rf_PrintValue(t);
             feedback->record(t);
             pc += sizeof(ObservedValues);
             NEXT();

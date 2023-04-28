@@ -218,10 +218,13 @@ void Code::disassembleStream(std::stringstream& ss) {
 
             BC bc = BC::decode(pc, this);
             // bc.addMyPromArgsTo(promises);
-
+            // const char *a = BC::name(bc.bc);
+            std::stringstream out;
+            bc.printOpcode(out);
+            // std::cout << out.str() << std::endl;
             auto currentOffset = ((uintptr_t)pc - (uintptr_t)code());
 
-            ss << "\"" << currentOffset << "\": \"";
+            ss << "\"" << currentOffset << "\":[";
 
             // const size_t OFFSET_WIDTH = 7;
             // out << std::right << std::setw(OFFSET_WIDTH)
@@ -256,10 +259,11 @@ void Code::disassembleStream(std::stringstream& ss) {
                 bc.print(insn);
             // }
             std::string bcData = insn.str();
-
+            std::string type = out.str();
             bcData.erase(std::remove_if(bcData.begin(), bcData.end(), [](unsigned char c){ return std::isspace(c); }), bcData.end());
+            type.erase(std::remove_if(type.begin(), type.end(), [](unsigned char c){ return std::isspace(c); }), type.end());
 
-            ss << bcData << "\"";
+            ss << "\"" <<bcData << "\",\"" << out.str() << "\"]";
             pc = BC::next(pc);
             if (pc < endCode()) {
                 ss << ",";
