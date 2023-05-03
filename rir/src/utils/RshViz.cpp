@@ -22,6 +22,9 @@ void RshViz::init(const std::string & address) {
     current_socket->on(VIZ_TO_APP_REQUEST, onVizEventRequest);
     current_socket->on(APP_VIZ_SYNCED, onVizEventCompleted);
     current_socket->on(APP_MOD_ENV, modify_curr_env);
+    current_socket->on(APP_MOD_TYPE, modify_curr_type);
+    current_socket->on(APP_STEP_OVER,curr_step_over);
+
 }
 
 // void RshViz::helper(){
@@ -44,6 +47,17 @@ void RshViz::modify_curr_env(sio::event & event) {
     mod_env(event);
 }
 
+void RshViz::modify_curr_type(sio::event & event) {
+    assert(mod_type);
+    // Callback
+    mod_type(event);
+}
+
+void RshViz::curr_step_over(sio::event & event) {
+    assert(step_over);
+    // Callback
+    step_over(event);
+}
 
 void RshViz::onVizEventCompleted(sio::event & event) {
     _eventLock.lock();
@@ -82,6 +96,8 @@ std::condition_variable_any RshViz::_connWait, RshViz::_eventWait;
 bool RshViz::connection = false;
 std::function<void(sio::event &)> RshViz::eventCallback = nullptr;
 std::function<void(sio::event &)> RshViz::mod_env = nullptr;
+std::function<void(sio::event &)> RshViz::mod_type = nullptr;
+std::function<void(sio::event &)> RshViz::step_over = nullptr;
 
 std::string RshViz::APP_EVENT_SYN_REQ = "app-req-syn";
 std::string RshViz::APP_EVENT_SYN_RES = "app-res-syn";
@@ -90,4 +106,6 @@ std::string RshViz::APP_TO_VIZ_DATA = "app-to-viz-data";
 std::string RshViz::APP_VIZ_SYNCED = "app-viz-ack";
 std::string RshViz::APP_MOD_ENV = "app-mod-env";
 std::string RshViz::APP_END_PROG = "app-end-prog";
+std::string RshViz::APP_MOD_TYPE = "app-mod-type";
+std::string RshViz::APP_STEP_OVER = "app-step-over";
 // std::string RshViz::END_OF_PROGRAM = "end-of-prog";

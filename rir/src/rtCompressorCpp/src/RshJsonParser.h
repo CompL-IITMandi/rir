@@ -315,6 +315,9 @@ class RshJsonParser {
     return methodMeta[std::to_string(fid)].runs;
   }
 
+  std::string getMethodName(size_t fid){
+    return methodNameMap[std::to_string(fid)];
+  }
 
   void processLine(std::string & line) {
     int start = 0;

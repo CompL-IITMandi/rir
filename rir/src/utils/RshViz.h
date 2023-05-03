@@ -18,6 +18,8 @@ class RshViz {
     static std::string APP_VIZ_SYNCED;
     static std::string APP_MOD_ENV;
     static std::string APP_END_PROG;
+    static std::string APP_MOD_TYPE;
+    static std::string APP_STEP_OVER;
     // static std::string END_OF_PROGRAM;
 
     static void init(const std::string & address);
@@ -34,11 +36,15 @@ class RshViz {
     static void onVizEventRequest(sio::event &);
     static void onVizEventCompleted(sio::event &);
     static void modify_curr_env(sio::event &);
+    static void modify_curr_type(sio::event &);
+    static void curr_step_over(sio::event &);
 
     static void onSynDone(sio::event &);
 
     static std::function<void(sio::event &)> eventCallback;
     static std::function<void(sio::event &)> mod_env;
+    static std::function<void(sio::event &)> mod_type;
+    static std::function<void(sio::event &)> step_over;
     static void waitForSynDone();
 
     static std::mutex _eventLock;

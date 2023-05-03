@@ -12,6 +12,7 @@
 #include "RshViz.h"
 
 std::string del = ",";
+std::string co = "*";
 RshJsonParser parser(del, 0);
 std::unordered_map<size_t, std::set<std::string>> mtoc;
 std::unordered_map<size_t, std::unordered_map<std::string, size_t>> mtocr;

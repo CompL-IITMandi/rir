@@ -2092,6 +2092,13 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
 
     }
 
+    RshViz::step_over = [&] (sio::event & event) {
+        std::cout << "stepped..." << std::endl;
+        co = event.get_message().get()->get_string();
+        if(c and c -> nativeCode()) co = "*";
+        std::cout << co << std::endl;
+    };
+
     RshViz::mod_env = [&] (sio::event & event) {
 
         REnvHandler env_h(env);
@@ -2099,9 +2106,9 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         std::vector<sio::message::ptr> dt = event.get_messages().at(1).get()->get_vector();
         std::vector<sio::message::ptr> v = event.get_messages().at(2).get()->get_vector();
         size_t n = k.size();
-        for(size_t i = 0;i < n;i++){
-            std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << " ---> " << dt[i] -> get_string() << std::endl;
-        }
+        // for(size_t i = 0;i < n;i++){
+        //     std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << " ---> " << dt[i] -> get_string() << std::endl;
+        // }
 
         // const char *str = "1 + 2";
 
@@ -2136,14 +2143,52 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                 env_h.set(key,result);
                 UNPROTECT(1);
             }
+            else if(dtype == "lgl"){
+                result = PROTECT(Rf_ScalarLogical(std::stoi(value)));
+                env_h.set(key,result);
+                UNPROTECT(1);
+            }
+            else if(dtype == "str"){
+                char s[value.size() + 1];
+                strcpy(s, value.c_str());
+                result = PROTECT(Rf_mkString(s));
+                env_h.set(key,result);
+                UNPROTECT(1);
+            }
+
+
 
 
         }
         std::cout << "Env Change Req" << std::endl;
     };
 
+    RshViz::mod_type = [&] (sio::event & event) {
+        // std::cout << (c->code()) << std::endl;
+        std::vector<sio::message::ptr> k = event.get_messages().at(0).get()->get_vector();
+        std::vector<sio::message::ptr> v = event.get_messages().at(1).get()->get_vector();
+        size_t n = k.size();
+        for(size_t i = 0;i < n;i++){
+            std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << std::endl;
+            u_int32_t off = static_cast<uint32_t>(std::stoul(k[i] -> get_string()));
+            u_int32_t type = static_cast<uint32_t>(std::stoul(v[i] -> get_string()));
+
+            ObservedValues* feedback = (ObservedValues*)(c->code() + off + 1);
+            u_int32_t *a = (u_int32_t*)feedback;
+            *a = type;
+
+        }
+
+    };
+
+
+    std::stringstream sstr;
+    sstr << c;
 
     auto pauseForViz = [&] {
+        // std::cout << co << " " << sstr.str() << std::endl;
+        if(co != "*" and co != sstr.str()) return;
+        if(co == sstr.str()) co = "*";
         if (RshViz::getConnectionStatus()) {
             std::stringstream synPacket;
             synPacket << "[";
@@ -2163,8 +2208,10 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                 static const SEXP triple_colons = Rf_install(":::");
                 if (TYPEOF(lhs) == SYMSXP) {
                     // case 1: function call of the form f(x,y,z)
+                    //Rf_PrintValue(callCtxt->ast);
+                    size_t fun_id = reinterpret_cast<size_t>(BODY(callCtxt->callee));
                     name = "";
-                    name += "\"" + (std::string)CHAR(PRINTNAME(lhs)) + "\"";
+                    name += "\"" + parser.getMethodName(fun_id) + "\"";
                 } else if (TYPEOF(lhs) == LANGSXP && ((CAR(lhs) == double_colons) || (CAR(lhs) == triple_colons))) {
                     // case 2: function call of the form pkg::f(x,y,z) or pkg:::f(x,y,z)
                     SEXP const fun1 = CAR(lhs);
@@ -2369,6 +2416,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             // Wait for syn to be completed
             // if done, then continue
             RshViz::waitForSynDone();
+            // sleep(1);
         }
     };
 
@@ -2781,7 +2829,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             ObservedValues* feedback = (ObservedValues*)pc;
             // u_int32_t *a = (u_int32_t*)feedback;
             // *a = 100;
-            // std::cout << ((uintptr_t)pc - (uintptr_t)c->code()) << std::endl;
+            std::cout << (c->code()) << std::endl;
             SEXP t = ostack_top();
             // Rf_PrintValue(t);
             feedback->record(t);
@@ -4356,6 +4404,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
     }
 
 eval_done:
+    if(co == sstr.str()) co = "*";
     return ostack_pop();
 }
 
