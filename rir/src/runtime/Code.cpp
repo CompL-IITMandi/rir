@@ -263,7 +263,7 @@ void Code::disassembleStream(std::stringstream& ss) {
             bcData.erase(std::remove_if(bcData.begin(), bcData.end(), [](unsigned char c){ return std::isspace(c); }), bcData.end());
             type.erase(std::remove_if(type.begin(), type.end(), [](unsigned char c){ return std::isspace(c); }), type.end());
 
-            ss << "\"" <<bcData << "\",\"" << out.str() << "\"]";
+            ss << "\"" <<bcData << "\",\"" << out.str() << "\",\"" << (uintptr_t)pc << "\"]";
             pc = BC::next(pc);
             if (pc < endCode()) {
                 ss << ",";

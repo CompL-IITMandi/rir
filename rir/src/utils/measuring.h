@@ -12,7 +12,8 @@ extern RshJsonParser parser;
 extern std::unordered_map<size_t,std::set<std::string>> mtoc;
 extern std::unordered_map<size_t, std::unordered_map<std::string,size_t>> mtocr;
 #endif
-extern std::string co;
+extern bool isStepped;
+extern uintptr_t pcc;
 
 namespace rir {
 

@@ -166,7 +166,8 @@ static SEXP getSrcForCall(Code* c, Opcode* pc) {
 #ifdef PRINT_INTERP
 #define NEXT()                                                                 \
     (__extension__({                                                           \
-        pauseForViz();                                                    \
+        if(isStepped and (uintptr_t)pc == pcc){isStepped = false;}\
+        if(!isStepped or pcc == 1 or pcc == 0) pauseForViz();                                                    \
         goto* opAddr[static_cast<uint8_t>(advanceOpcode())];                   \
     }))
 #define LASTOP                                                                 \
@@ -1135,7 +1136,7 @@ SEXP doCall(CallContext& call, bool popArgs) {
         }
         size_t fun_id = reinterpret_cast<size_t>(BODY(call.callee));
         // for(auto i : mtoc[fun_id])std::cout<<i<<std::endl;
-        std::cout << call.callee << std::endl;
+        // std::cout << call.callee << std::endl;
         // for (size_t i = 1; i < table->size(); ++i) {
         //     std::stringstream ss;
         //     ss << table->get(i)->context();
@@ -2092,103 +2093,108 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
 
     }
 
-    RshViz::step_over = [&] (sio::event & event) {
-        std::cout << "stepped..." << std::endl;
-        co = event.get_message().get()->get_string();
-        if(c and c -> nativeCode()) co = "*";
-        std::cout << co << std::endl;
-    };
-
     RshViz::mod_env = [&] (sio::event & event) {
 
-        REnvHandler env_h(env);
-        std::vector<sio::message::ptr> k = event.get_messages().at(0).get()->get_vector();
-        std::vector<sio::message::ptr> dt = event.get_messages().at(1).get()->get_vector();
-        std::vector<sio::message::ptr> v = event.get_messages().at(2).get()->get_vector();
-        size_t n = k.size();
-        // for(size_t i = 0;i < n;i++){
-        //     std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << " ---> " << dt[i] -> get_string() << std::endl;
+        if(TYPEOF(env) == ENVSXP){
+            REnvHandler env_h(env);
+            std::vector<sio::message::ptr> k = event.get_messages().at(0).get()->get_vector();
+            std::vector<sio::message::ptr> dt = event.get_messages().at(1).get()->get_vector();
+            std::vector<sio::message::ptr> v = event.get_messages().at(2).get()->get_vector();
+            size_t n = k.size();
+            // for(size_t i = 0;i < n;i++){
+            //     std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << " ---> " << dt[i] -> get_string() << std::endl;
+            // }
+
+            // const char *str = "1 + 2";
+
+            // R_ParseEvalString(str,env);
+            // int err = 0;
+            // // SEXP s = PROTECT(Rf_mkString(str));
+            // int status = 0;
+            // SEXP s = PROTECT(Rf_allocVector(STRSXP, 1));
+            // SEXP expr = PROTECT(R_ParseVector(s, -1, &status, R_NilValue));
+            // SET_STRING_ELT(s, 0, Rf_mkChar("1+2"));
+            // SEXP val = R_tryEvalSilent(s,env,&err);
+            //std::cout << TYPEOF(s) << std::endl;
+
+            // SEXP val = R_ParseEvalString("123L",env);
+            // std::cout << TYPEOF(val) << std::endl;
+            // size_t n = k.size();
+            for(size_t i = 0;i < n;i++){
+                std::string dtype = dt[i] -> get_string();
+                std::string key = k[i] -> get_string();
+                std::string value = v[i] -> get_string();
+                // std::cout << value << std::endl;
+                // double d = std::stod(value);
+                // env_h.set(key,Rf_ScalarReal(d));
+                SEXP result;
+                if(dtype == "real"){
+                    result = PROTECT(Rf_ScalarReal(std::stod(value)));
+                    env_h.set(key,result);
+                    UNPROTECT(1);
+                }
+                else if(dtype == "int"){
+                    result = PROTECT(Rf_ScalarInteger(std::stod(value)));
+                    env_h.set(key,result);
+                    UNPROTECT(1);
+                }
+                else if(dtype == "lgl"){
+                    result = PROTECT(Rf_ScalarLogical(std::stoi(value)));
+                    env_h.set(key,result);
+                    UNPROTECT(1);
+                }
+                else if(dtype == "str"){
+                    char s[value.size() + 1];
+                    strcpy(s, value.c_str());
+                    result = PROTECT(Rf_mkString(s));
+                    env_h.set(key,result);
+                    UNPROTECT(1);
+                }
+
+
+
+            }
+            std::cout << "Env Change Req" << std::endl;
+        }
+        else std::cout << "Not ENVSXP" << std::endl;
+    };
+
+
+    // std::stringstream sstr;
+    // sstr << c;
+    // std::function<void()> dummy = [&]{};
+    // std::function<void()> temp = [&]{};
+    std::function<void()> pauseForViz = [&] {
+        // std::cout << co << " " << sstr.str() << std::endl;
+        // if(co != "*" and co != sstr.str()) return;
+        // if(co == sstr.str()) co = "*";
+        // if(isStepped and pcc != 4294967295){
+        //     if((uintptr_t)pc == pcc){
+        //         isStepped = false;
+        //     }
+        //     else return;
         // }
 
-        // const char *str = "1 + 2";
-
-        // R_ParseEvalString(str,env);
-        // int err = 0;
-        // // SEXP s = PROTECT(Rf_mkString(str));
-        // int status = 0;
-        // SEXP s = PROTECT(Rf_allocVector(STRSXP, 1));
-        // SEXP expr = PROTECT(R_ParseVector(s, -1, &status, R_NilValue));
-        // SET_STRING_ELT(s, 0, Rf_mkChar("1+2"));
-        // SEXP val = R_tryEvalSilent(s,env,&err);
-        //std::cout << TYPEOF(s) << std::endl;
-
-        // SEXP val = R_ParseEvalString("123L",env);
-        // std::cout << TYPEOF(val) << std::endl;
-        // size_t n = k.size();
-        for(size_t i = 0;i < n;i++){
-            std::string dtype = dt[i] -> get_string();
-            std::string key = k[i] -> get_string();
-            std::string value = v[i] -> get_string();
-            // std::cout << value << std::endl;
-            // double d = std::stod(value);
-            // env_h.set(key,Rf_ScalarReal(d));
-            SEXP result;
-            if(dtype == "real"){
-                result = PROTECT(Rf_ScalarReal(std::stod(value)));
-                env_h.set(key,result);
-                UNPROTECT(1);
-            }
-            else if(dtype == "int"){
-                result = PROTECT(Rf_ScalarInteger(std::stod(value)));
-                env_h.set(key,result);
-                UNPROTECT(1);
-            }
-            else if(dtype == "lgl"){
-                result = PROTECT(Rf_ScalarLogical(std::stoi(value)));
-                env_h.set(key,result);
-                UNPROTECT(1);
-            }
-            else if(dtype == "str"){
-                char s[value.size() + 1];
-                strcpy(s, value.c_str());
-                result = PROTECT(Rf_mkString(s));
-                env_h.set(key,result);
-                UNPROTECT(1);
-            }
-
-
-
-
-        }
-        std::cout << "Env Change Req" << std::endl;
-    };
-
-    RshViz::mod_type = [&] (sio::event & event) {
+        RshViz::mod_type = [&] (sio::event & event) {
         // std::cout << (c->code()) << std::endl;
-        std::vector<sio::message::ptr> k = event.get_messages().at(0).get()->get_vector();
-        std::vector<sio::message::ptr> v = event.get_messages().at(1).get()->get_vector();
-        size_t n = k.size();
-        for(size_t i = 0;i < n;i++){
-            std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << std::endl;
-            u_int32_t off = static_cast<uint32_t>(std::stoul(k[i] -> get_string()));
-            u_int32_t type = static_cast<uint32_t>(std::stoul(v[i] -> get_string()));
+            std::vector<sio::message::ptr> k = event.get_messages().at(0).get()->get_vector();
+            std::vector<sio::message::ptr> v = event.get_messages().at(1).get()->get_vector();
+            size_t n = k.size();
+            for(size_t i = 0;i < n;i++){
+                // std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << std::endl;
+                u_int32_t off = static_cast<uint32_t>(std::stoul(k[i] -> get_string()));
+                u_int32_t type = static_cast<uint32_t>(std::stoul(v[i] -> get_string()));
 
-            ObservedValues* feedback = (ObservedValues*)(c->code() + off + 1);
-            u_int32_t *a = (u_int32_t*)feedback;
-            *a = type;
+                ObservedValues* feedback = (ObservedValues*)(c->code() + off + 1);
+                u_int32_t *a = (u_int32_t*)feedback;
+                *a = type;
+                // std::cout << off << " " << type << std::endl;
 
-        }
+            }
 
-    };
+        };
 
 
-    std::stringstream sstr;
-    sstr << c;
-
-    auto pauseForViz = [&] {
-        // std::cout << co << " " << sstr.str() << std::endl;
-        if(co != "*" and co != sstr.str()) return;
-        if(co == sstr.str()) co = "*";
         if (RshViz::getConnectionStatus()) {
             std::stringstream synPacket;
             synPacket << "[";
@@ -2223,6 +2229,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                 }
             }
             synPacket << name;
+            synPacket << ",\"" << (uintptr_t)pc << "\"";
             synPacket << "]";
 
             // Send syn request, send current basic status
@@ -2230,7 +2237,8 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
 
             // If the frontend requests for something like code object, stack data, etc send that
             RshViz::eventCallback = [&] (sio::event & event) {
-
+                // if(co != "*" and co != sstr.str()) return;
+                // if(co == sstr.str()) co = "*";
                 std::string requestId = event.get_message().get()->get_string();
                 std::cout << "[app <--> viz DATA-SEND] : " << requestId << std::endl;
 
@@ -2375,11 +2383,14 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
                         });
                         ss << "[";
                         for(auto it : mapp){
-                            ss << "{" << "\"" << it.first << "\":[" << "\"" << Print::dumpSexp(it.second.first) << "\"," << "\"" << it.second.second << "\"]}" << "," << '\n';
+                            std::string strval = Print::dumpSexp(it.second.first);
+                            if(strval.front() == '"') strval = strval.substr(1);
+                            if(strval.back() == '"') strval = strval.substr(0,strval.size() - 1);
+                            ss << "{" << "\"" << it.first << "\":[" << "\"" << strval << "\"," << "\"" << it.second.second << "\"]}" << "," << '\n';
                             // std::cout << it.second.second << " ---> " << Print::dumpSexp(it.second.first) << std::endl;
                         }
                         ss << "\"\"]";
-                        std::cout << "-----------" << std::endl;
+                        std::cout <<ss.str()<< std::endl;
                     }
                     else{
                         ss << "[";
@@ -2419,8 +2430,22 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             // sleep(1);
         }
     };
+    RshViz::step_over = [&](sio::event& event) {
+        std::cout << "stepped..." << std::endl;
+        // // co = event.get_message().get()->get_string();
+        // // if(c and c -> nativeCode()) co = "*";
+        // std::cout << "pc from stepped " << (uintptr_t)pc << std::endl;
+        std::string stepPC = event.get_message().get()->get_string();
+        uintptr_t nPC = static_cast<uintptr_t>(std::stoul(stepPC));
+        // std::cout << "stop pc from stepped " << nPC << std::endl;
+        isStepped = true;
+        pcc = nPC;
+        RshViz::onSynDone(event);
+        // dummy = pauseForViz;
+        // pauseForViz = temp;
+    };
 
-    if (c->nativeCode()) {
+    if (c->nativeCode() and (!isStepped or pcc == 1)) {
         pauseForViz();
     }
 
@@ -2829,7 +2854,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             ObservedValues* feedback = (ObservedValues*)pc;
             // u_int32_t *a = (u_int32_t*)feedback;
             // *a = 100;
-            std::cout << (c->code()) << std::endl;
+            // std::cout << (c->code()) << std::endl;
             SEXP t = ostack_top();
             // Rf_PrintValue(t);
             feedback->record(t);
@@ -4404,7 +4429,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
     }
 
 eval_done:
-    if(co == sstr.str()) co = "*";
+    // if(co == sstr.str()) co = "*";
     return ostack_pop();
 }
 
