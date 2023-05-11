@@ -2438,7 +2438,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         std::string stepPC = event.get_message().get()->get_string();
         uintptr_t nPC = static_cast<uintptr_t>(std::stoul(stepPC));
         // std::cout << "stop pc from stepped " << nPC << std::endl;
-        isStepped = true;
+        if(nPC != 0 and nPC != 1) isStepped = true;
         pcc = nPC;
         RshViz::onSynDone(event);
         // dummy = pauseForViz;
