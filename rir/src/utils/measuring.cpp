@@ -144,11 +144,12 @@ struct MeasuringImpl {
     }
 
     ~MeasuringImpl() {
-
-        RshViz::_eventLock.lock();
-        RshViz::current_socket->emit(RshViz::APP_END_PROG);
-        RshViz::_eventLock.unlock();
-        std::cout << "Program Ended..............."<< std::endl;
+        if (RshViz::getConnectionStatus()) {
+            RshViz::_eventLock.lock();
+            RshViz::current_socket->emit(RshViz::APP_END_PROG);
+            RshViz::_eventLock.unlock();
+            std::cout << "Program Ended..............."<< std::endl;
+        }
         end = std::chrono::high_resolution_clock::now();
         auto logfile = getenv("PIR_MEASURING_LOGFILE");
         if (logfile) {
