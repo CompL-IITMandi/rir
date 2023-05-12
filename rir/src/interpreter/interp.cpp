@@ -2177,20 +2177,28 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
 
         RshViz::mod_type = [&] (sio::event & event) {
         // std::cout << (c->code()) << std::endl;
-            std::vector<sio::message::ptr> k = event.get_messages().at(0).get()->get_vector();
-            std::vector<sio::message::ptr> v = event.get_messages().at(1).get()->get_vector();
-            size_t n = k.size();
-            for(size_t i = 0;i < n;i++){
-                // std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << std::endl;
-                u_int32_t off = static_cast<uint32_t>(std::stoul(k[i] -> get_string()));
-                u_int32_t type = static_cast<uint32_t>(std::stoul(v[i] -> get_string()));
+            std::string k = event.get_messages().at(0).get()->get_string();
+            std::string v = event.get_messages().at(1).get()->get_string();
+            std::string inst = event.get_messages().at(1).get()->get_string();
 
-                ObservedValues* feedback = (ObservedValues*)(c->code() + off + 1);
-                u_int32_t *a = (u_int32_t*)feedback;
+            // std::cout << k[i] -> get_string() << " ---> " << v[i] ->
+            // get_string() << std::endl;
+            u_int32_t off =
+                static_cast<uint32_t>(std::stoul(k));
+            u_int32_t type =
+                static_cast<uint32_t>(std::stoul(v));
+            if (inst == "record_type_") {
+                ObservedValues* feedback =
+                    (ObservedValues*)(c->code() + off + 1);
+                u_int32_t* a = (u_int32_t*)feedback;
                 *a = type;
-                // std::cout << off << " " << type << std::endl;
-
+            } else if (inst == "record_test_") {
+                ObservedTest* feedback = (ObservedTest*)(c->code() + off + 1);
+                u_int32_t* a = (u_int32_t*)feedback;
+                *a = type;
             }
+            // std::cout << off << " " << type << std::endl;
+
 
         };
 
