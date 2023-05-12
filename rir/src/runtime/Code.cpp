@@ -260,10 +260,20 @@ void Code::disassembleStream(std::stringstream& ss) {
             // }
             std::string bcData = insn.str();
             std::string type = out.str();
+            std::string f;
             bcData.erase(std::remove_if(bcData.begin(), bcData.end(), [](unsigned char c){ return std::isspace(c); }), bcData.end());
             type.erase(std::remove_if(type.begin(), type.end(), [](unsigned char c){ return std::isspace(c); }), type.end());
-
-            ss << "\"" <<bcData << "\",\"" << out.str() << "\",\"" << (uintptr_t)pc << "\"]";
+            if(type == "record_type_"){
+                ObservedValues* feedback = (ObservedValues*)pc;
+                u_int32_t* a = (u_int32_t*)feedback;
+                f = std::to_string(*a);
+            }
+            else if(type == "record_test_"){
+                ObservedTest* feedback = (ObservedTest*)pc;
+                u_int32_t* a = (u_int32_t*)feedback;
+                f = std::to_string(*a);
+            }
+            ss << "\"" <<bcData << "\",\"" << out.str() << "\",\"" << (uintptr_t)pc << "\",\"" << f << "\"]";
             pc = BC::next(pc);
             if (pc < endCode()) {
                 ss << ",";
