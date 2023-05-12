@@ -2179,7 +2179,7 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
         // std::cout << (c->code()) << std::endl;
             std::string k = event.get_messages().at(0).get()->get_string();
             std::string v = event.get_messages().at(1).get()->get_string();
-            std::string inst = event.get_messages().at(1).get()->get_string();
+            std::string inst = event.get_messages().at(2).get()->get_string();
 
             // std::cout << k[i] -> get_string() << " ---> " << v[i] ->
             // get_string() << std::endl;
