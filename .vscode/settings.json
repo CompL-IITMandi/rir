@@ -115,7 +115,9 @@
     "__memory": "cpp",
     "__bits": "cpp",
     "typeindex": "cpp",
-    "variant": "cpp"
-
+    "variant": "cpp",
+    "strstream": "cpp",
+    "hash_map": "cpp",
+    "hash_set": "cpp"
   }
 }

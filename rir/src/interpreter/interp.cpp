@@ -34,6 +34,11 @@
 #include <fstream>
 #include <string>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
+#include "utils/json.hpp"
+#pragma GCC diagnostic pop
+
 
 extern "C" {
 extern SEXP Rf_NewEnvironment(SEXP, SEXP, SEXP);
@@ -2093,71 +2098,6 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
 
     }
 
-    RshViz::mod_env = [&] (sio::event & event) {
-
-        if(TYPEOF(env) == ENVSXP){
-            REnvHandler env_h(env);
-            std::vector<sio::message::ptr> k = event.get_messages().at(0).get()->get_vector();
-            std::vector<sio::message::ptr> dt = event.get_messages().at(1).get()->get_vector();
-            std::vector<sio::message::ptr> v = event.get_messages().at(2).get()->get_vector();
-            size_t n = k.size();
-            // for(size_t i = 0;i < n;i++){
-            //     std::cout << k[i] -> get_string() << " ---> " << v[i] -> get_string() << " ---> " << dt[i] -> get_string() << std::endl;
-            // }
-
-            // const char *str = "1 + 2";
-
-            // R_ParseEvalString(str,env);
-            // int err = 0;
-            // // SEXP s = PROTECT(Rf_mkString(str));
-            // int status = 0;
-            // SEXP s = PROTECT(Rf_allocVector(STRSXP, 1));
-            // SEXP expr = PROTECT(R_ParseVector(s, -1, &status, R_NilValue));
-            // SET_STRING_ELT(s, 0, Rf_mkChar("1+2"));
-            // SEXP val = R_tryEvalSilent(s,env,&err);
-            //std::cout << TYPEOF(s) << std::endl;
-
-            // SEXP val = R_ParseEvalString("123L",env);
-            // std::cout << TYPEOF(val) << std::endl;
-            // size_t n = k.size();
-            for(size_t i = 0;i < n;i++){
-                std::string dtype = dt[i] -> get_string();
-                std::string key = k[i] -> get_string();
-                std::string value = v[i] -> get_string();
-                // std::cout << value << std::endl;
-                // double d = std::stod(value);
-                // env_h.set(key,Rf_ScalarReal(d));
-                SEXP result;
-                if(dtype == "real"){
-                    result = PROTECT(Rf_ScalarReal(std::stod(value)));
-                    env_h.set(key,result);
-                    UNPROTECT(1);
-                }
-                else if(dtype == "int"){
-                    result = PROTECT(Rf_ScalarInteger(std::stod(value)));
-                    env_h.set(key,result);
-                    UNPROTECT(1);
-                }
-                else if(dtype == "lgl"){
-                    result = PROTECT(Rf_ScalarLogical(std::stoi(value)));
-                    env_h.set(key,result);
-                    UNPROTECT(1);
-                }
-                else if(dtype == "str"){
-                    char s[value.size() + 1];
-                    strcpy(s, value.c_str());
-                    result = PROTECT(Rf_mkString(s));
-                    env_h.set(key,result);
-                    UNPROTECT(1);
-                }
-
-
-
-            }
-            std::cout << "Env Change Req" << std::endl;
-        }
-        else std::cout << "Not ENVSXP" << std::endl;
-    };
 
 
     // std::stringstream sstr;
@@ -2165,6 +2105,53 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
     // std::function<void()> dummy = [&]{};
     // std::function<void()> temp = [&]{};
     std::function<void()> pauseForViz = [&] {
+        RshViz::mod_env = [&] (sio::event & event) {
+            using json = nlohmann::json;
+            std::string modRequest = event.get_message().get()->get_string();
+            json data = json::parse(modRequest);
+            json keys = data[0];
+            json types = data[1];
+            json values = data[2];
+
+            if(TYPEOF(env) == ENVSXP){
+                size_t n = keys.size();
+                for(size_t i = 0;i < n;i++){
+                    std::cout << keys[i] << " ---> " << types[i] << " ---> " << values[i] << std::endl;
+                }
+
+                REnvHandler env_h(env);
+                for(size_t i = 0;i < n;i++) {
+                    std::string dtype = types[i];
+                    std::string key = keys[i];
+                    std::string value = values[i];
+                    SEXP result;
+                    if(dtype == "real"){
+                        result = PROTECT(Rf_ScalarReal(std::stod(value)));
+                        env_h.set(key,result);
+                        UNPROTECT(1);
+                    }
+                    else if(dtype == "int"){
+                        result = PROTECT(Rf_ScalarInteger(std::stod(value)));
+                        env_h.set(key,result);
+                        UNPROTECT(1);
+                    }
+                    else if(dtype == "lgl"){
+                        result = PROTECT(Rf_ScalarLogical(std::stoi(value)));
+                        env_h.set(key,result);
+                        UNPROTECT(1);
+                    }
+                    else if(dtype == "str"){
+                        char s[value.size() + 1];
+                        strcpy(s, value.c_str());
+                        result = PROTECT(Rf_mkString(s));
+                        env_h.set(key,result);
+                        UNPROTECT(1);
+                    }
+                }
+                // std::cout << "Env Change Req" << std::endl;
+            }
+            else std::cout << "Not ENVSXP" << std::endl;
+        };
         // std::cout << co << " " << sstr.str() << std::endl;
         // if(co != "*" and co != sstr.str()) return;
         // if(co == sstr.str()) co = "*";
