@@ -29,6 +29,10 @@ rir.markFunction <- function(what, which,
     }
 }
 
+rir.printFeedbackFromNumber <- function(what) {
+    .Call("printFeedbackFromNumber", what);
+}
+
 rir.functionVersions <- function(what) {
     .Call("rirFunctionVersions", what);
 }

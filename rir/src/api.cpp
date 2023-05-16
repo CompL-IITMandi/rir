@@ -87,6 +87,17 @@ REXPORT SEXP printASTToSink(SEXP what, SEXP where) {
     return R_NilValue;
 }
 
+REXPORT SEXP printFeedbackFromNumber(SEXP tfString) {
+    assert(TYPEOF(tfString) == STRSXP);
+    auto tfStr = CHAR(STRING_ELT(tfString, 0));
+    uint32_t tfContainer = std::stoul(tfStr);
+    std::cout << "Got number: " << tfContainer << std::endl;
+    ObservedValues* feedback = (ObservedValues*)&tfContainer;
+    feedback->print(std::cout);
+    std::cout << std::endl;
+    return R_NilValue;
+}
+
 REXPORT SEXP rirCompile(SEXP what, SEXP env) {
     if (TYPEOF(what) == CLOSXP) {
         SEXP body = BODY(what);

@@ -2152,40 +2152,23 @@ SEXP evalRirCode(Code* c, SEXP env, const CallContext* callCtxt,
             }
             else std::cout << "Not ENVSXP" << std::endl;
         };
-        // std::cout << co << " " << sstr.str() << std::endl;
-        // if(co != "*" and co != sstr.str()) return;
-        // if(co == sstr.str()) co = "*";
-        // if(isStepped and pcc != 4294967295){
-        //     if((uintptr_t)pc == pcc){
-        //         isStepped = false;
-        //     }
-        //     else return;
-        // }
 
         RshViz::mod_type = [&] (sio::event & event) {
-        // std::cout << (c->code()) << std::endl;
-            std::string k = event.get_messages().at(0).get()->get_string();
-            std::string v = event.get_messages().at(1).get()->get_string();
-            std::string inst = event.get_messages().at(2).get()->get_string();
+            using json = nlohmann::json;
+            std::string modRequest = event.get_message().get()->get_string();
+            // std::cout << "mod_type: " << modRequest << std::endl;
+            json data = json::parse(modRequest);
+            std::string offsetStr = data[0];
+            std::string valueStr = data[1];
+            // std::cout << "Offset:" << offsetStr << ", Value:" << valueStr << std::endl;
+            auto offset = std::stoi(offsetStr);
+            auto value = std::stoul(valueStr);
 
-            // std::cout << k[i] -> get_string() << " ---> " << v[i] ->
-            // get_string() << std::endl;
-            u_int32_t off =
-                static_cast<uint32_t>(std::stoul(k));
-            u_int32_t type =
-                static_cast<uint32_t>(std::stoul(v));
-            if (inst == "record_type_") {
-                ObservedValues* feedback =
-                    (ObservedValues*)(c->code() + off + 1);
-                u_int32_t* a = (u_int32_t*)feedback;
-                *a = type;
-            } else if (inst == "record_test_") {
-                ObservedTest* feedback = (ObservedTest*)(c->code() + off + 1);
-                u_int32_t* a = (u_int32_t*)feedback;
-                *a = type;
-            }
-            // std::cout << off << " " << type << std::endl;
+            // std::cout << "Offset:" << offset << ", Value:" << value << std::endl;
 
+            u_int32_t* runtimeFeedback =
+                (u_int32_t*)(c->code() + offset + 1);
+            *runtimeFeedback = value;
 
         };
 

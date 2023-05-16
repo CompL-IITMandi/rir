@@ -264,12 +264,12 @@ void Code::disassembleStream(std::stringstream& ss) {
             bcData.erase(std::remove_if(bcData.begin(), bcData.end(), [](unsigned char c){ return std::isspace(c); }), bcData.end());
             type.erase(std::remove_if(type.begin(), type.end(), [](unsigned char c){ return std::isspace(c); }), type.end());
             if(type == "record_type_"){
-                ObservedValues* feedback = (ObservedValues*)pc;
+                ObservedValues* feedback = (ObservedValues*)(pc + 1);
                 u_int32_t* a = (u_int32_t*)feedback;
                 f = std::to_string(*a);
             }
             else if(type == "record_test_"){
-                ObservedTest* feedback = (ObservedTest*)pc;
+                ObservedTest* feedback = (ObservedTest*)(pc + 1);
                 u_int32_t* a = (u_int32_t*)feedback;
                 f = std::to_string(*a);
             }
